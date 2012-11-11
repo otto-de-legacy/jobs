@@ -1,0 +1,15 @@
+apply plugin: 'idea'
+apply plugin: 'java'
+apply from: 'gradle/dependencies.gradle'
+
+version = '0.1-SNAPSHOT'
+group = 'de.otto'
+description = "A MongoDB based JobStore"
+
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
+
+repositories {
+    mavenCentral()
+}
+
