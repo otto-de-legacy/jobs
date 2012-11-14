@@ -9,6 +9,10 @@ public final class MongoIdRepository extends AbstractMongoRepository implements 
         super(mongo, dbName, collectionName);
     }
 
+    public MongoIdRepository(Mongo mongo, String dbName, String collectionName, String username, String password) {
+        super(mongo, dbName, collectionName, username, password);
+    }
+
     @Override
     public Long getId(final String collectionName) {
         final DBObject query = new BasicDBObject("_id", collectionName);
