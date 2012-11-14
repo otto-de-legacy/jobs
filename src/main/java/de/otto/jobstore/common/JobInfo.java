@@ -3,10 +3,7 @@ package de.otto.jobstore.common;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public final class JobInfo extends AbstractItem<JobInfo> {
 
@@ -102,7 +99,7 @@ public final class JobInfo extends AbstractItem<JobInfo> {
     public Map<String, String> getAdditionalData() {
         final DBObject additionalData = getProperty(ADDITIONAL_DATA);
         if (additionalData == null) {
-            return null;
+            return new HashMap<String, String>();
         } else {
             return additionalData.toMap();
         }
@@ -128,14 +125,16 @@ public final class JobInfo extends AbstractItem<JobInfo> {
     public List<LogLine> getLogLines() {
         final List<DBObject> logLines = getProperty(LOG_LINES);
         final List<LogLine> result = new ArrayList<LogLine>();
-        for (DBObject logLine : logLines) {
-            result.add(new LogLine(logLine));
+        if (logLines != null) {
+            for (DBObject logLine : logLines) {
+                result.add(new LogLine(logLine));
+            }
         }
         return result;
     }
 
     public String getLogLineString() {
-        if (getLogLines() == null) {
+        if (getLogLines().isEmpty()) {
             return null;
         }
         //
