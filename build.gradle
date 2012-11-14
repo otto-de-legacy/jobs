@@ -3,7 +3,7 @@ apply plugin: 'java'
 apply plugin: 'maven'
 apply from: 'gradle/dependencies.gradle'
 
-version = '0.1-SNAPSHOT'
+ext.versionNr = '0.1-SNAPSHOT'
 group = 'de.otto'
 description = "A MongoDB based JobStore"
 
@@ -22,6 +22,10 @@ artifacts {
     publishToNexus jar
 }
 
+test {
+    useTestNG()
+}
+
 uploadArchives {
     configuration = configurations.publishToNexus
     repositories {
@@ -30,9 +34,9 @@ uploadArchives {
                 authentication(userName: "lhotse_snapshot", password: "lhotse_snapshot123")
             }
             pom {
-                groupId = group
+                groupId = 'de.otto'
                 artifactId = 'lhotse-jobstore'
-                version = version
+                version = versionNr
             }
         }
     }
