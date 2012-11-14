@@ -1,5 +1,6 @@
 apply plugin: 'idea'
 apply plugin: 'java'
+apply plugin: 'maven'
 apply from: 'gradle/dependencies.gradle'
 
 version = '0.1-SNAPSHOT'
@@ -10,6 +11,29 @@ sourceCompatibility = 1.6
 targetCompatibility = 1.6
 
 repositories {
-    mavenCentral()
+    maven { url 'http://nexus.lhotse.ov.otto.de:8080/content/groups/public' }
 }
 
+configurations {
+    publishToNexus
+}
+
+artifacts {
+    publishToNexus jar
+}
+
+uploadArchives {
+    configuration = configurations.publishToNexus
+    repositories {
+        mavenDeployer {
+            repository(url: "http://nexus.lhotse.ov.otto.de:8080/content/repositories/snapshots") {
+                authentication(userName: "lhotse_snapshot", password: "lhotse_snapshot123")
+            }
+            pom {
+                groupId = group
+                artifactId = 'lhotse-jobstore'
+                version = version
+            }
+        }
+    }
+}
