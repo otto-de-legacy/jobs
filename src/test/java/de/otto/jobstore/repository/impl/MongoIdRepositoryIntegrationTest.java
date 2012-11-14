@@ -17,7 +17,7 @@ public class MongoIdRepositoryIntegrationTest {
     @BeforeClass
     public void init() throws Exception {
         Mongo mongo = new Mongo("127.0.0.1");
-        idRepository = new MongoIdRepository(mongo, "lhotse-jobs", "ids");
+        idRepository = new MongoIdRepository(mongo, "lhotse-jobs", "ids_test");
     }
 
     @BeforeMethod
