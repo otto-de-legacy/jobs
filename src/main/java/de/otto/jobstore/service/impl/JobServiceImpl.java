@@ -157,33 +157,8 @@ public final class JobServiceImpl implements JobService {
         jobInfoRepository.updateHostThreadInformation(name, InternetUtils.getHostName(), Thread.currentThread().getName());
 
         // execute async
-        Executors.newSingleThreadExecutor().submit(new Callable<Object>() {
-            @Override
-            public Object call() throws Exception {
-                try {
-                    final JobRunnable runnable = jobs.get(name);
-                    LOGGER.info("ltag=JobService.executeQueuedJob.executeJob jobInfoName={}", name);
-                    runnable.execute(new JobLogger() {
+        Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(name));
 
-                        @Override
-                        public void addLoggingData(String log) {
-                            jobInfoRepository.addLoggingData(name, log);
-                        }
-
-                        @Override
-                        public void insertOrUpdateAdditionalData(String key, String value) {
-                            jobInfoRepository.insertAdditionalData(name, key, value);
-                        }
-
-                    });
-                    jobInfoRepository.markAsFinishedSuccessfully(name);
-                } catch (Exception ex) {
-                    jobInfoRepository.markAsFinishedWithException(name, ex);
-                    throw ex;
-                }
-                return null;
-            }
-        });
         return true;
     }
 
@@ -200,6 +175,27 @@ public final class JobServiceImpl implements JobService {
             }
         }
         return true;
+    }
+
+    private class JobExecutionRunnable implements Runnable {
+
+        private final String jobName;
+
+        private JobExecutionRunnable(String jobName) {
+            this.jobName = jobName;
+        }
+
+        @Override
+        public void run() {
+            try {
+                final JobRunnable runnable = jobs.get(jobName);
+                LOGGER.info("ltag=JobService.executeQueuedJob.executeJob jobInfoName={}", jobName);
+                runnable.execute(new SimpleJobLogger(jobName, jobInfoRepository));
+                jobInfoRepository.markAsFinishedSuccessfully(jobName);
+            } catch (Exception ex) {
+                jobInfoRepository.markAsFinishedWithException(jobName, ex);
+            }
+        }
     }
 
 }
