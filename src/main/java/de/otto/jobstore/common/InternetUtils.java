@@ -7,6 +7,10 @@ public final class InternetUtils {
 
     private InternetUtils() {}
 
+    /**
+     * Returns the canonical hostname
+     * @return canonical hostname
+     */
     public static String getHostName() {
         try {
             final InetAddress address = InetAddress.getLocalHost();

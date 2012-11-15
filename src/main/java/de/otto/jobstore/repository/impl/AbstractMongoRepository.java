@@ -2,10 +2,15 @@ package de.otto.jobstore.repository.impl;
 
 import com.mongodb.*;
 import de.otto.jobstore.common.Item;
+import de.otto.jobstore.repository.api.Repository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-abstract class AbstractMongoRepository<E extends Item> {
+/**
+ * Abstract Class to access a MongoDb
+ * @param <E> The Class to be stored in the MongoDb, has to be of type {@link de.otto.jobstore.common.Item}
+ */
+abstract class AbstractMongoRepository<E extends Item> implements Repository {
 
     final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
     final DBCollection collection;
@@ -46,6 +51,10 @@ abstract class AbstractMongoRepository<E extends Item> {
             }
         }
         prepareCollection();
+    }
+
+    public final long count() {
+        return collection.count();
     }
 
     protected abstract void prepareCollection();

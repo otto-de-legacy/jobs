@@ -3,6 +3,7 @@ package de.otto.jobstore.service.impl;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.repository.NotFoundException;
 import de.otto.jobstore.repository.api.JobInfoRepository;
+import de.otto.jobstore.service.api.JobService;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -24,7 +25,7 @@ public class JobServiceTest {
     public void setUp() throws Exception {
         jobInfoRepository = mock(JobInfoRepository.class);
         //
-        jobService = new JobService(jobInfoRepository, true);
+        jobService = new JobServiceImpl(jobInfoRepository, true);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)

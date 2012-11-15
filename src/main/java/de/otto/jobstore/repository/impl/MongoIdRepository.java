@@ -14,12 +14,12 @@ public final class MongoIdRepository extends AbstractMongoRepository implements 
     }
 
     @Override
-    public Long getId(final String collectionName) {
-        final DBObject query = new BasicDBObject("_id", collectionName);
+    public Long getId(final String name) {
+        final DBObject query = new BasicDBObject("_id", name);
         final DBObject update = new BasicDBObject("$inc", new BasicDBObject("value", 1));
         final DBObject id = collection.findAndModify(query, update);
         if (id == null) {
-            collection.save(new BasicDBObjectBuilder().append("_id", collectionName)
+            collection.save(new BasicDBObjectBuilder().append("_id", name)
                     .append("value", 1L).get());
             return 0L;
         } else {

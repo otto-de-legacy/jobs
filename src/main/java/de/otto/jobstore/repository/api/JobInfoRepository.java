@@ -8,237 +8,273 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+/**
+ *
+ */
 public interface JobInfoRepository {
 
-    /***
-     * Prüft ob ein Job gerade ausgeführt wird. Ein Job gilt als laufend, wenn er nicht explizit beendet wurde,
-     * oder wenn das lastModifiedDate älter ist als im Timout angegeben.
+    /**
+     * Creates a new job with the given parameters
      *
-     * @param name Name des Jobs
-     * @return true - Der Job läuft noch<br/>
-     *          false - Der Job läuft nicht mehr
-     */
-    boolean hasRunningJob(String name);
-
-    /***
-     * Prüft ob ein Job existiert, der gequeued ist.
-     *
-     * @param name Name des Jobs
-     * @return true - Der Job ist gequeued<br/>
-     *          false - Der Job is nicht gequeued
-     */
-    boolean hasQueuedJob(String name);
-
-    /***
-     * Legt einen neuen Job an
-     *
-     * @param name Der Name des Jobs
-     * @param host Der Host, auf welchem der Job ausgeführt wird
-     * @param thread Der Thread, welcher den Job ausführt
-     * @param maxExecutionTime Nach dieser Zeit (in ms) gilt ein Job als tot (lastModifiedTime + timeout).<br/>
-     *                Ein keep alive ist durch insertOrUpdateAdditionalData möglich
-     * @param state Der Status, mit dem der Job starten soll
-     * @param additionalData Zusäzliche Daten, die mit dem Job gespeichert werden sollen
-     * @throws IllegalAccessError Thrown if a job with the same name is already running
+     * @param name The name of the job
+     * @param host The host, on which the job is running
+     * @param thread The thread, which runs the job
+     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param state The state with which the job is started
+     * @param additionalData Additional information to be stored with the job
+     * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     String create(String name, String host, String thread, long maxExecutionTime, RunningState state, Map<String, String> additionalData);
 
-    /***
-     * Legt einen neuen Job an
+    /**
+     * Creates a new job with the given parameters
      *
-     * @param name Der Name des Jobs
-     * @param host Der Host, auf welchem der Job ausgeführt wird
-     * @param thread Der Thread, welcher den Job ausführt
-     * @param maxExecutionTime Nach dieser Zeit (in ms) gilt ein Job als tot (lastModifiedTime + timeout).<br/>
-     *                Ein keep alive ist durch insertOrUpdateAdditionalData möglich
-     * @param state Der Status, mit dem der Job starten soll
-     * @throws IllegalAccessError Thrown if a job with the same name is already running
+     * @param name The name of the job
+     * @param host The host, on which the job is running
+     * @param thread The thread, which runs the job
+     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param state The state with which the job is started
+     * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     String create(String name, String host, String thread, long maxExecutionTime, RunningState state);
 
-    /***
-     * Legt einen neuen Job an
+    /**
+     * Creates a new job with the given parameters. Host and thread executing the job are determined automatically.
+     * The state of the job is set to running.
      *
-     * @param name Der Name des Jobs
-     * @param maxExecutionTime Nach dieser Zeit (in ms) gilt ein Job als tot (lastModifiedTime + timeout).<br/>
-     *                Ein keep alive ist durch insertOrUpdateAdditionalData möglich
-     * @throws IllegalAccessError Thrown if a job with the same name is already running
+     * @param name The name of the job
+     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     String create(String name, long maxExecutionTime);
 
     /**
-     * Legt einen neuen Job an, der Name des Hosts und des Threads werden automatisch bestimmt.
+     * Creates a new job with the given parameters. Host and thread executing the job are determined automatically.
      *
-     * @param name Der Name des Jobs
-     * @param maxExecutionTime Nach dieser Zeit (in ms) gilt ein Job als tot (lastModifiedTime + timeout).<br/>
-     *                Ein keep alive ist durch insertOrUpdateAdditionalData möglich
-     * @param state Der Status, mit dem der Job starten soll
-     * @throws IllegalAccessError Thrown if a job with the same name is already running
+     * @param name The name of the job
+     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param state The state with which the job is started
+     * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     String create(String name, long maxExecutionTime, RunningState state);
 
     /**
-     * Legt einen neuen Job an, der Name des Hosts und des Threads werden automatisch bestimmt.
+     * Creates a new job with the given parameters. Host and thread executing the job are determined automatically.
      *
-     * @param name Der Name des Jobs
-     * @param maxExecutionTime Nach dieser Zeit (in ms) gilt ein Job als tot (lastModifiedTime + timeout).<br/>
-     *                Ein keep alive ist durch insertOrUpdateAdditionalData möglich
-     * @param state Der Status, mit dem der Job starten soll
-     * @param additionalData Zusätzliche Daten, die mit dem Job angelegt werden sollen
-     * @throws IllegalAccessError Thrown if a job with the same name is already running
+     * @param name The name of the job
+     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param state The state with which the job is started
+     * @param additionalData Additional information to be stored with the job
+     * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     String create(String name, long maxExecutionTime, RunningState state, Map<String, String> additionalData);
 
     /**
-     * Markiert einen Job als beendet und legt dessen Status fest.
+     * Returns the running job with the given name
      *
-     * @param name Der Name des Jobs
-     * @param state Der Status, mit dem der Job beendet wurde
-     * @param errorMessage Eine optionale Fehlernachricht
-     */
-    boolean markAsFinished(String name, ResultState state, String errorMessage);
-
-    /**
-     * Markiert einen Job als beendet und legt dessen Status fest.
-     *
-     * @param name Der Name des Jobs
-     * @param state Der Status, mit dem der Job beendet wurde
-     */
-    boolean markAsFinished(String name, ResultState state);
-
-    /**
-     * Markiert einen Job als beendet mit einer Exception
-     *
-     * @param name Der Name des Jobs
-     * @param ex Die aufgetretene Exception
-     */
-    boolean markAsFinishedWithException(String name, Exception ex);
-
-    /**
-     * Markiert einen Job als erfolgreich beendet
-     *
-     * @param name Der Name des Jobs
-     */
-    boolean markAsFinishedSuccessfully(String name);
-
-    /**
-     * Fügt einem laufenden Job neue Informationen hinzu (Bereits existierende Informationen mit dem gleichen
-     * Schlüssel werden überschrieben).
-     *
-     * Die Operation setzt den lastModified Timestamp auf die aktuelle Zeit
-     *
-     * @param name Der Name des Jobs
-     * @param key Der Schlüssel unter der die Information gespeichert werden soll
-     * @param value Die zu speichernde Information
-     * @throws de.otto.jobstore.repository.NotFoundException Falls kein Job mit dem angegebenen Namen gefunden werden kann
-     */
-    boolean insertOrUpdateAdditionalData(String name, String key, String value);
-
-    /**
-     * Setzt des Status des Jobs auf active und den lastModified Timestamp auf die aktuelle Zeit
-     *
-     * @param name Der Name des Jobs
-     * @return true - Wenn der Job aktiviert werden konnte<br/>
-     *          false - Wenn der Job nicht aktiviert werden konnte (z.B. weil kein queue Job mehr existiert)
-     */
-    boolean activateQueuedJob(String name);
-
-    /**
-     * Lösche gequeuete Jobs mit diesem Namen
-     *
-     * @param name Der Name des Jobs
-     * @return true fals das Löschen erfolgreich war, ansonsten false.
-     */
-    boolean removeQueuedJob(String name);
-
-    boolean updateHostThreadInformation(String name, String host, String thread);
-
-    /**
-     * Liefert den Job mit dem angegebenen Namen, falls dieser läuft.
-     *
-     * @param name Der Name des Jobs
-     * @return Liefert den laufenden Job oder null falls kein laufender Job mit dem Namen gefunden werden kann
+     * @param name The name of the job
+     * @return The running job or null if no job with the given name is currently running
      */
     JobInfo findRunningByName(String name);
 
     /**
-     * Liefert den Job mit dem angegebenen Namen, falls dieser gequeueten ist.
+     * Checks if a job with the given name is currently running.
      *
-     * @param name Der Name des Jobs
-     * @return Liefert den gequeueten Job oder null falls kein gequeueter Job mit dem Namen gefunden werden kann
+     * @param name The name of the job
+     * @return true - A job with the given name is still running<br/>
+     *          false - A job with the given name is not running
+     */
+    boolean hasRunningJob(String name);
+
+    /**
+     * Returns the queued job with the given name
+     *
+     * @param name The name of the job
+     * @return The queued job of null if no job with the given name is currently queued
      */
     JobInfo findQueuedByName(String name);
 
+    /**
+     * Checks if a job with the given name is currently queued
+     *
+     * @param name The name of the job
+     * @return true - A job with the given name is queued<br/>
+     *          false - A job with the given name is not queued
+     */
+    boolean hasQueuedJob(String name);
+
+    /**
+     * Find a job by its id
+     *
+     * @param id The id of the job
+     * @return The job with the given id or null if no corresponding job was found.
+     */
+    JobInfo findById(String id);
+
+    /**
+     * Returns all jobs with the given name
+     *
+     * @param name The name of the jobs
+     * @return All jobs with the given name sorted descending by last modified date
+     */
+    List<JobInfo> findByName(String name);
+
+    /**
+     * Returns a list of jobs with the given name which have a lastModified timestamp
+     * which is in between the supplied dates. If the start and end parameter are null, the result list will contain
+     * all jobs with the supplied name.
+     *
+     * @param name The name of the jobs to return
+     * @param start The date on or after which the jobs were last modified
+     * @param end The date on or before which the jobs were last modified
+     * @return The list of jobs sorted by startTime in descending order
+     */
     List<JobInfo> findByNameAndTimeRange(String name, Date start, Date end);
 
     /**
-     * find the jobInfo with the specified id
+     * Returns the job with the given name and the most current last modified timestamp.
      *
-     * @param id the id of the job
-     * @return the fournd job or null, if no corresponding job was found
+     * @param name The name of the job
+     * @return The job with the given name and the most current timestamp or null if none could be found.
      */
-    public JobInfo findById(String id);
+    JobInfo findLastByName(String name);
 
     /**
-     * Liefert alle Jobs mit einem bestimmten Namen.
+     * Returns the job with the given name and result state as well as the most current last modified timestamp.
      *
-      * @param name Der Name der Jobs
-     * @return Alle Jobs welche den angegebenen Namen haben
+     * @param name The name of the job
+     * @return The job with the given name and result state as well as the most current timestamp or null
+     * if none could be found.
      */
-    List<JobInfo> findBy(String name);
+    JobInfo findLastByNameAndResultState(String name, ResultState resultState);
 
     /**
-     * Liefert den Job mit dem aktuellsten last modified Datum, unabhängig von dessen Status.
+     * Returns for all existing job names the job with the most current last modified timestamp regardless of its state.
      *
-     * @param name Der Name des Jobs
-     * @return Der Job mit dem aktuellsten last modified Datum
-     */
-    JobInfo findLastBy(String name);
-
-    JobInfo findLastByResultState(String name, ResultState resultState);
-
-    /**
-     * Liefert je vorhandenem Job-Namen den Job mit dem aktuellsten last modified
-     *
-     * @return Liste mit dem aktuellsten Job pro Namen
+     * @return The jobs with distinct names and the most current last modified timestamp
      */
     List<JobInfo> findLast();
 
+    /**
+     * Returns for all existing job names the job with the most current finished timestamp and a running state of
+     * neither running or queued.
+     *
+     * @return The jobs with distinct names and the most current last finished timestamp which is not running or queued
+     */
     List<JobInfo> findLastNotActive();
 
+    /**
+     * Returns the job with the given name which is not running or queued and which has the most current finished timestamp
+     *
+     * @param name The name of the job
+     * @return The job with the given name and most current finished timestamp
+     */
     JobInfo findLastNotActive(String name);
 
     /**
-     * Liefert je vorhandenem Job-Namen den Job mit dem aktuellsten last modified, welcher nicht Idle ist
+     * Returns for all existing job names the job with the most current finished timestamp and which has a result
+     * state other than idle
      *
-     * @return Liste mit dem aktuellsten Job pro Namen, der nicht Idle ist
+     * @return The jobs with distinct names and the most current finished timestamp and a result state other than idle
      */
     List<JobInfo> findLastWithNoIdleState();
 
     /**
-     * Liefer die letzten JobInfos für alle verfügbaren Jobs
-     * @return List aller Jobs inkl. JobInfos
-     */
-    Map<String, List<JobInfo>> distinctLastJobs(int count);
-
-    /**
-     * Liste aller unterschiedlichen Jobnamen
+     * Returns the list of all distinct job names within this repository
      *
-     * @return Die unterschiedlichen Jobnamen
+     * @return The list of distinct jobnames
      */
     List<String> distinctJobNames();
 
-    void clear();
-
-    long count();
-
-    /***
-     * remove all inactive jobs
+    /**
+     * Sets the status of the queued job with the given name to running. The lastModified date of the job is set
+     * to the current date.
+     *
+     * @param name The name of the job
+     * @return true - If the job with the given name was activated successfully<br/>
+     *          false - If no queued job with the current name could be found and thus could not activated
      */
-    void cleanup();
+    boolean activateQueuedJob(String name);
 
     /**
-     * Add logging information for the current running instance of this job.
+     * Removes a queued job with the given name.
+     *
+     * @param name The name of the job
+     * @return true - If the job was deleted successfully<br/>
+     *          false - If no queued job with the given name could be found
+     */
+    boolean removeQueuedJob(String name);
+
+    /**
+     * Marks a job with the given name as finished.
+     *
+     * @param name The name of the job
+     * @param state The result state of the job
+     * @return true - The job was marked as requested<br/>
+     *          false - No running job with the given name could be found
+     */
+    boolean markAsFinished(String name, ResultState state);
+
+    /**
+     * Marks a job with the given name as finished.
+     *
+     * @param name The name of the job
+     * @param state The result state of the job
+     * @param errorMessage An optional error message
+     * @return true - The job was marked as requested<br/>
+     *          false - No running job with the given name could be found
+     */
+    boolean markAsFinished(String name, ResultState state, String errorMessage);
+
+    /**
+     * Marks a job with the given name as finished with an error and writes the stack trace of the exception
+     * to the error message property of the job.
+     *
+     * @param name The name of the job
+     * @return true - The job was marked as requested<br/>
+     *          false - No running job with the given name could be found
+     */
+    boolean markAsFinishedWithException(String name, Exception ex);
+
+    /**
+     * Marks a job with the given name as finished successfully.
+     *
+     * @param name The name of the job
+     * @return true - The job was marked as requested<br/>
+     *          false - No running job with the given name could be found
+     */
+    boolean markAsFinishedSuccessfully(String name);
+
+    /**
+     * Adds additional data to a running job with the given name. If information with the given key already exists
+     * it is overwritten. The lastModified date of the job is set to the current date.
+     *
+     * @param name The name of the job
+     * @param key The key of the data to save
+     * @param value The information to save
+     * @return true - The data was successfully added to the job<br/>
+     *          false - No running job with the given name could be found
+     */
+    boolean insertAdditionalData(String name, String key, String value);
+
+    /**
+     * Updates the host and thread information on the running job with the given name
+     *
+     * @param name The name of the job
+     * @param host The host to set
+     * @param thread The thread to set
+     * @return true - The data was successfully added to the job<br/>
+               false - No running job with the given name could be found
+     */
+    boolean updateHostThreadInformation(String name, String host, String thread);
+
+    /**
+     * Adds a logging line to the logging data of the running job with the supplied name
+     *
+     * @param name The name of the job
+     * @param line The log line to add
+     * @return true - The data was successfully added to the job<br/>
+     *         false - No running job with the given name could be found
      */
     boolean addLoggingData(String name, String line);
 

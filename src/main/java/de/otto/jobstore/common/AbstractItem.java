@@ -2,10 +2,14 @@ package de.otto.jobstore.common;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
+import de.otto.jobstore.common.properties.ItemProperty;
 
 import java.io.Serializable;
 
-public abstract class AbstractItem<E> implements Item<E>, Serializable {
+/**
+ *  Abstract Class for Objects to be stored in MongoDB
+ */
+public abstract class AbstractItem implements Item, Serializable {
 
     private final DBObject dbObject;
 
@@ -22,17 +26,17 @@ public abstract class AbstractItem<E> implements Item<E>, Serializable {
         return dbObject;
     }
 
-    final void addProperty(final String key, final Object value) {
-        dbObject.put(key, value);
+    final void addProperty(final ItemProperty key, final Object value) {
+        dbObject.put(key.val(), value);
     }
 
     @SuppressWarnings("unchecked")
-    final <E> E getProperty(final String key) {
-        return (E) dbObject.get(key);
+    final <E> E getProperty(final ItemProperty key) {
+        return (E) dbObject.get(key.val());
     }
 
-    final boolean hasProperty(final String key) {
-        return dbObject.containsField(key);
+    final boolean hasProperty(final ItemProperty key) {
+        return dbObject.containsField(key.val());
     }
 
 }

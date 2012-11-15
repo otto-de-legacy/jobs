@@ -2,25 +2,14 @@ package de.otto.jobstore.common;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
+import de.otto.jobstore.common.properties.JobInfoProperty;
 
 import java.util.*;
 
-public final class JobInfo extends AbstractItem<JobInfo> {
+
+public final class JobInfo extends AbstractItem {
 
     private static final long serialVersionUID = 2454224303569320787L;
-
-    public static final String NAME = "name";
-    public static final String HOST = "host";
-    public static final String THREAD = "thread";
-    public static final String START_TIME = "startTime";
-    public static final String FINISH_TIME = "finishTime";
-    public static final String ERROR_MESSAGE = "errorMessage";
-    public static final String RUNNING_STATE = "runningState";
-    public static final String RESULT_STATE = "resultState";
-    private static final String TIMEOUT = "timeout";
-    public static final String LAST_MODIFICATION_TIME = "lastModificationTime";
-    public static final String ADDITIONAL_DATA = "additionalData";
-    public static final String LOG_LINES = "logLines";
 
     public JobInfo(DBObject dbObject) {
         super(dbObject);
@@ -36,18 +25,20 @@ public final class JobInfo extends AbstractItem<JobInfo> {
 
     public JobInfo(String name, String host, String thread, long timeout, RunningState state, Map<String, String> additionalData) {
         final Date dt = new Date();
-        addProperty(NAME, name);
-        addProperty(HOST, host);
-        addProperty(THREAD, thread);
-        addProperty(START_TIME, dt);
-        setRunningState(state.name());
+        addProperty(JobInfoProperty.NAME, name);
+        addProperty(JobInfoProperty.HOST, host);
+        addProperty(JobInfoProperty.THREAD, thread);
+        addProperty(JobInfoProperty.START_TIME, dt);
+        setRunningState(state);
         setLastModifiedTime(dt);
-        addProperty(TIMEOUT, timeout);
-        setAdditionalData(additionalData);
+        addProperty(JobInfoProperty.TIMEOUT, timeout);
+        if (additionalData != null) {
+            addProperty(JobInfoProperty.ADDITIONAL_DATA, new BasicDBObject(additionalData));
+        }
     }
 
     public String getId() {
-        final Object id = getProperty("_id");
+        final Object id = getProperty(JobInfoProperty.ID);
         if (id == null) {
             return null;
         } else {
@@ -56,19 +47,19 @@ public final class JobInfo extends AbstractItem<JobInfo> {
     }
 
     public String getName() {
-        return getProperty(NAME);
+        return getProperty(JobInfoProperty.NAME);
     }
 
     public String getHost() {
-        return getProperty(HOST);
+        return getProperty(JobInfoProperty.HOST);
     }
 
     public String getThread() {
-        return getProperty(THREAD);
+        return getProperty(JobInfoProperty.THREAD);
     }
 
     public Long getTimeout() {
-        return getProperty(TIMEOUT);
+        return getProperty(JobInfoProperty.TIMEOUT);
     }
 
     public Date getJobExpireTime() {
@@ -76,28 +67,28 @@ public final class JobInfo extends AbstractItem<JobInfo> {
     }
 
     public Date getStartTime() {
-        return getProperty(START_TIME);
+        return getProperty(JobInfoProperty.START_TIME);
     }
 
     public Date getFinishTime() {
-        return getProperty(FINISH_TIME);
+        return getProperty(JobInfoProperty.FINISH_TIME);
     }
 
     public void setFinishTime(Date finishTime) {
-        addProperty(FINISH_TIME, finishTime);
+        addProperty(JobInfoProperty.FINISH_TIME, finishTime);
     }
 
     public String getErrorMessage() {
-        return getProperty(ERROR_MESSAGE);
+        return getProperty(JobInfoProperty.ERROR_MESSAGE);
     }
 
     public void setErrorMessage(String errorMessage) {
-        addProperty(ERROR_MESSAGE, errorMessage);
+        addProperty(JobInfoProperty.ERROR_MESSAGE, errorMessage);
     }
 
     @SuppressWarnings("unchecked")
     public Map<String, String> getAdditionalData() {
-        final DBObject additionalData = getProperty(ADDITIONAL_DATA);
+        final DBObject additionalData = getProperty(JobInfoProperty.ADDITIONAL_DATA);
         if (additionalData == null) {
             return new HashMap<String, String>();
         } else {
@@ -105,25 +96,23 @@ public final class JobInfo extends AbstractItem<JobInfo> {
         }
     }
 
-    public void setAdditionalData(Map<String, String> additionalData) {
-        if (additionalData != null) {
-            addProperty(ADDITIONAL_DATA, new BasicDBObject(additionalData));
-        }
+    public void putAdditionalData(String key, String value) {
+        getAdditionalData().put(key, value);
     }
 
     public void appendLogLine(LogLine logLine) {
         final List<DBObject> logLines;
-        if (hasProperty(LOG_LINES)) {
-            logLines = getProperty(LOG_LINES);
+        if (hasProperty(JobInfoProperty.LOG_LINES)) {
+            logLines = getProperty(JobInfoProperty.LOG_LINES);
         } else {
             logLines = new ArrayList<DBObject>();
-            addProperty(LOG_LINES, logLines);
+            addProperty(JobInfoProperty.LOG_LINES, logLines);
         }
         logLines.add(logLine.toDbObject());
     }
 
     public List<LogLine> getLogLines() {
-        final List<DBObject> logLines = getProperty(LOG_LINES);
+        final List<DBObject> logLines = getProperty(JobInfoProperty.LOG_LINES);
         final List<LogLine> result = new ArrayList<LogLine>();
         if (logLines != null) {
             for (DBObject logLine : logLines) {
@@ -140,34 +129,37 @@ public final class JobInfo extends AbstractItem<JobInfo> {
         //
         final StringBuilder out = new StringBuilder();
         for (LogLine logLine : getLogLines()) {
-            //TODO: out.append(new DateTime(logLine.getTimestamp()));
             out.append(logLine.getTimestamp()).
                 append(": ").
                 append(logLine.getLine()).
                 append(System.getProperty("line.separator"));
         }
-        //TODO: return StringEscapeUtils.escapeHtml(out.toString());
         return out.toString();
     }
 
     public Date getLastModifiedTime() {
-        return getProperty(LAST_MODIFICATION_TIME);
+        return getProperty(JobInfoProperty.LAST_MODIFICATION_TIME);
     }
 
     public void setLastModifiedTime(Date lastModifiedTime) {
-        addProperty(LAST_MODIFICATION_TIME, lastModifiedTime);
+        addProperty(JobInfoProperty.LAST_MODIFICATION_TIME, lastModifiedTime);
     }
 
-    public String getRunningState() {
-        return getProperty(RUNNING_STATE);
+    public RunningState getRunningState() {
+        final String runningState = getProperty(JobInfoProperty.RUNNING_STATE);
+        if (runningState == null) {
+            return null;
+        } else {
+            return RunningState.valueOf(runningState);
+        }
     }
 
-    public void setRunningState(String runningState) {
-        addProperty(RUNNING_STATE, runningState);
+    public void setRunningState(RunningState runningState) {
+        addProperty(JobInfoProperty.RUNNING_STATE, runningState.name());
     }
 
     public ResultState getResultState() {
-        final String resultState = getProperty(RESULT_STATE);
+        final String resultState = getProperty(JobInfoProperty.RESULT_STATE);
         if (resultState == null) {
             return null;
         } else {
@@ -176,12 +168,11 @@ public final class JobInfo extends AbstractItem<JobInfo> {
     }
 
     public void setResultState(ResultState resultState) {
-        addProperty(RESULT_STATE, resultState.name());
+        addProperty(JobInfoProperty.RESULT_STATE, resultState.name());
     }
 
     public boolean isTimeoutReached() {
-        long currentTicks = new Date().getTime();
-        return currentTicks > getJobExpireTime().getTime();
+        return new Date().getTime() > getJobExpireTime().getTime();
     }
 
     public boolean isExpired(Date currentDate) {
@@ -199,7 +190,6 @@ public final class JobInfo extends AbstractItem<JobInfo> {
                 "\", \"timeout\":\"" + getTimeout() +
                 "\", \"finishTime\":\"" + getFinishTime() +
                 "\", \"lastModifiedTime\":\"" + getLastModifiedTime() +
-                //TODO: "\", \"additionalData\":\"" + StringUtils.unicodeEscape(additionalData.toString()) +
                 "\", \"additionalData\":\"" + getAdditionalData().toString() +
                 "\"}}";
     }

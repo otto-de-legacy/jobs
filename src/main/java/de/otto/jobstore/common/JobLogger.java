@@ -1,9 +1,21 @@
 package de.otto.jobstore.common;
 
+/**
+ * Interface for
+ */
 public interface JobLogger {
 
+    /**
+     *
+     * @param log
+     */
     void addLoggingData(String log);
-    void insertOrUpdateAdditionalData(String key, String value);
 
+    /**
+     *
+     * @param key
+     * @param value
+     */
+    void insertOrUpdateAdditionalData(String key, String value);
 
 }
