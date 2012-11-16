@@ -8,11 +8,9 @@ import de.otto.jobstore.repository.api.IdRepository;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import org.bson.types.ObjectId;
 
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
-import java.util.List;
 
 public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInfo> implements JobInfoRepository {
 
@@ -38,36 +36,28 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
     }
 
-    //-- Create Methods
-
-    @Override
-    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState, boolean forceExecution) {
-        return create(name, host, thread, maxExecutionTime, runningState, forceExecution, new HashMap<String, String>());
-    }
-
     @Override
     public String create(String name, long maxExecutionTime, RunningState runningState, boolean forceExecution) {
-        final String host = InternetUtils.getHostName();
-        final String thread = Thread.currentThread().getName();
+        return create(name, maxExecutionTime, runningState, forceExecution, new HashMap<String, String>());
+    }
+
+    @Override
+    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState,
+                         boolean forceExecution) {
         return create(name, host, thread, maxExecutionTime, runningState, forceExecution, new HashMap<String, String>());
     }
 
     @Override
-    public String create(String name, long maxExecutionTime, RunningState runningState, boolean forceExecution, Map<String, String> additionalData) {
+    public String create(String name, long maxExecutionTime, RunningState runningState, boolean forceExecution,
+                         Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
         return create(name, host, thread, maxExecutionTime, runningState, forceExecution, additionalData);
     }
 
     @Override
-    public String create(String name, long maxExecutionTime) {
-        final String host = InternetUtils.getHostName();
-        final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxExecutionTime, RunningState.RUNNING, false);
-    }
-
-    @Override
-    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState, boolean forceExecution, Map<String, String> additionalData) {
+    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState,
+                         boolean forceExecution, Map<String, String> additionalData) {
         try {
             LOGGER.info("Create job={} in state={} ...", name, runningState);
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, forceExecution, additionalData);
@@ -75,8 +65,8 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
             LOGGER.warn("job={} with state={} already exists, creation skipped!", name, runningState);
+            return null;
         }
-        return null;
     }
 
     @Override
@@ -91,20 +81,20 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
 
     @Override
     public JobInfo findRunningByName(String name) {
-        final DBObject jobInfo = collection.findOne(createFindByQuery(name, RunningState.RUNNING));
+        final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING));
         return fromDbObject(jobInfo);
     }
 
     @Override
     public JobInfo findQueuedByName(String name) {
-        final DBObject jobInfo = collection.findOne(createFindByQuery(name, RunningState.QUEUED));
+        final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED));
         return fromDbObject(jobInfo);
     }
 
     @Override
-    public List<JobInfo> findQueuedJobsAscByStartTime() {
+    public List<JobInfo> findQueuedJobsSortedAscByCreationTime() {
         final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name())).
-                sort(new BasicDBObject(JobInfoProperty.START_TIME.val(), SortOrder.ASC.val()));
+                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.ASC.val()));
         return getAll(cursor);
     }
 
@@ -118,7 +108,7 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
             query.append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), start));
         }
         final DBCursor cursor = collection.find(query.get()).
-                sort(new BasicDBObject(JobInfoProperty.START_TIME.val(), SortOrder.DESC.val()));
+                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
         return getAll(cursor);
     }
 
@@ -130,11 +120,10 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
         boolean created;
         try {
             LOGGER.info("Activate queued job={} ...", name);
-            final WriteResult result = collection.update(createFindByQuery(name, RunningState.QUEUED), update);
+            final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED), update);
             created = result.getN() == 1;
-
         } catch (MongoException.DuplicateKey e) {
-            LOGGER.warn("Activating Job with name {} failed as a running Job exists", name);
+            LOGGER.warn("Activating job with name {} failed as a running job already exists", name);
             created = false;
         }
         return created;
@@ -144,29 +133,30 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     public boolean updateHostThreadInformation(String name, String host, String thread) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.HOST.val(), host).append(JobInfoProperty.THREAD.val(), thread));
-        final WriteResult result = collection.update(createFindByQuery(name, RunningState.RUNNING), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING), update);
         return result.getN() == 1;
     }
 
     @Override
     public boolean removeQueuedJob(String name) {
-        LOGGER.info("Remove queued job={} ...", name);
-        final WriteResult result = collection.remove(createFindByQuery(name, RunningState.QUEUED));
-        return result.getLastError().ok();
+        final WriteResult result = collection.remove(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED));
+        return result.getN() == 1;
     }
 
     @Override
     public boolean markAsFinished(String name, ResultState state, String errorMessage) {
         final Long id = idRepository.getId("jobInfo");
+        final Date dt = new Date();
         final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
                 append(JobInfoProperty.RUNNING_STATE.val(), RunningState.FINISHED + "_" + id).
-                append(JobInfoProperty.FINISH_TIME.val(), new Date()).append(JobInfoProperty.RESULT_STATE.val(), state.name());
+                append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
+                append(JobInfoProperty.FINISH_TIME.val(), dt).
+                append(JobInfoProperty.RESULT_STATE.val(), state.name());
         if (errorMessage != null) {
             set.append(JobInfoProperty.ERROR_MESSAGE.val(), errorMessage);
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
-        LOGGER.info("Mark job={} as finished (errorMessage={}) ...", name, errorMessage);
-        final WriteResult result = collection.update(createFindByQuery(name, RunningState.RUNNING), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING), update);
         return result.getN() == 1;
     }
 
@@ -190,35 +180,50 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
 
     @Override
     public boolean insertAdditionalData(String name, String key, String value) {
-        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), new BasicDBObjectBuilder().
-                append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
-                append(JobInfoProperty.ADDITIONAL_DATA.val() + "." + key, value).get());
-        final WriteResult result = collection.update(createFindByQuery(name, RunningState.RUNNING), update);
+        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
+                new BasicDBObjectBuilder().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
+                        append(JobInfoProperty.ADDITIONAL_DATA.val() + "." + key, value).get());
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING), update);
         return result.getN() == 1;
     }
 
     @Override
     public JobInfo findById(String id) {
-        final DBObject obj = collection.findOne(new BasicDBObject("_id", new ObjectId(id)));
+        final DBObject obj = collection.findOne(new BasicDBObject(ID, new ObjectId(id)));
         return fromDbObject(obj);
     }
 
     @Override
     public List<JobInfo> findByName(String name) {
-        return findBy(name, null);
+        final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
+        final DBCursor cursor = collection.find(query.get()).sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val()));
+        return getAll(cursor);
     }
 
     @Override
     public JobInfo findLastByName(String name) {
-        final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.NAME.val(), name)).
+        final DBCursor cursor = collection.find(new BasicDBObject().
+                append(JobInfoProperty.NAME.val(), name)).
                 sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
         return getFirst(cursor);
     }
 
     @Override
     public JobInfo findLastByNameAndResultState(String name, ResultState state) {
-        final DBCursor cursor = collection.find(new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
-                append(JobInfoProperty.RESULT_STATE.val(), state.name())). sort(new BasicDBObject(JobInfoProperty.FINISH_TIME.val(), SortOrder.DESC.val())).limit(1);
+        final DBCursor cursor = collection.find(new BasicDBObject().
+                append(JobInfoProperty.NAME.val(), name).
+                append(JobInfoProperty.RESULT_STATE.val(), state.name())).
+                sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
+        return getFirst(cursor);
+    }
+
+    @Override
+    public JobInfo findLastNotActiveByName(String name) {
+        final DBCursor cursor = collection.find(new BasicDBObject().
+                append(JobInfoProperty.NAME.val(), name).
+                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NIN.op(),
+                        Arrays.asList(RunningState.RUNNING.name(), RunningState.QUEUED.name())))).
+                sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
         return getFirst(cursor);
     }
 
@@ -238,29 +243,7 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     public List<JobInfo> findLastNotActive() {
         final List<JobInfo> jobs = new ArrayList<JobInfo>();
         for (String name : distinctJobNames()) {
-            final JobInfo jobInfo = findLastNotActive(name);
-            if (jobInfo != null) {
-                jobs.add(jobInfo);
-            }
-        }
-        return jobs;
-    }
-
-    @Override
-    public JobInfo findLastNotActive(String name) {
-        final DBCursor cursor = collection.find(new BasicDBObject().
-                append(JobInfoProperty.NAME.val(), name).
-                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NIN.op(),
-                        Arrays.asList(RunningState.RUNNING.name(), RunningState.QUEUED.name())))).
-                sort(new BasicDBObject(JobInfoProperty.FINISH_TIME.val(), SortOrder.DESC.val())).limit(1);
-        return getFirst(cursor);
-    }
-
-    @Override
-    public List<JobInfo> findLastWithNoIdleState() {
-        final List<JobInfo> jobs = new ArrayList<JobInfo>();
-        for (String name : distinctJobNames()) {
-            final JobInfo jobInfo = findLastWithNoIdleState(name);
+            final JobInfo jobInfo = findLastNotActiveByName(name);
             if (jobInfo != null) {
                 jobs.add(jobInfo);
             }
@@ -275,13 +258,13 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public boolean addLoggingData(String jobname, String line) {
+    public boolean addLoggingData(String jobName, String line) {
         final Date dt = new Date();
         final LogLine logLine = new LogLine(line, dt);
         final DBObject update = new BasicDBObject().
                 append(MongoOperator.PUSH.op(), new BasicDBObject(JobInfoProperty.LOG_LINES.val(), logLine.toDbObject())).
                 append(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        final WriteResult result = collection.update(createFindByQuery(jobname, RunningState.RUNNING), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(jobName, RunningState.RUNNING), update);
         return result.getN() == 1;
     }
 
@@ -307,9 +290,9 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     public void cleanupTimedOutJobs() {
         final Date currentDate = new Date();
         if (hasRunningJob(JOBNAME_TIMEDOUT_CLEANUP)) {
-            final JobInfo timeoutCleanupJob = findRunningByName(JOBNAME_TIMEDOUT_CLEANUP);
-            if (timeoutCleanupJob.isExpired(currentDate)) {
-                markAsFinished(timeoutCleanupJob.getName(), ResultState.TIMEOUT);
+            final JobInfo cleanupJob = findRunningByName(JOBNAME_TIMEDOUT_CLEANUP);
+            if (cleanupJob.isExpired(currentDate)) {
+                markAsFinished(cleanupJob.getName(), ResultState.TIMEOUT);
             }
         }
         if (!hasRunningJob(JOBNAME_TIMEDOUT_CLEANUP)) {
@@ -351,25 +334,9 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
         return null;
     }
 
-    private DBObject createFindByQuery(String name, RunningState state) {
-        return new BasicDBObject().append(JobInfoProperty.NAME.val(), name).append(JobInfoProperty.RUNNING_STATE.val(), state.name());
-    }
-
-    private List<JobInfo> findBy(String name, Integer count) {
-        final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
-        final DBCursor cursor = collection.find(query.get()).sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val()));
-        if (count != null) {
-            cursor.batchSize(count);
-        }
-        return getAll(cursor);
-    }
-
-    private JobInfo findLastWithNoIdleState(String name) {
-        final DBCursor cursor = collection.find(new BasicDBObject().
-                append(JobInfoProperty.NAME.val(), name).
-                append(JobInfoProperty.RESULT_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), ResultState.IDLE.name()))).
-                sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
-        return getFirst(cursor);
+    private DBObject createFindByNameAndRunningStateQuery(String name, RunningState state) {
+        return new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
+                append(JobInfoProperty.RUNNING_STATE.val(), state.name());
     }
 
     private void cleanup(Date clearJobsBefore) {

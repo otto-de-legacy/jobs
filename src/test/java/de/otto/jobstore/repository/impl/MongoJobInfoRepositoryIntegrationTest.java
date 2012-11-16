@@ -43,8 +43,8 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testCreatingRunningJobWhichAlreadyExists() throws Exception {
-        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000));
-        assertNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000));
+        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.RUNNING, false));
+        assertNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.RUNNING, false));
     }
 
     @Test
@@ -172,7 +172,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
     }
 
     @Test
-    public void testAddWithLogline() throws Exception {
+    public void testAddWithLogLine() throws Exception {
         jobInfoRepository.create(TESTVALUE_JOBNAME + "LogLine", TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         JobInfo testJob = jobInfoRepository.findLastByName(TESTVALUE_JOBNAME + "LogLine");
         testJob.appendLogLine(new LogLine("foo", new Date()));
@@ -185,13 +185,13 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testFindingLastNotRunning() throws Exception {
-        jobInfoRepository.create("test", 1234567890);
+        jobInfoRepository.create("test", 1234567890, RunningState.RUNNING, false);
         jobInfoRepository.markAsFinished("test", ResultState.SUCCESS);
 
-        jobInfoRepository.create("test", 1234567890);
+        jobInfoRepository.create("test", 1234567890, RunningState.RUNNING, false);
         jobInfoRepository.markAsFinished("test", ResultState.ERROR);
 
-        jobInfoRepository.create("test", 1234567890);
+        jobInfoRepository.create("test", 1234567890, RunningState.RUNNING, false);
 
         List<JobInfo> jobs = jobInfoRepository.findLastNotActive();
         assertFalse(jobs.isEmpty());

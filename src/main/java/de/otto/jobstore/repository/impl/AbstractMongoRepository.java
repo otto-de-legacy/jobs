@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 abstract class AbstractMongoRepository<E extends Item> implements Repository {
 
     final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+    final String ID = "_id";
     final DBCollection collection;
 
     AbstractMongoRepository(Mongo mongo, String dbName, String collectionName) {
@@ -57,7 +58,7 @@ abstract class AbstractMongoRepository<E extends Item> implements Repository {
         return collection.count();
     }
 
-    protected abstract void prepareCollection();
+    protected void prepareCollection() {};
 
     final void save(E item) {
         collection.save(item.toDbObject());

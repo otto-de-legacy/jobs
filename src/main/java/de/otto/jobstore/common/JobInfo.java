@@ -28,7 +28,7 @@ public final class JobInfo extends AbstractItem {
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
-        addProperty(JobInfoProperty.START_TIME, dt);
+        addProperty(JobInfoProperty.CREATION_TIME, dt);
         addProperty(JobInfoProperty.FORCE_EXECUTION, forceExecution);
         setRunningState(state);
         setLastModifiedTime(dt);
@@ -72,7 +72,7 @@ public final class JobInfo extends AbstractItem {
     }
 
     public Date getStartTime() {
-        return getProperty(JobInfoProperty.START_TIME);
+        return getProperty(JobInfoProperty.CREATION_TIME);
     }
 
     public Date getFinishTime() {

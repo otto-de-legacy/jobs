@@ -97,7 +97,7 @@ public final class JobServiceImpl implements JobService {
     public void executeQueuedJobs() {
         if (executionEnabled) {
             LOGGER.info("ltag=JobServiceImpl.executeQueuedJobs");
-            for (JobInfo jobInfo : jobInfoRepository.findQueuedJobsAscByStartTime()) {
+            for (JobInfo jobInfo : jobInfoRepository.findQueuedJobsSortedAscByCreationTime()) {
                 executeQueuedJob(jobInfo);
             }
         }

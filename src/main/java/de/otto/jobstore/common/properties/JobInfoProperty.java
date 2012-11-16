@@ -12,7 +12,7 @@ public enum JobInfoProperty implements ItemProperty {
     NAME("name"),
     HOST("host"),
     THREAD("thread"),
-    START_TIME("startTime"),
+    CREATION_TIME("creationTime"),
     FINISH_TIME("finishTime"),
     FORCE_EXECUTION("forceExecution"),
     ERROR_MESSAGE("errorMessage"),
