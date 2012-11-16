@@ -1,4 +1,4 @@
-package de.otto.jobstore.repository;
+package de.otto.jobstore.common.exception;
 
 /**
  * Exception to Signal that the requested Element could not be found

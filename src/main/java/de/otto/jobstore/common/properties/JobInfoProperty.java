@@ -14,6 +14,7 @@ public enum JobInfoProperty implements ItemProperty {
     THREAD("thread"),
     START_TIME("startTime"),
     FINISH_TIME("finishTime"),
+    FORCE_EXECUTION("forceExecution"),
     ERROR_MESSAGE("errorMessage"),
     RUNNING_STATE("runningState"),
     RESULT_STATE("resultState"),

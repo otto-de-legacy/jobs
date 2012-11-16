@@ -5,7 +5,6 @@ import de.otto.jobstore.repository.api.JobInfoRepository;
 public final class SimpleJobLogger implements JobLogger {
 
     private final String jobName;
-
     private final JobInfoRepository jobInfoRepository;
 
     public SimpleJobLogger(String jobName, JobInfoRepository jobInfoRepository) {

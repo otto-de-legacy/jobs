@@ -20,15 +20,16 @@ public final class JobInfo extends AbstractItem {
     }
 
     public JobInfo(String name, String host, String thread, long timeout, RunningState state) {
-        this(name, host, thread, timeout, state, null);
+        this(name, host, thread, timeout, state, false, null);
     }
 
-    public JobInfo(String name, String host, String thread, long timeout, RunningState state, Map<String, String> additionalData) {
+    public JobInfo(String name, String host, String thread, long timeout, RunningState state, boolean forceExecution, Map<String, String> additionalData) {
         final Date dt = new Date();
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
         addProperty(JobInfoProperty.START_TIME, dt);
+        addProperty(JobInfoProperty.FORCE_EXECUTION, forceExecution);
         setRunningState(state);
         setLastModifiedTime(dt);
         addProperty(JobInfoProperty.TIMEOUT, timeout);
@@ -64,6 +65,10 @@ public final class JobInfo extends AbstractItem {
 
     public Date getJobExpireTime() {
         return new Date(getLastModifiedTime().getTime() + getTimeout());
+    }
+
+    public Boolean isForceExecution() {
+        return getProperty(JobInfoProperty.FORCE_EXECUTION);
     }
 
     public Date getStartTime() {

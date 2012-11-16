@@ -37,7 +37,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
     @Test
     public void testCreate() throws Exception {
         assertFalse(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING, false);
         assertTrue(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
     }
 
@@ -49,7 +49,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testQueuedJobNotQueuedAnyMore() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED, false);
         assertTrue(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
         assertFalse(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
     }
@@ -57,7 +57,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
     @Test
     public void testHasRunningJob() throws InterruptedException {
         assertFalse(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         Thread.sleep(200);
         assertTrue(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
         jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
@@ -67,7 +67,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testClear() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 300, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 300, RunningState.RUNNING, false);
         jobInfoRepository.clear(true);
         assertEquals(0L, jobInfoRepository.count());
     }
@@ -75,7 +75,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
     @Test(enabled = false) //TODO: causes to much trouble on jenkins execution
     public void testCreateTTL() throws Exception {
         assertFalse(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING, false);
         assertTrue(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
         Thread.sleep(100);
         jobInfoRepository.cleanupTimedOutJobs();
@@ -88,7 +88,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
     @Test
     public void testMarkAsFinished() throws Exception {
         assertNull(jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING, false);
         assertNull(jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getFinishTime());
         jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME, ResultState.SUCCESS, null);
         assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME).get(0).getFinishTime());
@@ -97,7 +97,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
     @Test(enabled = false)
     public void testCleanup_byIsFinished() {
         for(int i=0; i < 100; i++) {
-            jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 50000, RunningState.RUNNING);
+            jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 50000, RunningState.RUNNING, false);
         }
         assertEquals(100, jobInfoRepository.count());
         jobInfoRepository.clear(false);
@@ -113,7 +113,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
     @Test(enabled = false)
     public void testCleanup_byMaxExecutionTime() throws InterruptedException {
         for(int i=0; i < 100; i++) {
-            jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+            jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         }
         assertEquals(100, jobInfoRepository.count());
         jobInfoRepository.clear(false);
@@ -128,7 +128,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testAddOrUpdateAdditionalData_Insert() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         assertEquals(0, jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getAdditionalData().size());
         jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
         assertEquals(1, jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getAdditionalData().size());
@@ -137,7 +137,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testAddOrUpdateAdditionalData_Update() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
         jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value2");
         assertEquals(1, jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getAdditionalData().size());
@@ -146,18 +146,18 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testFindLastBy() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 2, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 3, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 2, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 3, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         assertEquals(3, jobInfoRepository.findLast().size());
         jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME + 1, ResultState.SUCCESS, null);
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         assertEquals(3, jobInfoRepository.findLast().size());
     }
 
     @Test(enabled = false)
     public void testByNameAndTimerange() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         //jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, "FINISHED_42");
         //jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, "FINISHED_73");
         assertEquals(3, jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, new Date(new Date().getTime() - 60 * 1000), null).size());
@@ -165,7 +165,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testFindLastByFinishDate() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         assertNull(jobInfoRepository.findLastByNameAndResultState(TESTVALUE_JOBNAME + 1, ResultState.SUCCESS));
         jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME + 1, ResultState.SUCCESS);
         assertNotNull(jobInfoRepository.findLastByNameAndResultState(TESTVALUE_JOBNAME + 1, ResultState.SUCCESS));
@@ -173,7 +173,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testAddWithLogline() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME + "LogLine", TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + "LogLine", TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         JobInfo testJob = jobInfoRepository.findLastByName(TESTVALUE_JOBNAME + "LogLine");
         testJob.appendLogLine(new LogLine("foo", new Date()));
         jobInfoRepository.save(testJob);

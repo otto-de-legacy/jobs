@@ -16,8 +16,8 @@ import java.util.List;
 
 public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInfo> implements JobInfoRepository {
 
-    private static final String JOBNAME_CLEANUP          = "MongoJobInfoRepository_Cleanup";
-    private static final String JOBNAME_TIMEDOUT_CLEANUP = "MongoJobInfoRepository_Timedout_Cleanup";
+    private static final String JOBNAME_CLEANUP          = "JobInfo_Cleanup";
+    private static final String JOBNAME_TIMEDOUT_CLEANUP = "JobInfo_TimedOut_Cleanup";
 
     private final IdRepository idRepository;
 
@@ -41,36 +41,36 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     //-- Create Methods
 
     @Override
-    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState) {
-        return create(name, host, thread, maxExecutionTime, runningState, new HashMap<String, String>());
+    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState, boolean forceExecution) {
+        return create(name, host, thread, maxExecutionTime, runningState, forceExecution, new HashMap<String, String>());
     }
 
     @Override
-    public String create(String name, long maxExecutionTime, RunningState runningState) {
+    public String create(String name, long maxExecutionTime, RunningState runningState, boolean forceExecution) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxExecutionTime, runningState, new HashMap<String, String>());
+        return create(name, host, thread, maxExecutionTime, runningState, forceExecution, new HashMap<String, String>());
     }
 
     @Override
-    public String create(String name, long maxExecutionTime, RunningState runningState, Map<String, String> additionalData) {
+    public String create(String name, long maxExecutionTime, RunningState runningState, boolean forceExecution, Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxExecutionTime, runningState, additionalData);
+        return create(name, host, thread, maxExecutionTime, runningState, forceExecution, additionalData);
     }
 
     @Override
     public String create(String name, long maxExecutionTime) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxExecutionTime, RunningState.RUNNING);
+        return create(name, host, thread, maxExecutionTime, RunningState.RUNNING, false);
     }
 
     @Override
-    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState, Map<String, String> additionalData) {
+    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState, boolean forceExecution, Map<String, String> additionalData) {
         try {
             LOGGER.info("Create job={} in state={} ...", name, runningState);
-            final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, additionalData);
+            final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, forceExecution, additionalData);
             save(jobInfo, WriteConcern.SAFE);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
@@ -99,6 +99,13 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     public JobInfo findQueuedByName(String name) {
         final DBObject jobInfo = collection.findOne(createFindByQuery(name, RunningState.QUEUED));
         return fromDbObject(jobInfo);
+    }
+
+    @Override
+    public List<JobInfo> findQueuedJobsAscByStartTime() {
+        final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name())).
+                sort(new BasicDBObject(JobInfoProperty.START_TIME.val(), SortOrder.ASC.val()));
+        return getAll(cursor);
     }
 
     @Override
@@ -286,7 +293,7 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
             }
         }
         if (!hasRunningJob(JOBNAME_CLEANUP)) {
-            create(JOBNAME_CLEANUP, 10 * 60 * 1000, RunningState.RUNNING);
+            create(JOBNAME_CLEANUP, 10 * 60 * 1000, RunningState.RUNNING, false);
             try {
                 cleanup(new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
                 markAsFinishedSuccessfully(JOBNAME_CLEANUP);
@@ -306,7 +313,7 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
             }
         }
         if (!hasRunningJob(JOBNAME_TIMEDOUT_CLEANUP)) {
-            create(JOBNAME_TIMEDOUT_CLEANUP, 10 * 60 * 1000, RunningState.RUNNING);
+            create(JOBNAME_TIMEDOUT_CLEANUP, 10 * 60 * 1000, RunningState.RUNNING, false);
             try {
                 final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
                 for (JobInfo jobInfo : getAll(cursor)) {

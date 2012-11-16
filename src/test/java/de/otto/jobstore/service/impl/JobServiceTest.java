@@ -1,15 +1,19 @@
 package de.otto.jobstore.service.impl;
 
 import de.otto.jobstore.common.*;
-import de.otto.jobstore.repository.NotFoundException;
+import de.otto.jobstore.common.exception.NotFoundException;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobService;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
@@ -36,7 +40,7 @@ public class JobServiceTest {
 
     @Test
     public void testStopAllJobs() throws Exception {
-        jobService.stopAllJobs();
+        jobService.shutdownJobs();
 
     }
 
@@ -88,7 +92,10 @@ public class JobServiceTest {
         when(jobInfoRepository.hasRunningJob("jobName2")).thenReturn(true);
         jobService.registerJob("jobName", createJobInfoCallable());
         jobService.registerJob("jobName2", createJobInfoCallable());
-        jobService.addRunningConstraint(Arrays.asList("jobName", "jobName2"));
+        Set<String> constraints = new HashSet<String>();
+        constraints.add("jobName");
+        constraints.add("jobName2");
+        jobService.addRunningConstraint(constraints);
         // ~
         Boolean executeQueuedJobResult = ReflectionTestUtils.invokeMethod(jobService, "executeQueuedJob", "jobName");
         assertFalse(executeQueuedJobResult);
@@ -136,7 +143,7 @@ public class JobServiceTest {
         when(jobInfoRepository.findRunningByName("jobName")).thenReturn(new JobInfo("jobName", InternetUtils.getHostName(), "bla", 60000L));
         jobService.registerJob("jobName", createJobInfoCallable());
         // ~
-        jobService.stopAllJobs();
+        jobService.shutdownJobs();
         verify(jobInfoRepository).markAsFinished("jobName", ResultState.ERROR, "Executing Host was shut down");
     }
 
@@ -145,7 +152,7 @@ public class JobServiceTest {
         jobService.registerJob("jobName", createJobInfoCallable());
         jobService.registerJob("jobName2", createJobInfoCallable());
         // ~
-        jobService.stopAllJobs();
+        jobService.shutdownJobs();
         verify(jobInfoRepository, never()).markAsFinished("jobName2", ResultState.ERROR, "Executing Host was shut down");
     }
 
@@ -214,20 +221,20 @@ public class JobServiceTest {
 
     @Test
     public void testQueueJob() throws Exception {
-        when(jobInfoRepository.create("jobName", 0, RunningState.QUEUED, new HashMap<String, String>())).thenReturn("");
+        when(jobInfoRepository.create("jobName", 0, RunningState.QUEUED, false, new HashMap<String, String>())).thenReturn("");
         jobService.registerJob("jobName", createJobInfoCallable(0, true));
         jobService.registerJob("jobName2", createJobInfoCallable(0, false));
         Assert.assertNotNull(jobService.queueJob("jobName"));
         Assert.assertNull(jobService.queueJob("jobName2"));
-        verify(jobInfoRepository).create("jobName", 0, RunningState.QUEUED, new HashMap<String, String>());
+        verify(jobInfoRepository).create("jobName", 0, RunningState.QUEUED, false, new HashMap<String, String>());
     }
 
     @Test
     public void testQueueJob_Force() throws Exception {
         HashMap<String, String> additionalData = new HashMap<String, String>();
         additionalData.put("forceExecution", "TRUE");
-        when(jobInfoRepository.create("jobName", 0, RunningState.QUEUED, additionalData)).thenReturn("");
-        when(jobInfoRepository.create("jobName2", 0, RunningState.QUEUED, additionalData)).thenReturn("");
+        when(jobInfoRepository.create("jobName", 0, RunningState.QUEUED, false, additionalData)).thenReturn("");
+        when(jobInfoRepository.create("jobName2", 0, RunningState.QUEUED, false, additionalData)).thenReturn("");
         jobService.registerJob("jobName", createJobInfoCallable(0, true));
         jobService.registerJob("jobName2", createJobInfoCallable(0, false));
         Assert.assertNotNull(jobService.queueJob("jobName", true));
@@ -239,18 +246,21 @@ public class JobServiceTest {
         jobService.registerJob("jobName", createJobInfoCallable());
         jobService.registerJob("jobName2", createJobInfoCallable());
         // ~
-        Boolean checkRunningConstraintResult = ReflectionTestUtils.invokeMethod(jobService, "checkRunningConstraint", "jobName");
-        assertTrue(checkRunningConstraintResult);
+        Boolean checkRunningConstraintResult = ReflectionTestUtils.invokeMethod(jobService, "violatesRunningConstraints", "jobName");
+        assertFalse(checkRunningConstraintResult);
     }
 
     @Test
     public void testCheckRunningConstraint_WithConstraint() throws Exception {
         jobService.registerJob("jobName", createJobInfoCallable());
         jobService.registerJob("jobName2", createJobInfoCallable());
-        jobService.addRunningConstraint(Arrays.asList("jobName", "jobName2"));
+        Set<String> constraints = new HashSet<String>();
+        constraints.add("jobName");
+        constraints.add("jobName2");
+        jobService.addRunningConstraint(constraints);
         //
-        Boolean checkRunningConstraintResult = ReflectionTestUtils.invokeMethod(jobService, "checkRunningConstraint", "jobName");
-        assertTrue(checkRunningConstraintResult);
+        Boolean checkRunningConstraintResult = ReflectionTestUtils.invokeMethod(jobService, "violatesRunningConstraints", "jobName");
+        assertFalse(checkRunningConstraintResult);
     }
 
     @Test
@@ -258,10 +268,13 @@ public class JobServiceTest {
         jobService.registerJob("jobName", createJobInfoCallable());
         jobService.registerJob("jobName2", createJobInfoCallable());
         when(jobInfoRepository.hasRunningJob("jobName2")).thenReturn(true);
-        jobService.addRunningConstraint(Arrays.asList("jobName", "jobName2"));
+        Set<String> constraints = new HashSet<String>();
+        constraints.add("jobName");
+        constraints.add("jobName2");
+        jobService.addRunningConstraint(constraints);
         //
-        Boolean checkRunningConstraintResult = ReflectionTestUtils.invokeMethod(jobService, "checkRunningConstraint", "jobName");
-        assertFalse(checkRunningConstraintResult);
+        Boolean checkRunningConstraintResult = ReflectionTestUtils.invokeMethod(jobService, "violatesRunningConstraints", "jobName");
+        assertTrue(checkRunningConstraintResult);
     }
 
     /***
