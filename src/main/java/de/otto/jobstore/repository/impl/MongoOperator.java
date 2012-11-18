@@ -8,17 +8,12 @@ package de.otto.jobstore.repository.impl;
 enum MongoOperator {
 
     GTE("$gte"),
-    //IN("$in"),
-    //INC("$inc"),
     LT("$lt"),
     LTE("$lte"),
     NE("$ne"),
     NIN("$nin"),
-    //OR("$or"),
     PUSH("$push"),
-    //RENAME("$rename"),
     SET("$set");
-    //UNSET("$unset");
 
     private final String op;
 
@@ -29,4 +24,5 @@ enum MongoOperator {
     public String op() {
         return op;
     }
+
 }

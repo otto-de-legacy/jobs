@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
+ * A repository which stores information on jobs. For each distinct job name only one job can be running or queued.
  */
 public interface JobInfoRepository {
 
@@ -251,13 +251,23 @@ public interface JobInfoRepository {
     boolean insertAdditionalData(String name, String key, String value);
 
     /**
+     * Updates the host and thread information on the running job with the given name. Host and thread information
+     * are determined automatically.
+     *
+     * @param name The name of the job
+     * @return true - The data was successfully added to the job<br/>
+               false - No running job with the given name could be found
+     */
+    boolean updateHostThreadInformation(String name);
+
+    /**
      * Updates the host and thread information on the running job with the given name
      *
      * @param name The name of the job
      * @param host The host to set
      * @param thread The thread to set
      * @return true - The data was successfully added to the job<br/>
-               false - No running job with the given name could be found
+    false - No running job with the given name could be found
      */
     boolean updateHostThreadInformation(String name, String host, String thread);
 
@@ -270,5 +280,19 @@ public interface JobInfoRepository {
      *         false - No running job with the given name could be found
      */
     boolean addLoggingData(String name, String line);
+
+    /**
+     * Clears all elements from the repository
+     *
+     * @param dropCollection Flag if the collection should be dropped
+     */
+    void clear(boolean dropCollection);
+
+    /**
+     * Counts the number of documents in the repository
+     *
+     * @return The number of documents in the repository
+     */
+    long count();
 
 }

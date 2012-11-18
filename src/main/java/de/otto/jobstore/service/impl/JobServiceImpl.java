@@ -7,6 +7,7 @@ import de.otto.jobstore.service.exception.JobNotRegisteredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +31,7 @@ public final class JobServiceImpl implements JobService {
      *
      * @param jobInfoRepository The jobInfo Repository to store the jobs in
      */
-    public JobServiceImpl(JobInfoRepository jobInfoRepository) {
+    public JobServiceImpl(final JobInfoRepository jobInfoRepository) {
         this.jobInfoRepository = jobInfoRepository;
         this.executionEnabled = true;
     }
@@ -41,13 +42,13 @@ public final class JobServiceImpl implements JobService {
      * @param jobInfoRepository The jobInfo Repository to store the jobs in
      * @param executionEnabled Flag if jobs will be executed. If set to false no jobs will be started
      */
-    public JobServiceImpl(JobInfoRepository jobInfoRepository, boolean executionEnabled) {
+    public JobServiceImpl(final JobInfoRepository jobInfoRepository, final boolean executionEnabled) {
         this.jobInfoRepository = jobInfoRepository;
         this.executionEnabled = executionEnabled;
     }
 
     @Override
-    public boolean registerJob(String name, JobRunnable runnable) {
+    public boolean registerJob(final String name, final JobRunnable runnable) {
         final boolean inserted;
         if (jobs.containsKey(name)) {
             inserted = false;
@@ -59,28 +60,28 @@ public final class JobServiceImpl implements JobService {
     }
 
     @Override
-    public boolean addRunningConstraint(Set<String> constraint) throws JobNotRegisteredException {
+    public boolean addRunningConstraint(final Set<String> constraint) throws JobNotRegisteredException {
         for (String name : constraint) {
             checkJobName(name);
         }
-        return runningConstraints.add(constraint);
+        return runningConstraints.add(Collections.unmodifiableSet(constraint));
     }
 
     public String executeJob(String name) throws JobNotRegisteredException {
         return executeJob(name, false);
     }
 
-    public String executeJob(String name, boolean forceExecution) throws JobNotRegisteredException {
+    public String executeJob(final String name, final boolean forceExecution) throws JobNotRegisteredException {
         final JobRunnable runnable = jobs.get(checkJobName(name));
         String id = null;
         if (jobInfoRepository.hasRunningJob(name) || violatesRunningConstraints(name)) {
-            id = jobInfoRepository.create(name, runnable.getMaxExecutionTime(), RunningState.QUEUED, true);
+            id = jobInfoRepository.create(name, runnable.getMaxExecutionTime(), RunningState.QUEUED, forceExecution);
             if (id != null) {
                 LOGGER.info("ltag=JobService.executeJob.queuedJob jobInfoName={} jobId={}", name, id);
             }
         } else {
             if (forceExecution || runnable.isExecutionNecessary()) {
-                id = jobInfoRepository.create(name, runnable.getMaxExecutionTime(), RunningState.RUNNING, true);
+                id = jobInfoRepository.create(name, runnable.getMaxExecutionTime(), RunningState.RUNNING, forceExecution);
                 if (id != null) {
                     LOGGER.info("ltag=JobService.executeJob.executedJob jobInfoName={} jobId={}", name, id);
                     executeJob(name, runnable);
@@ -104,19 +105,19 @@ public final class JobServiceImpl implements JobService {
     }
 
     @Override
-    public String queueJob(String name) throws JobNotRegisteredException {
+    public String queueJob(final String name) throws JobNotRegisteredException {
         return queueJob(name, false);
     }
 
     @Override
-    public String queueJob(String name, boolean forceExecution) {
+    public String queueJob(final String name, final boolean forceExecution) {
         final JobRunnable runnable = jobs.get(checkJobName(name));
         return jobInfoRepository.create(name, runnable.getMaxExecutionTime(), RunningState.QUEUED, forceExecution);
     }
 
     @Override
-    public boolean removeQueuedJob(String name) {
-        return jobInfoRepository.removeQueuedJob(name);
+    public boolean removeQueuedJob(final String name) {
+        return jobInfoRepository.removeQueuedJob(checkJobName(name));
     }
 
     @Override
@@ -137,23 +138,30 @@ public final class JobServiceImpl implements JobService {
     }
 
     @Override
-    public Set<String> jobNames() {
-        return jobs.keySet();
+    public Set<String> listJobNames() {
+        return Collections.unmodifiableSet(jobs.keySet());
     }
 
-    private void executeJob(String name, JobRunnable runnable) {
+    @Override
+    public Set<Set<String>> listRunningConstraints() {
+        return Collections.unmodifiableSet(runningConstraints);
+    }
+
+    private void executeJob(final String name, final JobRunnable runnable) {
         Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(name, runnable));
     }
 
     private void executeQueuedJob(final JobInfo jobInfo) {
         final String name = jobInfo.getName();
         final JobRunnable runnable = jobs.get(name);
-        if (violatesRunningConstraints(name)) {
+        if (jobInfoRepository.hasRunningJob(name)) {
+            LOGGER.debug("ltag=JobService.executeQueuedJob.alreadyRunning jobInfoName={}", name);
+        } else if (violatesRunningConstraints(name)) {
             LOGGER.debug("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={}", name);
         } else {
             if (jobInfo.isForceExecution() || runnable.isExecutionNecessary()) {
                 if (jobInfoRepository.activateQueuedJob(name)) {
-                    jobInfoRepository.updateHostThreadInformation(name, InternetUtils.getHostName(), Thread.currentThread().getName());
+                    jobInfoRepository.updateHostThreadInformation(name);
                     LOGGER.debug("ltag=JobService.executeQueuedJob.activatedQueuedJob jobInfoName={}", name);
                     executeJob(name, runnable);
                 } else {
@@ -167,7 +175,7 @@ public final class JobServiceImpl implements JobService {
         }
     }
 
-    private String checkJobName(String name) throws JobNotRegisteredException {
+    private String checkJobName(final String name) throws JobNotRegisteredException {
         if (jobs.containsKey(name)) {
             return name;
         } else {
@@ -175,7 +183,7 @@ public final class JobServiceImpl implements JobService {
         }
     }
 
-    private boolean violatesRunningConstraints(String name) {
+    private boolean violatesRunningConstraints(final String name) {
         for (Set<String> constraint : runningConstraints) {
             if (constraint.contains(name)) {
                 for (String constraintJobName : constraint) {

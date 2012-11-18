@@ -6,7 +6,10 @@ import de.otto.jobstore.service.exception.JobNotRegisteredException;
 import java.util.Set;
 
 /**
+ *  This service allows to handle multiple jobs and their associated runnables. A job has to be registered before it
+ *  can be executed or cued. The service allows only one queued and running job for each distinct job name.
  *
+ *  By adding running constraints it is possible to define jobs that are not allowed to run at the same time.
  */
 public interface JobService {
 
@@ -32,8 +35,8 @@ public interface JobService {
     boolean addRunningConstraint(Set<String> constraint) throws JobNotRegisteredException;
 
     /**
-     * Executes the job with the given name and returns its id. The job will be queued if a job is already running or
-     * running it would violate constraints. Before executing the job it is checked if its execution is necessary.
+     * Executes the job with the given name asynchronously and returns its id. The job will be queued if a job is already
+     * running or running it would violate constraints. Before executing the job it is checked if its execution is necessary.
      *
      * @param name The name of the job to execute
      * @return The id of the job or null if no job could be executed/cued or no execution was necessary
@@ -42,8 +45,8 @@ public interface JobService {
     String executeJob(String name) throws JobNotRegisteredException;
 
     /**
-     * Executes the job with the given name and returns its id. The job will be queued if a job is already running or
-     * running it would violate constraints. Before executing the job it is checked if its execution is necessary.
+     * Executes the job with the given name asynchronously and returns its id. The job will be queued if a job is already
+     * running or running it would violate constraints. Before executing the job it is checked if its execution is necessary.
      *
      * @param name The name of the job to execute
      * @param forceExecution If true the job will be executed even if the result from
@@ -54,7 +57,7 @@ public interface JobService {
     String executeJob(String name, boolean forceExecution) throws JobNotRegisteredException;
 
     /**
-     * Executes all queued jobs registered with this JobService instance in the order they were queued
+     * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
      */
     void executeQueuedJobs();
 
@@ -92,9 +95,17 @@ public interface JobService {
 
     /**
      * Returns the Names of all registered jobs
+     *
      * @return The set of names registered with the JobService instance
      */
-    Set<String> jobNames();
+    Set<String> listJobNames();
+
+    /**
+     * Returns the Set of all constraints
+     *
+     * @return The set of constraints registered with the JobService instance
+     */
+    Set<Set<String>> listRunningConstraints();
 
     /**
      * Stops all jobs registered with this JobService and running on this host.

@@ -25,8 +25,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
     @BeforeClass
     public void init() throws Exception {
         Mongo mongo = new Mongo("127.0.0.1");
-        jobInfoRepository = new MongoJobInfoRepository(mongo, "lhotse-jobs", "jobs_test",
-                new MongoIdRepository(mongo, "lhotse-jobs", "ids_test"));
+        jobInfoRepository = new MongoJobInfoRepository(mongo, "lhotse-jobs", "jobs_test");
     }
 
     @BeforeMethod
@@ -100,24 +99,24 @@ public class MongoJobInfoRepositoryIntegrationTest {
             jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 50000, RunningState.RUNNING, false);
         }
         assertEquals(100, jobInfoRepository.count());
-        jobInfoRepository.clear(false);
+        jobInfoRepository.cleanup(new Date());
         assertEquals(100, jobInfoRepository.count());
         // mark as finished
         for(int i=0; i < 100; i++) {
             jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME + i, ResultState.SUCCESS, null);
         }
-        jobInfoRepository.clear(false);
+        jobInfoRepository.cleanup(new Date());
         assertEquals(0, jobInfoRepository.count());
     }
 
-    @Test(enabled = false)
+    @Test
     public void testCleanup_byMaxExecutionTime() throws InterruptedException {
         for(int i=0; i < 100; i++) {
             jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         }
         assertEquals(100, jobInfoRepository.count());
-        jobInfoRepository.clear(false);
-        assertEquals(100, jobInfoRepository.count());
+        jobInfoRepository.cleanupTimedOutJobs();
+        assertEquals(101, jobInfoRepository.count()); //Including cleanup Job
         // mark as finished
         Thread.sleep(1000);
         jobInfoRepository.cleanupTimedOutJobs();
@@ -155,12 +154,11 @@ public class MongoJobInfoRepositoryIntegrationTest {
         assertEquals(3, jobInfoRepository.findLast().size());
     }
 
-    @Test(enabled = false)
+    @Test
     public void testByNameAndTimerange() {
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
-        //jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, "FINISHED_42");
-        //jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, "FINISHED_73");
-        assertEquals(3, jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, new Date(new Date().getTime() - 60 * 1000), null).size());
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, false);
+        assertEquals(2, jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, new Date(new Date().getTime() - 60 * 1000), null).size());
     }
 
     @Test
@@ -200,6 +198,18 @@ public class MongoJobInfoRepositoryIntegrationTest {
         assertEquals(ResultState.ERROR, job.getResultState());
     }
 
-
-
+    @Test
+    public void testFindQueuedJobsSortedAscByCreationTime() throws Exception {
+        List<JobInfo> jobs = jobInfoRepository.findQueuedJobsSortedAscByCreationTime();
+        assertTrue(jobs.isEmpty());
+        jobInfoRepository.create("test", 1000, RunningState.QUEUED, false);
+        Thread.sleep(100);
+        jobInfoRepository.create("test2", 1000, RunningState.QUEUED, false);
+        Thread.sleep(100);
+        jobInfoRepository.create("test3", 1000, RunningState.QUEUED, false);
+        Thread.sleep(100);
+        jobs = jobInfoRepository.findQueuedJobsSortedAscByCreationTime();
+        assertEquals("test", jobs.get(0).getName());
+        assertEquals("test3", jobs.get(2).getName());
+    }
 }

@@ -4,60 +4,67 @@ package de.otto.jobstore.repository.impl;
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
-import de.otto.jobstore.repository.api.IdRepository;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
 
-public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInfo> implements JobInfoRepository {
+public final class MongoJobInfoRepository implements JobInfoRepository {
 
-    private static final String JOBNAME_CLEANUP          = "JobInfo_Cleanup";
-    private static final String JOBNAME_TIMEDOUT_CLEANUP = "JobInfo_TimedOut_Cleanup";
+    private static final String JOB_NAME_CLEANUP = "JobInfo_Cleanup";
+    private static final String JOB_NAME_TIMED_OUT_CLEANUP = "JobInfo_TimedOut_Cleanup";
 
-    private final IdRepository idRepository;
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoJobInfoRepository.class);
+    private final DBCollection collection;
 
-    public MongoJobInfoRepository(Mongo mongo, String dbName, String collectionName, IdRepository idRepository) {
-        super(mongo, dbName, collectionName);
-        this.idRepository = idRepository;
+    public MongoJobInfoRepository(final Mongo mongo, final String dbName, final String collectionName) {
+        this(mongo, dbName, collectionName, null, null);
     }
 
-    public MongoJobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password, IdRepository idRepository) {
-        super(mongo, dbName, collectionName, username, password);
-        this.idRepository = idRepository;
-    }
-
-    protected void prepareCollection() {
-        collection.ensureIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
-        collection.ensureIndex(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1));
-        collection.ensureIndex(new BasicDBObject().
-                append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
+    public MongoJobInfoRepository(final Mongo mongo, final String dbName, final String collectionName, final String username, final String password) {
+        final DB db = mongo.getDB(dbName);
+        if (username != null && !username.isEmpty()) {
+            if (db.isAuthenticated()) {
+                final boolean authenticateSuccess = db.authenticate(username, password.toCharArray());
+                if (!authenticateSuccess) {
+                    throw new RuntimeException("The authentication at the database: " + dbName + " on the host: " +
+                            mongo.getAddress() + " with the username: " + username + " and the given password was not successful");
+                } else {
+                    LOGGER.info("Login at database {} on the host {} was successful", dbName, mongo.getAddress());
+                }
+            }
+        }
+        collection = db.getCollection(collectionName);
+        LOGGER.info("Prepare access to MongoDB collection '{}' on {}/{}", new Object[]{collectionName, mongo, dbName});
+        prepareCollection();
     }
 
     @Override
-    public String create(String name, long maxExecutionTime, RunningState runningState, boolean forceExecution) {
+    public String create(final String name, final long maxExecutionTime, final RunningState runningState, final boolean forceExecution) {
         return create(name, maxExecutionTime, runningState, forceExecution, new HashMap<String, String>());
     }
 
     @Override
-    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState,
-                         boolean forceExecution) {
+    public String create(final String name, final String host, final String thread, final long maxExecutionTime,
+                         final RunningState runningState, final boolean forceExecution) {
         return create(name, host, thread, maxExecutionTime, runningState, forceExecution, new HashMap<String, String>());
     }
 
     @Override
-    public String create(String name, long maxExecutionTime, RunningState runningState, boolean forceExecution,
-                         Map<String, String> additionalData) {
+    public String create(final String name, final long maxExecutionTime, final RunningState runningState,
+                         final boolean forceExecution, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
         return create(name, host, thread, maxExecutionTime, runningState, forceExecution, additionalData);
     }
 
     @Override
-    public String create(String name, String host, String thread, long maxExecutionTime, RunningState runningState,
-                         boolean forceExecution, Map<String, String> additionalData) {
+    public String create(final String name, final String host, final String thread, final long maxExecutionTime,
+                         final RunningState runningState, final boolean forceExecution, final Map<String, String> additionalData) {
         try {
             LOGGER.info("Create job={} in state={} ...", name, runningState);
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, forceExecution, additionalData);
@@ -70,23 +77,23 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public boolean hasRunningJob(String name) {
+    public boolean hasRunningJob(final String name) {
         return findRunningByName(name) != null;
     }
 
     @Override
-    public boolean hasQueuedJob(String name) {
+    public boolean hasQueuedJob(final String name) {
         return findQueuedByName(name) != null;
     }
 
     @Override
-    public JobInfo findRunningByName(String name) {
+    public JobInfo findRunningByName(final String name) {
         final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING));
         return fromDbObject(jobInfo);
     }
 
     @Override
-    public JobInfo findQueuedByName(String name) {
+    public JobInfo findQueuedByName(final String name) {
         final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED));
         return fromDbObject(jobInfo);
     }
@@ -99,7 +106,7 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public List<JobInfo> findByNameAndTimeRange(String name, Date start, Date end) {
+    public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
         if (start != null) {
             query.append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new BasicDBObject(MongoOperator.GTE.op(), start));
@@ -113,7 +120,7 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public boolean activateQueuedJob(String name) {
+    public boolean activateQueuedJob(final String name) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()));
@@ -130,7 +137,12 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public boolean updateHostThreadInformation(String name, String host, String thread) {
+    public boolean updateHostThreadInformation(final String name) {
+        return updateHostThreadInformation(name, InternetUtils.getHostName(), Thread.currentThread().getName());
+    }
+
+    @Override
+    public boolean updateHostThreadInformation(final String name, final String host, final String thread) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.HOST.val(), host).append(JobInfoProperty.THREAD.val(), thread));
         final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING), update);
@@ -138,17 +150,17 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public boolean removeQueuedJob(String name) {
+    public boolean removeQueuedJob(final String name) {
         final WriteResult result = collection.remove(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED));
         return result.getN() == 1;
     }
 
     @Override
-    public boolean markAsFinished(String name, ResultState state, String errorMessage) {
-        final Long id = idRepository.getId("jobInfo");
+    public boolean markAsFinished(final String name, final ResultState state, final String errorMessage) {
+        final String uuid = UUID.randomUUID().toString();
         final Date dt = new Date();
         final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
-                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.FINISHED + "_" + id).
+                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.FINISHED + "_" + uuid).
                 append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
                 append(JobInfoProperty.FINISH_TIME.val(), dt).
                 append(JobInfoProperty.RESULT_STATE.val(), state.name());
@@ -161,12 +173,12 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public boolean markAsFinished(String name, ResultState state) {
+    public boolean markAsFinished(final String name, final ResultState state) {
         return markAsFinished(name, state, null);
     }
 
     @Override
-    public boolean markAsFinishedWithException(String name, Exception ex) {
+    public boolean markAsFinishedWithException(final String name, final Exception ex) {
         final StringWriter sw = new StringWriter();
         ex.printStackTrace(new PrintWriter(sw));
         return markAsFinished(name, ResultState.ERROR,
@@ -174,12 +186,12 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public boolean markAsFinishedSuccessfully(String name) {
+    public boolean markAsFinishedSuccessfully(final String name) {
         return markAsFinished(name, ResultState.SUCCESS);
     }
 
     @Override
-    public boolean insertAdditionalData(String name, String key, String value) {
+    public boolean insertAdditionalData(final String name, final String key, final String value) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObjectBuilder().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
                         append(JobInfoProperty.ADDITIONAL_DATA.val() + "." + key, value).get());
@@ -188,20 +200,20 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public JobInfo findById(String id) {
-        final DBObject obj = collection.findOne(new BasicDBObject(ID, new ObjectId(id)));
+    public JobInfo findById(final String id) {
+        final DBObject obj = collection.findOne(new BasicDBObject("_id", new ObjectId(id)));
         return fromDbObject(obj);
     }
 
     @Override
-    public List<JobInfo> findByName(String name) {
+    public List<JobInfo> findByName(final String name) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
         final DBCursor cursor = collection.find(query.get()).sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val()));
         return getAll(cursor);
     }
 
     @Override
-    public JobInfo findLastByName(String name) {
+    public JobInfo findLastByName(final String name) {
         final DBCursor cursor = collection.find(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), name)).
                 sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
@@ -209,7 +221,7 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public JobInfo findLastByNameAndResultState(String name, ResultState state) {
+    public JobInfo findLastByNameAndResultState(final String name, final ResultState state) {
         final DBCursor cursor = collection.find(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), name).
                 append(JobInfoProperty.RESULT_STATE.val(), state.name())).
@@ -218,7 +230,7 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public JobInfo findLastNotActiveByName(String name) {
+    public JobInfo findLastNotActiveByName(final String name) {
         final DBCursor cursor = collection.find(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), name).
                 append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NIN.op(),
@@ -258,7 +270,7 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
     }
 
     @Override
-    public boolean addLoggingData(String jobName, String line) {
+    public boolean addLoggingData(final String jobName, final String line) {
         final Date dt = new Date();
         final LogLine logLine = new LogLine(line, dt);
         final DBObject update = new BasicDBObject().
@@ -268,35 +280,57 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
         return result.getN() == 1;
     }
 
+    @Override
+    public void clear(final boolean dropCollection) {
+        LOGGER.info("Going to clear all entities on collection: {}", collection.getFullName());
+        if (dropCollection) {
+            collection.drop();
+        } else {
+            final WriteResult wr = collection.remove(new BasicDBObject());
+            final CommandResult cr = wr.getLastError(WriteConcern.SAFE);
+            if (cr.ok()) {
+                LOGGER.info("Cleared all entities successfully on collection: {}", collection.getFullName());
+            } else {
+                LOGGER.error("Could not clear entities on collection {}: {}", collection.getFullName(), cr.getErrorMessage());
+            }
+        }
+        prepareCollection();
+    }
+
+    @Override
+    public long count() {
+        return collection.count();
+    }
+
     public void cleanupOldJobs() {
-        if (hasRunningJob(JOBNAME_CLEANUP)) {
-            final JobInfo cleanupJob = findRunningByName(JOBNAME_CLEANUP);
+        if (hasRunningJob(JOB_NAME_CLEANUP)) {
+            final JobInfo cleanupJob = findRunningByName(JOB_NAME_CLEANUP);
             if (cleanupJob.isExpired(new Date())) {
                 markAsFinished(cleanupJob.getName(), ResultState.TIMEOUT);
             }
         }
-        if (!hasRunningJob(JOBNAME_CLEANUP)) {
-            create(JOBNAME_CLEANUP, 10 * 60 * 1000, RunningState.RUNNING, false);
+        if (!hasRunningJob(JOB_NAME_CLEANUP)) {
+            create(JOB_NAME_CLEANUP, 10 * 60 * 1000, RunningState.RUNNING, false);
             try {
                 cleanup(new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
-                markAsFinishedSuccessfully(JOBNAME_CLEANUP);
+                markAsFinishedSuccessfully(JOB_NAME_CLEANUP);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage(), e);
-                markAsFinishedWithException(JOBNAME_CLEANUP, e);
+                markAsFinishedWithException(JOB_NAME_CLEANUP, e);
             }
         }
     }
 
     public void cleanupTimedOutJobs() {
         final Date currentDate = new Date();
-        if (hasRunningJob(JOBNAME_TIMEDOUT_CLEANUP)) {
-            final JobInfo cleanupJob = findRunningByName(JOBNAME_TIMEDOUT_CLEANUP);
+        if (hasRunningJob(JOB_NAME_TIMED_OUT_CLEANUP)) {
+            final JobInfo cleanupJob = findRunningByName(JOB_NAME_TIMED_OUT_CLEANUP);
             if (cleanupJob.isExpired(currentDate)) {
                 markAsFinished(cleanupJob.getName(), ResultState.TIMEOUT);
             }
         }
-        if (!hasRunningJob(JOBNAME_TIMEDOUT_CLEANUP)) {
-            create(JOBNAME_TIMEDOUT_CLEANUP, 10 * 60 * 1000, RunningState.RUNNING, false);
+        if (!hasRunningJob(JOB_NAME_TIMED_OUT_CLEANUP)) {
+            create(JOB_NAME_TIMED_OUT_CLEANUP, 10 * 60 * 1000, RunningState.RUNNING, false);
             try {
                 final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
                 for (JobInfo jobInfo : getAll(cursor)) {
@@ -304,15 +338,36 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
                         markAsFinished(jobInfo.getName(), ResultState.TIMEOUT);
                     }
                 }
-                markAsFinishedSuccessfully(JOBNAME_TIMEDOUT_CLEANUP);
+                markAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage(), e);
-                markAsFinishedWithException(JOBNAME_TIMEDOUT_CLEANUP, e);
+                markAsFinishedWithException(JOB_NAME_TIMED_OUT_CLEANUP, e);
             }
         }
     }
 
-    private JobInfo fromDbObject(DBObject dbObject) {
+    public void save(JobInfo jobInfo) {
+        collection.save(jobInfo.toDbObject());
+    }
+
+    public void save(JobInfo jobInfo, WriteConcern writeConcern) {
+        collection.save(jobInfo.toDbObject(), writeConcern);
+    }
+
+    public void cleanup(Date clearJobsBefore) {
+        collection.remove(new BasicDBObject().
+                append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
+                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())));
+    }
+
+    private void prepareCollection() {
+        collection.ensureIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
+        collection.ensureIndex(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1));
+        collection.ensureIndex(new BasicDBObject().
+                append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
+    }
+
+    private JobInfo fromDbObject(final DBObject dbObject) {
         if (dbObject == null) {
             return null;
         }
@@ -327,22 +382,16 @@ public final class MongoJobInfoRepository extends AbstractMongoRepository<JobInf
         return elements;
     }
 
-    private JobInfo getFirst(DBCursor cursor) {
+    private JobInfo getFirst(final DBCursor cursor) {
         if (cursor.hasNext()) {
             return fromDbObject(cursor.next());
         }
         return null;
     }
 
-    private DBObject createFindByNameAndRunningStateQuery(String name, RunningState state) {
+    private DBObject createFindByNameAndRunningStateQuery(final String name, final RunningState state) {
         return new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
                 append(JobInfoProperty.RUNNING_STATE.val(), state.name());
-    }
-
-    private void cleanup(Date clearJobsBefore) {
-        collection.remove(new BasicDBObject().
-                append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
-                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())));
     }
 
 }
