@@ -45,6 +45,17 @@ uploadArchives {
     }
 }
 
+task uploadJavadoc(dependsOn: javadoc) << {
+    project.exec {
+        commandLine(
+                'scp',
+                '-r',
+                javadoc.destinationDir,
+                'tomcat@docs.lhotse.ov.otto.de:/srv/www/htdocs/jobstore'
+        )
+    }
+}
+
 ext.cobSerFile="${project.buildDir}/cobertura.ser"
 ext.classesDir="${sourceSets.main.output.classesDir}"
 ext.copyOfClassesDir="${classesDir}-not-instrumented"
