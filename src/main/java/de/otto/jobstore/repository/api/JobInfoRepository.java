@@ -10,6 +10,9 @@ import java.util.Map;
 
 /**
  * A repository which stores information on jobs. For each distinct job name only one job can be running or queued.
+ *
+ * The method {@link #cleanupTimedOutJobs} needs to be called regularly to remove possible timed out jobs which would
+ * otherwise stop new jobs from being able to execute.
  */
 public interface JobInfoRepository {
 
@@ -287,6 +290,11 @@ public interface JobInfoRepository {
      * @param dropCollection Flag if the collection should be dropped
      */
     void clear(boolean dropCollection);
+
+    /**
+     * Marks all timed out jobs in the repository as timed out
+     */
+    void cleanupTimedOutJobs();
 
     /**
      * Counts the number of documents in the repository

@@ -24,5 +24,4 @@ public final class LogLine extends AbstractItem {
         return getProperty(LogLineProperty.TIMESTAMP);
     }
 
-
 }

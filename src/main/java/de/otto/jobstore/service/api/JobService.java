@@ -9,7 +9,8 @@ import java.util.Set;
  *  This service allows to handle multiple jobs and their associated runnables. A job has to be registered before it
  *  can be executed or cued. The service allows only one queued and running job for each distinct job name.
  *
- *  By adding running constraints it is possible to define jobs that are not allowed to run at the same time.
+ *  In order to execute jobs they have to be queued and afterwards executed by callings {#executeQueuedJobs}. By adding
+ *  running constraints it is possible to define jobs that are not allowed to run at the same time.
  */
 public interface JobService {
 
@@ -33,33 +34,6 @@ public interface JobService {
      * a job which is not registered with this JobService instance
      */
     boolean addRunningConstraint(Set<String> constraint) throws JobNotRegisteredException;
-
-    /**
-     * Executes the job with the given name asynchronously and returns its id. The job will be queued if a job is already
-     * running or running it would violate constraints. Before executing the job it is checked if its execution is necessary.
-     *
-     * @param name The name of the job to execute
-     * @return The id of the job or null if no job could be executed/cued or no execution was necessary
-     * @throws JobNotRegisteredException Thrown if no job with the given name was registered with this JobService instance
-     */
-    String executeJob(String name) throws JobNotRegisteredException;
-
-    /**
-     * Executes the job with the given name asynchronously and returns its id. The job will be queued if a job is already
-     * running or running it would violate constraints. Before executing the job it is checked if its execution is necessary.
-     *
-     * @param name The name of the job to execute
-     * @param forceExecution If true the job will be executed even if the result from
-     * {@link de.otto.jobstore.common.JobRunnable#isExecutionNecessary()} signals that no execution is necessary
-     * @return The id of the job or null if no job could be executed/cued or no execution was necessary
-     * @throws JobNotRegisteredException Thrown if no job with the given name was registered with this JobService instance
-     */
-    String executeJob(String name, boolean forceExecution) throws JobNotRegisteredException;
-
-    /**
-     * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
-     */
-    void executeQueuedJobs();
 
     /**
      * Queues a job with the given name. The check if execution is necessary will be done before execution.
@@ -87,6 +61,11 @@ public interface JobService {
      * @param name The name of the queued job to remove
      */
     boolean removeQueuedJob(String name);
+
+    /**
+     * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
+     */
+    void executeQueuedJobs();
 
     /**
      * Removed all registered jobs and constraints from the JobService instance

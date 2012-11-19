@@ -1,10 +1,9 @@
 package de.otto.jobstore.repository.impl;
 
 import com.mongodb.Mongo;
-import de.otto.jobstore.common.JobInfo;
-import de.otto.jobstore.common.LogLine;
-import de.otto.jobstore.common.ResultState;
-import de.otto.jobstore.common.RunningState;
+import de.otto.jobstore.common.*;
+import de.otto.jobstore.common.properties.JobInfoProperty;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -48,8 +47,12 @@ public class MongoJobInfoRepositoryIntegrationTest {
 
     @Test
     public void testQueuedJobNotQueuedAnyMore() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED, false);
+        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED, false));
         assertTrue(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
+        assertFalse(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
+
+        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED, false));
+        //Would violate Index as running job already exists
         assertFalse(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
     }
 
@@ -65,23 +68,21 @@ public class MongoJobInfoRepositoryIntegrationTest {
     }
 
     @Test
+    public void testHasQueuedJob() throws InterruptedException {
+        assertFalse(jobInfoRepository.hasQueuedJob(TESTVALUE_JOBNAME));
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, false);
+        Thread.sleep(200);
+        assertTrue(jobInfoRepository.hasQueuedJob(TESTVALUE_JOBNAME));
+        jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
+        Thread.sleep(200);
+        assertTrue(jobInfoRepository.hasQueuedJob(TESTVALUE_JOBNAME));
+    }
+
+    @Test
     public void testClear() {
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 300, RunningState.RUNNING, false);
         jobInfoRepository.clear(true);
         assertEquals(0L, jobInfoRepository.count());
-    }
-
-    @Test(enabled = false) //TODO: causes to much trouble on jenkins execution
-    public void testCreateTTL() throws Exception {
-        assertFalse(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING, false);
-        assertTrue(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
-        Thread.sleep(100);
-        jobInfoRepository.cleanupTimedOutJobs();
-        assertTrue(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
-        Thread.sleep(1500);
-        jobInfoRepository.cleanupTimedOutJobs();
-        assertFalse(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
     }
 
     @Test
@@ -93,24 +94,8 @@ public class MongoJobInfoRepositoryIntegrationTest {
         assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME).get(0).getFinishTime());
     }
 
-    @Test(enabled = false)
-    public void testCleanup_byIsFinished() {
-        for(int i=0; i < 100; i++) {
-            jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 50000, RunningState.RUNNING, false);
-        }
-        assertEquals(100, jobInfoRepository.count());
-        jobInfoRepository.cleanup(new Date());
-        assertEquals(100, jobInfoRepository.count());
-        // mark as finished
-        for(int i=0; i < 100; i++) {
-            jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME + i, ResultState.SUCCESS, null);
-        }
-        jobInfoRepository.cleanup(new Date());
-        assertEquals(0, jobInfoRepository.count());
-    }
-
     @Test
-    public void testCleanup_byMaxExecutionTime() throws InterruptedException {
+    public void testCleanupTimedOutJobs() throws InterruptedException {
         for(int i=0; i < 100; i++) {
             jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         }
@@ -144,6 +129,16 @@ public class MongoJobInfoRepositoryIntegrationTest {
     }
 
     @Test
+    public void testAddLogLines() throws Exception {
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
+        jobInfoRepository.addLoggingData(TESTVALUE_JOBNAME, "I am a log!");
+        JobInfo runningJob = jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME);
+        assertFalse(runningJob.getLogLines().isEmpty());
+        assertEquals("I am a log!", runningJob.getLogLines().get(0).getLine());
+        assertNotNull(runningJob.getLogLines().get(0).getTimestamp());
+    }
+
+    @Test
     public void testFindLastBy() {
         jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         jobInfoRepository.create(TESTVALUE_JOBNAME + 2, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
@@ -155,7 +150,7 @@ public class MongoJobInfoRepositoryIntegrationTest {
     }
 
     @Test
-    public void testByNameAndTimerange() {
+    public void testByNameAndTimeRange() {
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, false);
         assertEquals(2, jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, new Date(new Date().getTime() - 60 * 1000), null).size());
@@ -211,5 +206,60 @@ public class MongoJobInfoRepositoryIntegrationTest {
         jobs = jobInfoRepository.findQueuedJobsSortedAscByCreationTime();
         assertEquals("test", jobs.get(0).getName());
         assertEquals("test3", jobs.get(2).getName());
+    }
+
+    @Test
+    public void testUpdateHostAndThreadInformation() throws Exception {
+        assertFalse(jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME));
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
+        assertTrue(jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME));
+        JobInfo jobInfo = jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME);
+        assertEquals(Thread.currentThread().getName(), jobInfo.getThread());
+        assertEquals(InternetUtils.getHostName(), jobInfo.getHost());
+    }
+
+    @Test
+    public void testRemoveQueuedName() throws Exception {
+        assertFalse(jobInfoRepository.removeQueuedJob(TESTVALUE_JOBNAME));
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
+        assertFalse(jobInfoRepository.removeQueuedJob(TESTVALUE_JOBNAME));
+        jobInfoRepository.create(TESTVALUE_JOBNAME+1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, false);
+        assertTrue(jobInfoRepository.removeQueuedJob(TESTVALUE_JOBNAME + 1));
+    }
+
+    @Test
+    public void testMarkFinishedWithException() throws Exception {
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
+        jobInfoRepository.markAsFinishedWithException(TESTVALUE_JOBNAME, new IllegalArgumentException("This is an error", new NullPointerException()));
+        JobInfo jobInfo = jobInfoRepository.findLastByName(TESTVALUE_JOBNAME);
+        assertEquals(ResultState.ERROR, jobInfo.getResultState());
+    }
+
+    @Test
+    public void testFindById() throws Exception {
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1234, RunningState.RUNNING, false);
+        JobInfo jobInfo = jobInfoRepository.findById(id);
+        assertNotNull(jobInfo);
+        assertEquals(new Long(1234), jobInfo.getMaxExecutionTime());
+    }
+
+    @Test
+    public void testCleanupOldRunningJobs() throws Exception {
+        JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.LAST_MODIFICATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
+        jobInfoRepository.save(jobInfo);
+        assertEquals(1L, jobInfoRepository.count());
+        jobInfoRepository.cleanupOldJobs(1);
+        assertNotNull(jobInfoRepository.findLastByName(TESTVALUE_JOBNAME)); //Job should still be there as it is running
+    }
+
+    @Test
+    public void testCleanupOldJobs() throws Exception {
+        JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.FINISHED);
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.LAST_MODIFICATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
+        jobInfoRepository.save(jobInfo);
+        assertEquals(1L, jobInfoRepository.count());
+        jobInfoRepository.cleanupOldJobs(1);
+        assertNull(jobInfoRepository.findLastByName(TESTVALUE_JOBNAME)); //Job should be gone
     }
 }

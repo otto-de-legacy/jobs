@@ -67,33 +67,6 @@ public final class JobServiceImpl implements JobService {
         return runningConstraints.add(Collections.unmodifiableSet(constraint));
     }
 
-    public String executeJob(String name) throws JobNotRegisteredException {
-        return executeJob(name, false);
-    }
-
-    public String executeJob(final String name, final boolean forceExecution) throws JobNotRegisteredException {
-        final JobRunnable runnable = jobs.get(checkJobName(name));
-        String id = null;
-        if (jobInfoRepository.hasRunningJob(name) || violatesRunningConstraints(name)) {
-            id = jobInfoRepository.create(name, runnable.getMaxExecutionTime(), RunningState.QUEUED, forceExecution);
-            if (id != null) {
-                LOGGER.info("ltag=JobService.executeJob.queuedJob jobInfoName={} jobId={}", name, id);
-            }
-        } else {
-            if (forceExecution || runnable.isExecutionNecessary()) {
-                id = jobInfoRepository.create(name, runnable.getMaxExecutionTime(), RunningState.RUNNING, forceExecution);
-                if (id != null) {
-                    LOGGER.info("ltag=JobService.executeJob.executedJob jobInfoName={} jobId={}", name, id);
-                    executeJob(name, runnable);
-                }
-            }
-        }
-        if (id == null) {
-            LOGGER.info("ltag=JobService.executeJob.noJobQueuedOrExecuted jobInfoName={}", name);
-        }
-        return id;
-    }
-
     @Override
     public void executeQueuedJobs() {
         if (executionEnabled) {
@@ -147,10 +120,6 @@ public final class JobServiceImpl implements JobService {
         return Collections.unmodifiableSet(runningConstraints);
     }
 
-    private void executeJob(final String name, final JobRunnable runnable) {
-        Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(name, runnable));
-    }
-
     private void executeQueuedJob(final JobInfo jobInfo) {
         final String name = jobInfo.getName();
         final JobRunnable runnable = jobs.get(name);
@@ -163,13 +132,13 @@ public final class JobServiceImpl implements JobService {
                 if (jobInfoRepository.activateQueuedJob(name)) {
                     jobInfoRepository.updateHostThreadInformation(name);
                     LOGGER.debug("ltag=JobService.executeQueuedJob.activatedQueuedJob jobInfoName={}", name);
-                    executeJob(name, runnable);
+                    Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(name, runnable));
                 } else {
-                    LOGGER.warn("ltag=JobService.executeQueuedJob.jobDoesNotExistAnyMore");
+                    LOGGER.warn("ltag=JobService.executeQueuedJob.jobIsNotQueuedAnyMore");
                 }
             } else {
                 if (jobInfoRepository.removeQueuedJob(name)) {
-                    LOGGER.warn("ltag=JobService.executeQueuedJob.removeQueuedJob.removedQueuedJob");
+                    LOGGER.warn("ltag=JobService.executeQueuedJob.executionIsNotNecessary");
                 }
             }
         }

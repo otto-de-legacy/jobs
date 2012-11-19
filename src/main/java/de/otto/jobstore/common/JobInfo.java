@@ -4,12 +4,15 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 
 public final class JobInfo extends AbstractItem {
 
     private static final long serialVersionUID = 2454224303569320787L;
+    private static final DateFormat LOG_LINE_DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy-HH:mm:ss zzz", Locale.ENGLISH);
 
     public JobInfo(DBObject dbObject) {
         super(dbObject);
@@ -23,16 +26,16 @@ public final class JobInfo extends AbstractItem {
         this(name, host, thread, timeout, state, false, null);
     }
 
-    public JobInfo(String name, String host, String thread, long timeout, RunningState state, boolean forceExecution, Map<String, String> additionalData) {
+    public JobInfo(String name, String host, String thread, long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData) {
         final Date dt = new Date();
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
         addProperty(JobInfoProperty.CREATION_TIME, dt);
         addProperty(JobInfoProperty.FORCE_EXECUTION, forceExecution);
-        setRunningState(state);
+        addProperty(JobInfoProperty.RUNNING_STATE, state.name());
         setLastModifiedTime(dt);
-        addProperty(JobInfoProperty.TIMEOUT, timeout);
+        addProperty(JobInfoProperty.MAX_EXECUTION_TIME, maxExecutionTime);
         if (additionalData != null) {
             addProperty(JobInfoProperty.ADDITIONAL_DATA, new BasicDBObject(additionalData));
         }
@@ -59,12 +62,12 @@ public final class JobInfo extends AbstractItem {
         return getProperty(JobInfoProperty.THREAD);
     }
 
-    public Long getTimeout() {
-        return getProperty(JobInfoProperty.TIMEOUT);
+    public Long getMaxExecutionTime() {
+        return getProperty(JobInfoProperty.MAX_EXECUTION_TIME);
     }
 
     public Date getJobExpireTime() {
-        return new Date(getLastModifiedTime().getTime() + getTimeout());
+        return new Date(getLastModifiedTime().getTime() + getMaxExecutionTime());
     }
 
     public Boolean isForceExecution() {
@@ -79,16 +82,8 @@ public final class JobInfo extends AbstractItem {
         return getProperty(JobInfoProperty.FINISH_TIME);
     }
 
-    public void setFinishTime(Date finishTime) {
-        addProperty(JobInfoProperty.FINISH_TIME, finishTime);
-    }
-
     public String getErrorMessage() {
         return getProperty(JobInfoProperty.ERROR_MESSAGE);
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        addProperty(JobInfoProperty.ERROR_MESSAGE, errorMessage);
     }
 
     @SuppressWarnings("unchecked")
@@ -99,10 +94,6 @@ public final class JobInfo extends AbstractItem {
         } else {
             return additionalData.toMap();
         }
-    }
-
-    public void putAdditionalData(String key, String value) {
-        getAdditionalData().put(key, value);
     }
 
     public void appendLogLine(LogLine logLine) {
@@ -133,11 +124,13 @@ public final class JobInfo extends AbstractItem {
         }
         //
         final StringBuilder out = new StringBuilder();
-        for (LogLine logLine : getLogLines()) {
-            out.append(logLine.getTimestamp()).
-                append(": ").
-                append(logLine.getLine()).
-                append(System.getProperty("line.separator"));
+        for (final Iterator<LogLine> logLineIterator = getLogLines().iterator(); logLineIterator.hasNext(); ) {
+            final LogLine logLine = logLineIterator.next();
+            out.append(LOG_LINE_DATE_FORMAT.format(logLine.getTimestamp())).
+                append(": ").append(logLine.getLine());
+            if (logLineIterator.hasNext()) {
+                out. append(System.getProperty("line.separator"));
+            }
         }
         return out.toString();
     }
@@ -159,10 +152,6 @@ public final class JobInfo extends AbstractItem {
         }
     }
 
-    public void setRunningState(RunningState runningState) {
-        addProperty(JobInfoProperty.RUNNING_STATE, runningState.name());
-    }
-
     public ResultState getResultState() {
         final String resultState = getProperty(JobInfoProperty.RESULT_STATE);
         if (resultState == null) {
@@ -172,15 +161,11 @@ public final class JobInfo extends AbstractItem {
         }
     }
 
-    public void setResultState(ResultState resultState) {
-        addProperty(JobInfoProperty.RESULT_STATE, resultState.name());
+    public boolean isTimedOut() {
+        return isTimedOut(new Date());
     }
 
-    public boolean isTimeoutReached() {
-        return new Date().getTime() > getJobExpireTime().getTime();
-    }
-
-    public boolean isExpired(Date currentDate) {
+    public boolean isTimedOut(Date currentDate) {
         return getJobExpireTime().before(currentDate);
     }
 
@@ -192,7 +177,7 @@ public final class JobInfo extends AbstractItem {
                 "\", \"host\":\"" + getHost() +
                 "\", \"thread\":\"" + getThread() +
                 "\", \"startTime\":\"" + getStartTime() +
-                "\", \"timeout\":\"" + getTimeout() +
+                "\", \"timeout\":\"" + getMaxExecutionTime() +
                 "\", \"finishTime\":\"" + getFinishTime() +
                 "\", \"lastModifiedTime\":\"" + getLastModifiedTime() +
                 "\", \"additionalData\":\"" + getAdditionalData().toString() +
