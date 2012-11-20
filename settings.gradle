@@ -1,0 +1,4 @@
+include 'jobs-core', 'jobs-api'
+
+project(':jobs-core').buildFileName = 'jobs-core.gradle'
+project(':jobs-api').buildFileName = 'jobs-api.gradle'

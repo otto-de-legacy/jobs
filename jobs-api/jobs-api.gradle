@@ -1,0 +1,22 @@
+uploadArchives {
+    configuration = configurations.publishToNexus
+    repositories {
+        mavenDeployer {
+            pom {
+                groupId = 'de.otto'
+                artifactId = 'lhotse-jobs-api'
+            }
+        }
+    }
+}
+
+task uploadJavadoc(dependsOn: javadoc) << {
+    project.exec {
+        commandLine(
+                'scp',
+                '-r',
+                javadoc.destinationDir,
+                'tomcat@docs.lhotse.ov.otto.de:/srv/www/htdocs/jobstore/api'
+        )
+    }
+}
