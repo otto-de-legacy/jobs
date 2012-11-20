@@ -1,31 +1,28 @@
 package de.otto.jobstore.repository.impl;
 
-import com.mongodb.Mongo;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import javax.annotation.Resource;
 import java.util.Date;
 import java.util.List;
 
 import static org.testng.AssertJUnit.*;
 
-public class MongoJobInfoRepositoryIntegrationTest {
+@ContextConfiguration(locations = {"classpath:spring/lhotse-jobs-context.xml"})
+public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContextTests {
 
     private static final String TESTVALUE_JOBNAME = "testjob";
     private static final String TESTVALUE_HOST    = "test";
     private static final String TESTVALUE_THREAD  = "thread";
 
+    @Resource
     private MongoJobInfoRepository jobInfoRepository;
-
-    @BeforeClass
-    public void init() throws Exception {
-        Mongo mongo = new Mongo("127.0.0.1");
-        jobInfoRepository = new MongoJobInfoRepository(mongo, "lhotse-jobs", "jobs_test");
-    }
 
     @BeforeMethod
     public void setup() throws Exception {

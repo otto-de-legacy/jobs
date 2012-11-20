@@ -6,7 +6,9 @@ dependencies {
     testCompile "org.testng:testng:6.7"
     testCompile "org.mockito:mockito-all:1.8.5"
     testCompile "net.sourceforge.cobertura:cobertura:1.9.4.1"
+    testCompile "org.springframework:spring-context:3.1.3.RELEASE"
     testCompile "org.springframework:spring-core:3.1.3.RELEASE"
+    testCompile "org.springframework:spring-beans:3.1.3.RELEASE"
     testCompile "org.springframework:spring-test:3.1.3.RELEASE"
     testCompile "commons-logging:commons-logging:1.1.1"
 }
