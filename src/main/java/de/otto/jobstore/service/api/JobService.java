@@ -1,13 +1,16 @@
 package de.otto.jobstore.service.api;
 
 import de.otto.jobstore.common.JobRunnable;
+import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
+import de.otto.jobstore.service.exception.JobAlreadyRunningException;
+import de.otto.jobstore.service.exception.JobExecutionNotNecessaryException;
 import de.otto.jobstore.service.exception.JobNotRegisteredException;
 
 import java.util.Set;
 
 /**
  *  This service allows to handle multiple jobs and their associated runnables. A job has to be registered before it
- *  can be executed or cued. The service allows only one queued and running job for each distinct job name.
+ *  can be executed or cued. The service allows only one queued and one running job for each distinct job name.
  *
  *  In order to execute jobs they have to be queued and afterwards executed by callings {#executeQueuedJobs}. By adding
  *  running constraints it is possible to define jobs that are not allowed to run at the same time.
@@ -36,31 +39,39 @@ public interface JobService {
     boolean addRunningConstraint(Set<String> constraint) throws JobNotRegisteredException;
 
     /**
-     * Queues a job with the given name. The check if execution is necessary will be done before execution.
+     * Executes a job with the given name and returns its ID. If a job is already running or running it would violate
+     * running constraints it this job will be added to the queue. If a job is already queued an exception will be thrown.
      *
-     * @param name The name of the job to queue
+     * @param name The name of the job to execute
      * @param forceExecution If true the job will be executed even if the result from
      * {@link de.otto.jobstore.common.JobRunnable#isExecutionNecessary()} signals that no execution is necessary
-     * @return The id of the queued job or null if no job could be cued
+     * @return The id of the executing or queued job
      * @throws JobNotRegisteredException Thrown if no job with the given name was registered with this JobService instance
+     * @throws JobAlreadyQueuedException If a job with the given name is already queued for execution or another
+     * JobService instance queued the job while this method was executed
+     * @throws JobAlreadyRunningException If another JobService instance executed a job with the given name while this
+     * method was executed
+     * @throws JobExecutionNotNecessaryException If the execution of the job was not necessary
      */
-    String queueJob(String name, boolean forceExecution) throws JobNotRegisteredException;
+    String executeJob(String name, boolean forceExecution) throws JobNotRegisteredException, JobAlreadyQueuedException,
+            JobAlreadyRunningException, JobExecutionNotNecessaryException;
 
     /**
-     * Queues a job with the given name. The check if execution is necessary will be done before execution.
+     * Executes a job with the given name and returns its ID. If a job is already running or running it would violate
+     * running constraints it this job will be added to the queue. If a job is already queued an exception will be thrown.
      *
-     * @param name The name of the job to queue
-     * @return The id of the queued job or null if no job could be cued
+     * @param name The name of the job to execute
+     * {@link de.otto.jobstore.common.JobRunnable#isExecutionNecessary()} signals that no execution is necessary
+     * @return The id of the executing or queued job
      * @throws JobNotRegisteredException Thrown if no job with the given name was registered with this JobService instance
+     * @throws JobAlreadyQueuedException If a job with the given name is already queued for execution or another
+     * JobService instance queued the job while this method was executed
+     * @throws JobAlreadyRunningException If another JobService instance executed a job with the given name while this
+     * method was executed
+     * @throws JobExecutionNotNecessaryException If the execution of the job was not necessary
      */
-    String queueJob(String name) throws JobNotRegisteredException;
-
-    /**
-     * Removes the queued job with the given name
-     *
-     * @param name The name of the queued job to remove
-     */
-    boolean removeQueuedJob(String name);
+    String executeJob(String name) throws JobNotRegisteredException, JobAlreadyQueuedException,
+            JobAlreadyRunningException, JobExecutionNotNecessaryException;
 
     /**
      * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.

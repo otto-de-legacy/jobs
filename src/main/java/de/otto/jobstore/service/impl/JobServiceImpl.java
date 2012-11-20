@@ -3,6 +3,9 @@ package de.otto.jobstore.service.impl;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobService;
+import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
+import de.otto.jobstore.service.exception.JobAlreadyRunningException;
+import de.otto.jobstore.service.exception.JobExecutionNotNecessaryException;
 import de.otto.jobstore.service.exception.JobNotRegisteredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +71,31 @@ public final class JobServiceImpl implements JobService {
     }
 
     @Override
+    public String executeJob(final String name) {
+        return executeJob(name, false);
+    }
+
+    @Override
+    public String executeJob(final String name, final boolean forceExecution) {
+        final JobRunnable runnable = jobs.get(checkJobName(name));
+        final String id;
+        if (jobInfoRepository.hasQueuedJob(name)) {
+            throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
+        } else if (jobInfoRepository.hasRunningJob(name)) {
+            id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "A job with name " + name + " is already running and queued for execution");
+        } else if (violatesRunningConstraints(name)) {
+            id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "The job " + name + " violates running constraints and is already queued for execution");
+        } else if (forceExecution || runnable.isExecutionNecessary()) {
+            id = runJob(name, runnable.getMaxExecutionTime(), forceExecution, "A job with name " + name + " is already running");
+            LOGGER.debug("ltag=JobService.runJob.executingJob jobInfoName={}", name);
+            Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(name, runnable));
+        } else {
+            throw new JobExecutionNotNecessaryException("Execution of job " + name + " was not necessary");
+        }
+        return id;
+    }
+
+    @Override
     public void executeQueuedJobs() {
         if (executionEnabled) {
             LOGGER.info("ltag=JobServiceImpl.executeQueuedJobs");
@@ -75,22 +103,6 @@ public final class JobServiceImpl implements JobService {
                 executeQueuedJob(jobInfo);
             }
         }
-    }
-
-    @Override
-    public String queueJob(final String name) throws JobNotRegisteredException {
-        return queueJob(name, false);
-    }
-
-    @Override
-    public String queueJob(final String name, final boolean forceExecution) {
-        final JobRunnable runnable = jobs.get(checkJobName(name));
-        return jobInfoRepository.create(name, runnable.getMaxExecutionTime(), RunningState.QUEUED, forceExecution);
-    }
-
-    @Override
-    public boolean removeQueuedJob(final String name) {
-        return jobInfoRepository.removeQueuedJob(checkJobName(name));
     }
 
     @Override
@@ -127,20 +139,38 @@ public final class JobServiceImpl implements JobService {
             LOGGER.debug("ltag=JobService.executeQueuedJob.alreadyRunning jobInfoName={}", name);
         } else if (violatesRunningConstraints(name)) {
             LOGGER.debug("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={}", name);
+        } else if (jobInfo.isForceExecution() || runnable.isExecutionNecessary()) {
+            activateQueuedJob(name, runnable);
+        } else if (jobInfoRepository.abortJob(jobInfo.getId(), "execution is not necessary")) {
+            LOGGER.warn("ltag=JobService.executeQueuedJob.executionIsNotNecessary");
+        }
+    }
+
+    private String queueJob(String name, long maxExecutionTime, boolean forceExecution, String exceptionMessage)
+            throws JobAlreadyQueuedException{
+        final String id = jobInfoRepository.create(name, maxExecutionTime, RunningState.QUEUED, forceExecution);
+        if (id == null) {
+            throw new JobAlreadyQueuedException(exceptionMessage);
+        }
+        return id;
+    }
+
+    private String runJob(String name, long maxExecutionTime, boolean forceExecution, String exceptionMessage)
+            throws JobAlreadyRunningException {
+        final String id = jobInfoRepository.create(name, maxExecutionTime, RunningState.RUNNING, forceExecution);
+        if (id == null) {
+            throw new JobAlreadyRunningException(exceptionMessage);
+        }
+        return id;
+    }
+
+    private void activateQueuedJob(String name, JobRunnable runnable) {
+        if (jobInfoRepository.activateQueuedJob(name)) {
+            jobInfoRepository.updateHostThreadInformation(name);
+            LOGGER.debug("ltag=JobService.activateQueuedJob.activate jobInfoName={}", name);
+            Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(name, runnable));
         } else {
-            if (jobInfo.isForceExecution() || runnable.isExecutionNecessary()) {
-                if (jobInfoRepository.activateQueuedJob(name)) {
-                    jobInfoRepository.updateHostThreadInformation(name);
-                    LOGGER.debug("ltag=JobService.executeQueuedJob.activatedQueuedJob jobInfoName={}", name);
-                    Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(name, runnable));
-                } else {
-                    LOGGER.warn("ltag=JobService.executeQueuedJob.jobIsNotQueuedAnyMore");
-                }
-            } else {
-                if (jobInfoRepository.removeQueuedJob(name)) {
-                    LOGGER.warn("ltag=JobService.executeQueuedJob.executionIsNotNecessary");
-                }
-            }
+            LOGGER.warn("ltag=JobService.activateQueuedJob.jobIsNotQueuedAnyMore");
         }
     }
 

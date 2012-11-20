@@ -195,11 +195,11 @@ public interface JobInfoRepository {
     /**
      * Removes a queued job with the given name.
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @return true - If the job was deleted successfully<br/>
      *          false - If no queued job with the given name could be found
      */
-    boolean removeQueuedJob(String name);
+    boolean abortJob(String id, String message);
 
     /**
      * Marks a job with the given name as finished.

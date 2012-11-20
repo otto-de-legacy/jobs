@@ -36,6 +36,6 @@ public final class StepOneJobRunnableExample implements JobRunnable {
         for (int i = 0; i < 10; i++) {
             Thread.sleep(i * 1000);
         }
-        jobService.queueJob(StepTwoJobRunnableExample.STEP_TWO_JOB);
+        jobService.executeJob(StepTwoJobRunnableExample.STEP_TWO_JOB);
     }
 }

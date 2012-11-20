@@ -13,7 +13,7 @@
 
     <bean class="de.otto.jobstore.repository.impl.MongoJobInfoRepository">
         <constructor-arg index="0" ref="mongo"/>
-        <constructor-arg index="1" value="jobstore"/>
+        <constructor-arg index="1" value="lhotse-jobs"/>
         <constructor-arg index="2" value="jobs"/>
     </bean>
 

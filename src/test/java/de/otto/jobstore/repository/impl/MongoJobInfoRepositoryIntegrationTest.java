@@ -2,6 +2,7 @@ package de.otto.jobstore.repository.impl;
 
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
+import org.bson.types.ObjectId;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -216,12 +217,12 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
     }
 
     @Test
-    public void testRemoveQueuedName() throws Exception {
-        assertFalse(jobInfoRepository.removeQueuedJob(TESTVALUE_JOBNAME));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
-        assertFalse(jobInfoRepository.removeQueuedJob(TESTVALUE_JOBNAME));
-        jobInfoRepository.create(TESTVALUE_JOBNAME+1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, false);
-        assertTrue(jobInfoRepository.removeQueuedJob(TESTVALUE_JOBNAME + 1));
+    public void testAbortQueuedName() throws Exception {
+        assertFalse(jobInfoRepository.abortJob(new ObjectId().toString(), "test"));
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
+        assertTrue(jobInfoRepository.abortJob(id, "test"));
+        JobInfo jobInfo = jobInfoRepository.findById(id);
+        assertEquals("test", jobInfo.getErrorMessage());
     }
 
     @Test

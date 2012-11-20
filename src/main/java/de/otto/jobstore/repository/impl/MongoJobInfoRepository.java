@@ -143,17 +143,21 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public boolean removeQueuedJob(final String name) {
-        final WriteResult result = collection.remove(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED));
+    public boolean abortJob(final String id, final String message) {
+        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
+                new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), ResultState.ABORT.name()).
+                        append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
+                        append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
+                        append(JobInfoProperty.ERROR_MESSAGE.val(), message));
+        final WriteResult result = collection.update(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), update);
         return result.getN() == 1;
     }
 
     @Override
     public boolean markAsFinished(final String name, final ResultState state, final String errorMessage) {
-        final String uuid = UUID.randomUUID().toString();
         final Date dt = new Date();
         final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
-                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.FINISHED + "_" + uuid).
+                append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
                 append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
                 append(JobInfoProperty.FINISH_TIME.val(), dt).
                 append(JobInfoProperty.RESULT_STATE.val(), state.name());
@@ -380,6 +384,10 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     private DBObject createFindByNameAndRunningStateQuery(final String name, final RunningState state) {
         return new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
                 append(JobInfoProperty.RUNNING_STATE.val(), state.name());
+    }
+
+    private String createFinishedRunningState() {
+        return RunningState.FINISHED + "_" + UUID.randomUUID().toString();
     }
 
 }
