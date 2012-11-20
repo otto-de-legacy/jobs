@@ -74,7 +74,7 @@ public final class JobInfo extends AbstractItem {
         return getProperty(JobInfoProperty.FORCE_EXECUTION);
     }
 
-    public Date getStartTime() {
+    public Date getCreationTime() {
         return getProperty(JobInfoProperty.CREATION_TIME);
     }
 
@@ -143,13 +143,8 @@ public final class JobInfo extends AbstractItem {
         addProperty(JobInfoProperty.LAST_MODIFICATION_TIME, lastModifiedTime);
     }
 
-    public RunningState getRunningState() {
-        final String runningState = getProperty(JobInfoProperty.RUNNING_STATE);
-        if (runningState == null) {
-            return null;
-        } else {
-            return RunningState.valueOf(runningState);
-        }
+    public String getRunningState() {
+        return getProperty(JobInfoProperty.RUNNING_STATE);
     }
 
     public ResultState getResultState() {
@@ -176,7 +171,7 @@ public final class JobInfo extends AbstractItem {
                 "\", \"name\":\"" + getName() +
                 "\", \"host\":\"" + getHost() +
                 "\", \"thread\":\"" + getThread() +
-                "\", \"startTime\":\"" + getStartTime() +
+                "\", \"startTime\":\"" + getCreationTime() +
                 "\", \"timeout\":\"" + getMaxExecutionTime() +
                 "\", \"finishTime\":\"" + getFinishTime() +
                 "\", \"lastModifiedTime\":\"" + getLastModifiedTime() +

@@ -4,7 +4,7 @@ uploadArchives {
         mavenDeployer {
             pom {
                 groupId = 'de.otto'
-                artifactId = 'lhotse-jobs-api'
+                artifactId = 'jobs-api'
             }
         }
     }
@@ -19,4 +19,11 @@ task uploadJavadoc(dependsOn: javadoc) << {
                 'tomcat@docs.lhotse.ov.otto.de:/srv/www/htdocs/jobstore/api'
         )
     }
+}
+
+dependencies {
+    compile project(':jobs-core')
+    compile libs.jerseyCore
+    providedCompile libs.javaxServlet
+    compile libs.slfApi, libs.slfLog4j
 }

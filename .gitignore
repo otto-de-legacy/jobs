@@ -3,5 +3,10 @@
 *.ipr
 out
 build
+**/*.iml
+**/*.iws
+**/*.ipr
+**/out
+**/build
 .gradle
 .idea

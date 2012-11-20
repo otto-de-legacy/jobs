@@ -1,13 +1,14 @@
 apply from: 'gradle/libraries.gradle'
 
-subprojects {
+allprojects {
     apply plugin: 'idea'
-    apply plugin: 'java'
-    apply plugin: 'maven'
-
     version = '0.1-SNAPSHOT'
     group = 'de.otto'
-    description = "A MongoDB based JobStore"
+}
+
+subprojects {
+    apply plugin: 'war'
+    apply plugin: 'maven'
 
     sourceCompatibility = 1.6
     targetCompatibility = 1.6

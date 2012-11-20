@@ -231,6 +231,8 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
         jobInfoRepository.markAsFinishedWithException(TESTVALUE_JOBNAME, new IllegalArgumentException("This is an error", new NullPointerException()));
         JobInfo jobInfo = jobInfoRepository.findLastByName(TESTVALUE_JOBNAME);
         assertEquals(ResultState.ERROR, jobInfo.getResultState());
+        String runningState = jobInfo.getRunningState();
+        assertNotNull(runningState);
     }
 
     @Test

@@ -4,7 +4,7 @@ uploadArchives {
         mavenDeployer {
             pom {
                 groupId = 'de.otto'
-                artifactId = 'lhotse-jobs-core'
+                artifactId = 'jobs-core'
             }
         }
     }
