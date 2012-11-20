@@ -4,7 +4,7 @@ import de.otto.jobstore.common.JobLogger;
 import de.otto.jobstore.common.JobRunnable;
 import de.otto.jobstore.service.api.JobService;
 
-public final class StepTwoJobRunnable implements JobRunnable {
+public final class StepTwoJobRunnableExample implements JobRunnable {
 
     public static final String STEP_TWO_JOB = "STEP_TWO_JOB";
 

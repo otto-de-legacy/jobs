@@ -84,7 +84,7 @@ task cobertura (type: Test) {
                     fileset(dir: classesDir,
                             //includes:"my/classes/**/*.class",
                             includes: "**/*.class",
-                            excludes: "**/*Test.class")
+                            excludes: [ "**/*Test.class", "**/*Example.class" ])
                 }
             }
         }

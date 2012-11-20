@@ -8,7 +8,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Random;
 
-public final class SimpleJobRunnable implements JobRunnable {
+public final class SimpleJobRunnableExample implements JobRunnable {
 
     /**
      * Job should be considered timed out after 10 minutes

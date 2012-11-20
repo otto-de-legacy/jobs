@@ -4,12 +4,12 @@ import de.otto.jobstore.common.JobLogger;
 import de.otto.jobstore.common.JobRunnable;
 import de.otto.jobstore.service.api.JobService;
 
-public final class StepOneJobRunnable implements JobRunnable {
+public final class StepOneJobRunnableExample implements JobRunnable {
 
     public static final String STEP_ONE_JOB = "STEP_ONE_JOB";
     private final JobService jobService;
 
-    public StepOneJobRunnable(JobService jobService) {
+    public StepOneJobRunnableExample(JobService jobService) {
         this.jobService = jobService;
     }
 
@@ -24,7 +24,7 @@ public final class StepOneJobRunnable implements JobRunnable {
      */
     @Override
     public boolean isExecutionNecessary() {
-        return jobService.listJobNames().contains(StepTwoJobRunnable.STEP_TWO_JOB);
+        return jobService.listJobNames().contains(StepTwoJobRunnableExample.STEP_TWO_JOB);
     }
 
     /**
@@ -36,6 +36,6 @@ public final class StepOneJobRunnable implements JobRunnable {
         for (int i = 0; i < 10; i++) {
             Thread.sleep(i * 1000);
         }
-        jobService.queueJob(StepTwoJobRunnable.STEP_TWO_JOB);
+        jobService.queueJob(StepTwoJobRunnableExample.STEP_TWO_JOB);
     }
 }
