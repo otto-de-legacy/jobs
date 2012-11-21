@@ -96,6 +96,17 @@ public final class JobInfo extends AbstractItem {
         }
     }
 
+    public void putAdditionalData(String key, String value) {
+        final DBObject additionalData ;
+        if (hasProperty(JobInfoProperty.ADDITIONAL_DATA)) {
+            additionalData = getProperty(JobInfoProperty.ADDITIONAL_DATA);
+        } else {
+            additionalData = new BasicDBObject();
+            addProperty(JobInfoProperty.ADDITIONAL_DATA, additionalData);
+        }
+        additionalData.put(key, value);
+    }
+
     public void appendLogLine(LogLine logLine) {
         final List<DBObject> logLines;
         if (hasProperty(JobInfoProperty.LOG_LINES)) {
