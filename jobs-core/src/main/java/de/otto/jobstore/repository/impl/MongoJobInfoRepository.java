@@ -20,6 +20,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoJobInfoRepository.class);
     private final DBCollection collection;
+    private int daysAfterWhichOldJobsAreDeleted;
 
     public MongoJobInfoRepository(final Mongo mongo, final String dbName, final String collectionName) {
         this(mongo, dbName, collectionName, null, null);
@@ -41,6 +42,19 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         collection = db.getCollection(collectionName);
         LOGGER.info("Prepare access to MongoDB collection '{}' on {}/{}", new Object[]{collectionName, mongo, dbName});
         prepareCollection();
+    }
+
+    public int getDaysAfterWhichOldJobsAreDeleted() {
+        return daysAfterWhichOldJobsAreDeleted;
+    }
+
+    /**
+     * Sets the number of days after which old jobs are removed. Default value is 5.
+     *
+     * @param days The number of days
+     */
+    public void setDaysAfterWhichOldJobsAreDeleted(int days) {
+        this.daysAfterWhichOldJobsAreDeleted = days;
     }
 
     @Override
@@ -326,15 +340,11 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     public void cleanupOldJobs() {
-        cleanupOldJobs(5);
-    }
-
-    public void cleanupOldJobs(final int days) {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING.name())) {
             create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false);
-            cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, days)));
+            cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, daysAfterWhichOldJobsAreDeleted)));
             markAsFinishedSuccessfully(JOB_NAME_CLEANUP);
         }
     }

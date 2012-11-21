@@ -28,7 +28,7 @@ public class JobServiceTest {
     @BeforeMethod
     public void setUp() throws Exception {
         jobInfoRepository = mock(JobInfoRepository.class);
-        jobService = new JobServiceImpl(jobInfoRepository, true);
+        jobService = new JobServiceImpl(jobInfoRepository);
     }
 
     @Test

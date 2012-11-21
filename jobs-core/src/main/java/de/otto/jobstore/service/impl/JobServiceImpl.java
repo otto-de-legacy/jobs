@@ -3,10 +3,7 @@ package de.otto.jobstore.service.impl;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobService;
-import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
-import de.otto.jobstore.service.exception.JobAlreadyRunningException;
-import de.otto.jobstore.service.exception.JobExecutionNotNecessaryException;
-import de.otto.jobstore.service.exception.JobNotRegisteredException;
+import de.otto.jobstore.service.exception.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +24,7 @@ public final class JobServiceImpl implements JobService {
     private final Map<String, JobRunnable> jobs = new ConcurrentHashMap<String, JobRunnable>();
     private final Set<Set<String>> runningConstraints = new CopyOnWriteArraySet<Set<String>>();
     private final JobInfoRepository jobInfoRepository;
-    private final boolean executionEnabled;
+    private boolean executionEnabled = true;
 
     /**
      * Creates a JobService Object.
@@ -36,17 +33,19 @@ public final class JobServiceImpl implements JobService {
      */
     public JobServiceImpl(final JobInfoRepository jobInfoRepository) {
         this.jobInfoRepository = jobInfoRepository;
-        this.executionEnabled = true;
+    }
+
+    public boolean isExecutionEnabled() {
+        return executionEnabled;
     }
 
     /**
-     * Creates a JobService Object
+     * Disables or enables Job execution. Default value is true.
      *
-     * @param jobInfoRepository The jobInfo Repository to store the jobs in
-     * @param executionEnabled Flag if jobs will be executed. If set to false no jobs will be started
+     * @param executionEnabled true - Jobs will be executed<br/>
+     *                         false - No jobs will be executed
      */
-    public JobServiceImpl(final JobInfoRepository jobInfoRepository, final boolean executionEnabled) {
-        this.jobInfoRepository = jobInfoRepository;
+    public void setExecutionEnabled(boolean executionEnabled) {
         this.executionEnabled = executionEnabled;
     }
 
@@ -71,15 +70,20 @@ public final class JobServiceImpl implements JobService {
     }
 
     @Override
-    public String executeJob(final String name) {
+    public String executeJob(final String name) throws JobNotRegisteredException, JobAlreadyQueuedException,
+            JobAlreadyRunningException, JobExecutionNotNecessaryException, JobExecutionDisabledException {
         return executeJob(name, false);
     }
 
     @Override
-    public String executeJob(final String name, final boolean forceExecution) {
+    public String executeJob(final String name, final boolean forceExecution) throws JobNotRegisteredException,
+            JobAlreadyQueuedException, JobAlreadyRunningException, JobExecutionNotNecessaryException,
+            JobExecutionDisabledException {
         final JobRunnable runnable = jobs.get(checkJobName(name));
         final String id;
-        if (jobInfoRepository.hasJob(name, RunningState.QUEUED.name())) {
+        if (!executionEnabled) {
+            throw new JobExecutionDisabledException("Execution of jobs has been disabled");
+        } else if (jobInfoRepository.hasJob(name, RunningState.QUEUED.name())) {
             throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
         } else if (jobInfoRepository.hasJob(name, RunningState.RUNNING.name())) {
             id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "A job with name " + name + " is already running and queued for execution");

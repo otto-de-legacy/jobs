@@ -250,21 +250,23 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
 
     @Test
     public void testCleanupOldRunningJobs() throws Exception {
+        jobInfoRepository.setDaysAfterWhichOldJobsAreDeleted(1);
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.LAST_MODIFICATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
         jobInfoRepository.save(jobInfo);
         assertEquals(1L, jobInfoRepository.count());
-        jobInfoRepository.cleanupOldJobs(1);
+        jobInfoRepository.cleanupOldJobs();
         assertNotNull(jobInfoRepository.findLastByName(TESTVALUE_JOBNAME)); //Job should still be there as it is running
     }
 
     @Test
     public void testCleanupOldJobs() throws Exception {
+        jobInfoRepository.setDaysAfterWhichOldJobsAreDeleted(1);
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.FINISHED);
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.LAST_MODIFICATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
         jobInfoRepository.save(jobInfo);
         assertEquals(1L, jobInfoRepository.count());
-        jobInfoRepository.cleanupOldJobs(1);
+        jobInfoRepository.cleanupOldJobs();
         assertNull(jobInfoRepository.findLastByName(TESTVALUE_JOBNAME)); //Job should be gone
     }
 }

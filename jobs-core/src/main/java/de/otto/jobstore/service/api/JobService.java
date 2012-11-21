@@ -1,10 +1,7 @@
 package de.otto.jobstore.service.api;
 
 import de.otto.jobstore.common.JobRunnable;
-import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
-import de.otto.jobstore.service.exception.JobAlreadyRunningException;
-import de.otto.jobstore.service.exception.JobExecutionNotNecessaryException;
-import de.otto.jobstore.service.exception.JobNotRegisteredException;
+import de.otto.jobstore.service.exception.*;
 
 import java.util.Set;
 
@@ -52,9 +49,10 @@ public interface JobService {
      * @throws JobAlreadyRunningException If another JobService instance executed a job with the given name while this
      * method was executed
      * @throws JobExecutionNotNecessaryException If the execution of the job was not necessary
+     * @throws JobExecutionDisabledException If job execution has been disabled
      */
     String executeJob(String name, boolean forceExecution) throws JobNotRegisteredException, JobAlreadyQueuedException,
-            JobAlreadyRunningException, JobExecutionNotNecessaryException;
+            JobAlreadyRunningException, JobExecutionNotNecessaryException, JobExecutionDisabledException;
 
     /**
      * Executes a job with the given name and returns its ID. If a job is already running or running it would violate
@@ -69,9 +67,10 @@ public interface JobService {
      * @throws JobAlreadyRunningException If another JobService instance executed a job with the given name while this
      * method was executed
      * @throws JobExecutionNotNecessaryException If the execution of the job was not necessary
+     * @throws JobExecutionDisabledException If job execution has been disabled
      */
     String executeJob(String name) throws JobNotRegisteredException, JobAlreadyQueuedException,
-            JobAlreadyRunningException, JobExecutionNotNecessaryException;
+            JobAlreadyRunningException, JobExecutionNotNecessaryException, JobExecutionDisabledException;
 
     /**
      * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
