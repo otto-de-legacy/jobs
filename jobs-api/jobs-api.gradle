@@ -23,7 +23,9 @@ task uploadJavadoc(dependsOn: javadoc) << {
 
 dependencies {
     compile project(':jobs-core')
-    compile libs.jerseyCore
+    compile libs.jerseyAbdera, libs.jerseyClient, libs.jerseyCore
     providedCompile libs.javaxServlet
-    compile libs.slfApi, libs.slfLog4j
+
+    testCompile libs.testng, libs.mockito
+    testCompile libs.cobertura
 }

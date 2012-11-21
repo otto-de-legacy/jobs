@@ -4,24 +4,20 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement
+@XmlRootElement(name = "job")
 @XmlAccessorType(value = XmlAccessType.FIELD)
-public final class NameLinkRepresentation {
+public final class JobNameRepresentation {
 
-    private final String name;
-    private final String link;
+    private String name;
 
-    public NameLinkRepresentation(String name, String link) {
+    public JobNameRepresentation() {}
+
+    public JobNameRepresentation(String name) {
         this.name = name;
-        this.link = link;
     }
 
     public String getName() {
         return name;
-    }
-
-    public String getLink() {
-        return link;
     }
 
 }

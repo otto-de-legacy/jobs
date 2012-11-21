@@ -6,13 +6,14 @@ import de.otto.jobstore.common.ResultState;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-@XmlRootElement
+@XmlRootElement(name = "jobInfo")
 @XmlAccessorType(value = XmlAccessType.FIELD)
 public final class JobInfoRepresentation {
 
@@ -34,15 +35,19 @@ public final class JobInfoRepresentation {
 
     private ResultState resultState;
 
-    private long maxExecutionTime;
+    private Long maxExecutionTime;
 
     private Date lastModifiedTime;
 
     private Map<String, String> additionalData;
 
-    private List<LogLineRepresentation> logLines;
+    private LogLinesRepresentation logLines;
 
-    private JobInfoRepresentation(String id, String name, String host, String thread, Date creationTime, Date finishTime, String errorMessage, String runningState, ResultState resultState, long timeout, Date lastModifiedTime, Map<String, String> additionalData, List<LogLineRepresentation> logLines) {
+    public JobInfoRepresentation() {}
+
+    private JobInfoRepresentation(String id, String name, String host, String thread, Date creationTime, Date finishTime,
+                                  String errorMessage, String runningState, ResultState resultState, Long maxExecutionTime,
+                                  Date lastModifiedTime, Map<String, String> additionalData, LogLinesRepresentation logLines) {
         this.id = id;
         this.name = name;
         this.host = host;
@@ -52,7 +57,7 @@ public final class JobInfoRepresentation {
         this.errorMessage = errorMessage;
         this.runningState = runningState;
         this.resultState = resultState;
-        this.maxExecutionTime = timeout;
+        this.maxExecutionTime = maxExecutionTime;
         this.lastModifiedTime = lastModifiedTime;
         this.additionalData = additionalData;
         this.logLines = logLines;
@@ -94,7 +99,7 @@ public final class JobInfoRepresentation {
         return resultState;
     }
 
-    public long getMaxExecutionTime() {
+    public Long getMaxExecutionTime() {
         return maxExecutionTime;
     }
 
@@ -106,7 +111,7 @@ public final class JobInfoRepresentation {
         return additionalData;
     }
 
-    public List<LogLineRepresentation> getLogLines() {
+    public LogLinesRepresentation getLogLines() {
         return logLines;
     }
 
@@ -119,7 +124,7 @@ public final class JobInfoRepresentation {
                 jobInfo.getThread(), jobInfo.getCreationTime(), jobInfo.getFinishTime(),
                 jobInfo.getErrorMessage(), jobInfo.getRunningState(), jobInfo.getResultState(),
                 jobInfo.getMaxExecutionTime(), jobInfo.getLastModifiedTime(), jobInfo.getAdditionalData(),
-                logLines);
+                new LogLinesRepresentation(logLines));
     }
 
 }

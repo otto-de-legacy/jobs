@@ -11,8 +11,10 @@ import java.util.Date;
 @XmlAccessorType(value = XmlAccessType.FIELD)
 public final class LogLineRepresentation {
 
-    private final String line;
-    private final Date timestamp;
+    private String line;
+    private Date timestamp;
+
+    public LogLineRepresentation() {}
 
     private LogLineRepresentation(String line, Date timestamp) {
         this.line = line;
