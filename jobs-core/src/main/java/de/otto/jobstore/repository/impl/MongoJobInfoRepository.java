@@ -144,13 +144,17 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
 
     @Override
     public boolean abortJob(final String id, final String message) {
-        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
-                new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), ResultState.ABORT.name()).
-                        append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
-                        append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
-                        append(JobInfoProperty.ERROR_MESSAGE.val(), message));
-        final WriteResult result = collection.update(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), update);
-        return result.getN() == 1;
+        if (ObjectId.isValid(id)) {
+            final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
+                    new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), ResultState.ABORT.name()).
+                            append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
+                            append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
+                            append(JobInfoProperty.ERROR_MESSAGE.val(), message));
+            final WriteResult result = collection.update(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), update);
+            return result.getN() == 1;
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -198,8 +202,12 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
 
     @Override
     public JobInfo findById(final String id) {
-        final DBObject obj = collection.findOne(new BasicDBObject("_id", new ObjectId(id)));
-        return fromDbObject(obj);
+        if (ObjectId.isValid(id)) {
+            final DBObject obj = collection.findOne(new BasicDBObject("_id", new ObjectId(id)));
+            return fromDbObject(obj);
+        } else {
+            return null;
+        }
     }
 
     @Override

@@ -244,6 +244,11 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
     }
 
     @Test
+    public void testFindByInvalidId() throws Exception {
+        assertNull(jobInfoRepository.findById("1234"));
+    }
+
+    @Test
     public void testCleanupOldRunningJobs() throws Exception {
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING);
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.LAST_MODIFICATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
