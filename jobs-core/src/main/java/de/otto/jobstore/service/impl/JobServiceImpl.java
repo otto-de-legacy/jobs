@@ -79,9 +79,9 @@ public final class JobServiceImpl implements JobService {
     public String executeJob(final String name, final boolean forceExecution) {
         final JobRunnable runnable = jobs.get(checkJobName(name));
         final String id;
-        if (jobInfoRepository.hasQueuedJob(name)) {
+        if (jobInfoRepository.hasJob(name, RunningState.QUEUED.name())) {
             throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
-        } else if (jobInfoRepository.hasRunningJob(name)) {
+        } else if (jobInfoRepository.hasJob(name, RunningState.RUNNING.name())) {
             id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "A job with name " + name + " is already running and queued for execution");
         } else if (violatesRunningConstraints(name)) {
             id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "The job " + name + " violates running constraints and is already queued for execution");
@@ -108,7 +108,7 @@ public final class JobServiceImpl implements JobService {
     @Override
     public void shutdownJobs() {
         for (String name : jobs.keySet()) {
-            final JobInfo runningJob = jobInfoRepository.findRunningByName(name);
+            final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING.name());
             if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
                 LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", name);
                 jobInfoRepository.markAsFinished(name, ResultState.ERROR, "shutdownJobs called from executing host");
@@ -135,7 +135,7 @@ public final class JobServiceImpl implements JobService {
     private void executeQueuedJob(final JobInfo jobInfo) {
         final String name = jobInfo.getName();
         final JobRunnable runnable = jobs.get(name);
-        if (jobInfoRepository.hasRunningJob(name)) {
+        if (jobInfoRepository.hasJob(name, RunningState.RUNNING.name())) {
             LOGGER.debug("ltag=JobService.executeQueuedJob.alreadyRunning jobInfoName={}", name);
         } else if (violatesRunningConstraints(name)) {
             LOGGER.debug("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={}", name);
@@ -186,7 +186,7 @@ public final class JobServiceImpl implements JobService {
         for (Set<String> constraint : runningConstraints) {
             if (constraint.contains(name)) {
                 for (String constraintJobName : constraint) {
-                    if (jobInfoRepository.hasRunningJob(constraintJobName)) {
+                    if (jobInfoRepository.hasJob(constraintJobName, RunningState.RUNNING.name())) {
                         return true;
                     }
                 }

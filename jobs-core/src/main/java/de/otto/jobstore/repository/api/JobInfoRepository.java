@@ -67,29 +67,23 @@ public interface JobInfoRepository {
     String create(String name, String host, String thread, long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData);
 
     /**
-     * Returns the running job with the given name
+     * Returns job with the given name and running state
      *
      * @param name The name of the job
+     * @param runningState The running state of the job
      * @return The running job or null if no job with the given name is currently running
      */
-    JobInfo findRunningByName(String name);
+    JobInfo findByNameAndRunningState(String name, String runningState);
 
     /**
-     * Checks if a job with the given name is currently running.
+     * Checks if a job with the given name and state exists
      *
      * @param name The name of the job
+     * @param runningState The running state of the job
      * @return true - A job with the given name is still running<br/>
      *          false - A job with the given name is not running
      */
-    boolean hasRunningJob(String name);
-
-    /**
-     * Returns the queued job with the given name
-     *
-     * @param name The name of the job
-     * @return The queued job of null if no job with the given name is currently queued
-     */
-    JobInfo findQueuedByName(String name);
+    boolean hasJob(String name, String runningState);
 
     /**
      * Returns all queued jobs sorted ascending by start time
@@ -97,15 +91,6 @@ public interface JobInfoRepository {
      * @return The queued jobs
      */
     List<JobInfo> findQueuedJobsSortedAscByCreationTime();
-
-    /**
-     * Checks if a job with the given name is currently queued
-     *
-     * @param name The name of the job
-     * @return true - A job with the given name is queued<br/>
-     *          false - A job with the given name is not queued
-     */
-    boolean hasQueuedJob(String name);
 
     /**
      * Find a job by its id
@@ -122,6 +107,15 @@ public interface JobInfoRepository {
      * @return All jobs with the given name sorted descending by last modified date
      */
     List<JobInfo> findByName(String name);
+
+    /**
+     * Returns all jobs with the given name.
+     *
+     * @param name The name of the jobs
+     * @param limit The maximum number of jobs to return
+     * @return All jobs with the given name sorted descending by last modified date
+     */
+    List<JobInfo> findByName(String name, Integer limit);
 
     /**
      * Returns a list of jobs with the given name which have a lastModified timestamp

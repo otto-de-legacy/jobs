@@ -76,26 +76,16 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
-    @Override
-    public boolean hasRunningJob(final String name) {
-        return findRunningByName(name) != null;
-    }
 
     @Override
-    public boolean hasQueuedJob(final String name) {
-        return findQueuedByName(name) != null;
-    }
-
-    @Override
-    public JobInfo findRunningByName(final String name) {
-        final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING));
+    public JobInfo findByNameAndRunningState(final String name, final String runningState) {
+        final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, runningState));
         return fromDbObject(jobInfo);
     }
 
     @Override
-    public JobInfo findQueuedByName(final String name) {
-        final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED));
-        return fromDbObject(jobInfo);
+    public boolean hasJob(final String name, final String runningState) {
+        return findByNameAndRunningState(name, runningState) != null;
     }
 
     @Override
@@ -125,7 +115,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
                 new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()));
         LOGGER.info("Activate queued job={} ...", name);
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED.name()), update);
         return result.getN() == 1;
     }
 
@@ -138,7 +128,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     public boolean updateHostThreadInformation(final String name, final String host, final String thread) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.HOST.val(), host).append(JobInfoProperty.THREAD.val(), thread));
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
         return result.getN() == 1;
     }
 
@@ -169,7 +159,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
             set.append(JobInfoProperty.ERROR_MESSAGE.val(), errorMessage);
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
         return result.getN() == 1;
     }
 
@@ -196,7 +186,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObjectBuilder().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
                         append(JobInfoProperty.ADDITIONAL_DATA.val() + "." + key, value).get());
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
         return result.getN() == 1;
     }
 
@@ -210,11 +200,19 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
-    @Override
     public List<JobInfo> findByName(final String name) {
+        return findByName(name, null);
+    }
+
+    @Override
+    public List<JobInfo> findByName(final String name, final Integer limit) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
         final DBCursor cursor = collection.find(query.get()).sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val()));
-        return getAll(cursor);
+        if (limit == null) {
+            return getAll(cursor);
+        } else {
+            return getAll(cursor.limit(limit));
+        }
     }
 
     @Override
@@ -281,7 +279,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         final DBObject update = new BasicDBObject().
                 append(MongoOperator.PUSH.op(), new BasicDBObject(JobInfoProperty.LOG_LINES.val(), logLine.toDbObject())).
                 append(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(jobName, RunningState.RUNNING), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(jobName, RunningState.RUNNING.name()), update);
         return result.getN() == 1;
     }
 
@@ -310,7 +308,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     public void cleanupTimedOutJobs() {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
-        if (!hasRunningJob(JOB_NAME_TIMED_OUT_CLEANUP)) {
+        if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING.name())) {
             create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false);
             try {
                 final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
@@ -330,7 +328,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     public void cleanupOldJobs(final int days) {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
-        if (!hasRunningJob(JOB_NAME_CLEANUP)) {
+        if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING.name())) {
             create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false);
             cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, days)));
             markAsFinishedSuccessfully(JOB_NAME_CLEANUP);
@@ -352,8 +350,8 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     private void removeJobIfTimedOut(final String jobName, final Date currentDate) {
-        if (hasRunningJob(jobName)) {
-            final JobInfo job = findRunningByName(jobName);
+        if (hasJob(jobName, RunningState.RUNNING.name())) {
+            final JobInfo job = findByNameAndRunningState(jobName, RunningState.RUNNING.name());
             if (job.isTimedOut(currentDate)) {
                 markAsFinished(job.getName(), ResultState.TIMEOUT);
             }
@@ -389,9 +387,9 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return null;
     }
 
-    private DBObject createFindByNameAndRunningStateQuery(final String name, final RunningState state) {
+    private DBObject createFindByNameAndRunningStateQuery(final String name, final String state) {
         return new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
-                append(JobInfoProperty.RUNNING_STATE.val(), state.name());
+                append(JobInfoProperty.RUNNING_STATE.val(), state);
     }
 
     private String createFinishedRunningState() {

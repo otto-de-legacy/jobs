@@ -32,9 +32,9 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
 
     @Test
     public void testCreate() throws Exception {
-        assertFalse(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
+        assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING.name()));
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING, false);
-        assertTrue(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
+        assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING.name()));
     }
 
     @Test
@@ -56,24 +56,24 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
 
     @Test
     public void testHasRunningJob() throws InterruptedException {
-        assertFalse(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
+        assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING.name()));
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         Thread.sleep(200);
-        assertTrue(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
+        assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING.name()));
         jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
         Thread.sleep(200);
-        assertTrue(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME));
+        assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING.name()));
     }
 
     @Test
     public void testHasQueuedJob() throws InterruptedException {
-        assertFalse(jobInfoRepository.hasQueuedJob(TESTVALUE_JOBNAME));
+        assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.QUEUED.name()));
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, false);
         Thread.sleep(200);
-        assertTrue(jobInfoRepository.hasQueuedJob(TESTVALUE_JOBNAME));
+        assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.QUEUED.name()));
         jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
         Thread.sleep(200);
-        assertTrue(jobInfoRepository.hasQueuedJob(TESTVALUE_JOBNAME));
+        assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.QUEUED.name()));
     }
 
     @Test
@@ -85,9 +85,9 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
 
     @Test
     public void testMarkAsFinished() throws Exception {
-        assertNull(jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME));
+        assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name()));
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING, false);
-        assertNull(jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getFinishTime());
+        assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name()).getFinishTime());
         jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME, ResultState.SUCCESS, null);
         assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME).get(0).getFinishTime());
     }
@@ -104,17 +104,17 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
         Thread.sleep(1000);
         jobInfoRepository.cleanupTimedOutJobs();
         for(int i=0; i < 100; i++) {
-            assertFalse(jobInfoRepository.hasRunningJob(TESTVALUE_JOBNAME + i));
+            assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME + i, RunningState.RUNNING.name()));
         }
     }
 
     @Test
     public void testAddOrUpdateAdditionalData_Insert() {
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
-        assertEquals(0, jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getAdditionalData().size());
+        assertEquals(0, jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name()).getAdditionalData().size());
         jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
-        assertEquals(1, jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getAdditionalData().size());
-        assertEquals("value1", jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getAdditionalData().get("key1"));
+        assertEquals(1, jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name()).getAdditionalData().size());
+        assertEquals("value1", jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name()).getAdditionalData().get("key1"));
     }
 
     @Test
@@ -122,15 +122,15 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
         jobInfoRepository.insertAdditionalData(TESTVALUE_JOBNAME, "key1", "value2");
-        assertEquals(1, jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getAdditionalData().size());
-        assertEquals("value2", jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME).getAdditionalData().get("key1"));
+        assertEquals(1, jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name()).getAdditionalData().size());
+        assertEquals("value2", jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name()).getAdditionalData().get("key1"));
     }
 
     @Test
     public void testAddLogLines() throws Exception {
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         jobInfoRepository.addLoggingData(TESTVALUE_JOBNAME, "I am a log!");
-        JobInfo runningJob = jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME);
+        JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name());
         assertFalse(runningJob.getLogLines().isEmpty());
         assertEquals("I am a log!", runningJob.getLogLines().get(0).getLine());
         assertNotNull(runningJob.getLogLines().get(0).getTimestamp());
@@ -211,7 +211,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
         assertFalse(jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME));
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false);
         assertTrue(jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME));
-        JobInfo jobInfo = jobInfoRepository.findRunningByName(TESTVALUE_JOBNAME);
+        JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name());
         assertEquals(Thread.currentThread().getName(), jobInfo.getThread());
         assertEquals(InternetUtils.getHostName(), jobInfo.getHost());
     }
