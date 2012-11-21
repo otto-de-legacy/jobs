@@ -325,6 +325,10 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
+    public void cleanupOldJobs() {
+        cleanupOldJobs(5);
+    }
+
     public void cleanupOldJobs(final int days) {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
