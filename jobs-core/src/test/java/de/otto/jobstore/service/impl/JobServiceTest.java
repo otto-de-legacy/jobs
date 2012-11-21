@@ -109,7 +109,7 @@ public class JobServiceTest {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000), new JobInfo(JOB_NAME_02, "bla", "bla", 1000)));
+                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L), new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
         MockJobRunnable runnable = new MockJobRunnable(1000, true);
         jobService.registerJob(JOB_NAME_01, runnable);
         jobService.registerJob(JOB_NAME_02, createJobInfoCallable());
@@ -126,7 +126,7 @@ public class JobServiceTest {
     public void testExecuteForcedQueuedJobs() throws Exception {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000, RunningState.QUEUED, true, new HashMap<String, String>())));
+                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, RunningState.QUEUED, true, new HashMap<String, String>())));
         MockJobRunnable runnable = new MockJobRunnable(1000, false);
         jobService.registerJob(JOB_NAME_01, runnable);
 
@@ -142,7 +142,7 @@ public class JobServiceTest {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000), new JobInfo(JOB_NAME_02, "bla", "bla", 1000)));
+                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L), new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
         JobRunnable runnable = new JobRunnable() {
             @Override
             public long getMaxExecutionTime() {
@@ -172,7 +172,7 @@ public class JobServiceTest {
     @Test
     public void testExecuteQueuedJobsNoExecutionNecessary() throws Exception {
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000)));
+                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L)));
         when(jobInfoRepository.abortJob(anyString(), anyString())).thenReturn(Boolean.TRUE);
         jobService.registerJob(JOB_NAME_01, new MockJobRunnable(1000, false));
 
@@ -183,7 +183,7 @@ public class JobServiceTest {
     @Test
     public void testExecuteQueuedJobsViolatesRunningConstraints() throws Exception {
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000)));
+                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L)));
         when(jobInfoRepository.hasJob(JOB_NAME_02, RunningState.RUNNING.name())).thenReturn(Boolean.TRUE);
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
@@ -200,7 +200,7 @@ public class JobServiceTest {
     @Test
     public void testExecuteQueuedJobAlreadyRunning() throws Exception {
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000)));
+                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L)));
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING.name())).thenReturn(Boolean.TRUE);
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());

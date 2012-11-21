@@ -18,15 +18,15 @@ public final class JobInfo extends AbstractItem {
         super(dbObject);
     }
 
-    public JobInfo(String name, String host, String thread, long timeout) {
-        this(name, host, thread, timeout, RunningState.RUNNING);
+    public JobInfo(String name, String host, String thread, Long maxExecutionTime) {
+        this(name, host, thread, maxExecutionTime, RunningState.RUNNING);
     }
 
-    public JobInfo(String name, String host, String thread, long timeout, RunningState state) {
-        this(name, host, thread, timeout, state, false, null);
+    public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state) {
+        this(name, host, thread, maxExecutionTime, state, false, null);
     }
 
-    public JobInfo(String name, String host, String thread, long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData) {
+    public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData) {
         final Date dt = new Date();
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
