@@ -33,6 +33,8 @@ public final class JobInfoResource {
 
     public static final String OTTO_JOBS_XML = "application/vnd.otto.jobs+xml";
     public static final String OTTO_JOBS_JSON = "application/vnd.otto.jobs+json";
+    public static final String OTTO_JOB_XML = "application/vnd.otto.job+xml";
+    public static final String OTTO_JOB_JSON = "application/vnd.otto.job+json";
 
     private final JobInfoRepository jobInfoRepository;
 
@@ -140,7 +142,8 @@ public final class JobInfoResource {
      */
     @GET
     @Path("/{name}/{id}")
-    @Produces({ OTTO_JOBS_JSON, OTTO_JOBS_XML })
+    @Produces({ OTTO_JOBS_JSON, OTTO_JOBS_XML
+    /* The next two media types will be removed on 01/12/2012 */ , OTTO_JOB_XML, OTTO_JOB_JSON })
     public Response getJob(@PathParam("name") final String name, @PathParam("id") final String id) {
         final JobInfo jobInfo = jobInfoRepository.findById(id);
         if (jobInfo == null || !jobInfo.getName().equals(name)) {
