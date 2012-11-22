@@ -129,23 +129,6 @@ public final class JobInfo extends AbstractItem {
         return result;
     }
 
-    public String getLogLineString() {
-        if (getLogLines().isEmpty()) {
-            return null;
-        }
-        //
-        final StringBuilder out = new StringBuilder();
-        for (final Iterator<LogLine> logLineIterator = getLogLines().iterator(); logLineIterator.hasNext(); ) {
-            final LogLine logLine = logLineIterator.next();
-            out.append(LOG_LINE_DATE_FORMAT.format(logLine.getTimestamp())).
-                append(": ").append(logLine.getLine());
-            if (logLineIterator.hasNext()) {
-                out. append(System.getProperty("line.separator"));
-            }
-        }
-        return out.toString();
-    }
-
     public Date getLastModifiedTime() {
         return getProperty(JobInfoProperty.LAST_MODIFICATION_TIME);
     }

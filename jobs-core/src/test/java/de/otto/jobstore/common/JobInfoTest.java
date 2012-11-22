@@ -20,12 +20,4 @@ public class JobInfoTest {
         assertTrue(jobInfo.isTimedOut(new Date(current.getTime() + 500)));
     }
 
-    @Test
-    public void testGetLogLinesString() throws Exception {
-        JobInfo jobInfo = new JobInfo("test", null, null, 1000L);
-        jobInfo.appendLogLine(new LogLine("test", new Date(0)));
-        jobInfo.appendLogLine(new LogLine("test2", new Date(60 * 60 * 24 * 1000)));
-        assertEquals("01/01/1970-01:00:00 CET: test\n" +
-                "02/01/1970-01:00:00 CET: test2", jobInfo.getLogLineString());
-    }
 }
