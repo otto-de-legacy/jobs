@@ -3,10 +3,7 @@ package de.otto.jobstore.service.impl;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobService;
-import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
-import de.otto.jobstore.service.exception.JobAlreadyRunningException;
-import de.otto.jobstore.service.exception.JobExecutionNotNecessaryException;
-import de.otto.jobstore.service.exception.JobNotRegisteredException;
+import de.otto.jobstore.service.exception.*;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -335,6 +332,15 @@ public class JobServiceTest {
 
         jobService.registerJob(JOB_NAME_01, runnable);
         jobService.executeJob(JOB_NAME_01);
+    }
+
+    @Test(expectedExceptions = JobExecutionDisabledException.class)
+    public void testJobExecutedDisabled() throws Exception {
+        JobServiceImpl jobServiceImpl = new JobServiceImpl(jobInfoRepository);
+        jobServiceImpl.setExecutionEnabled(false);
+
+        jobServiceImpl.registerJob(JOB_NAME_01, createJobInfoCallable());
+        jobServiceImpl.executeJob(JOB_NAME_01);
     }
 
     /***

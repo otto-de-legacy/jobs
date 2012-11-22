@@ -5,6 +5,7 @@ import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobService;
 import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
 import de.otto.jobstore.service.exception.JobAlreadyRunningException;
+import de.otto.jobstore.service.exception.JobExecutionDisabledException;
 import de.otto.jobstore.service.exception.JobNotRegisteredException;
 import de.otto.jobstore.web.representation.JobInfoRepresentation;
 import de.otto.jobstore.web.representation.JobNameRepresentation;
@@ -92,6 +93,8 @@ public final class JobInfoResource {
             return Response.created(uri).build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
+        } catch (JobExecutionDisabledException e) {
+            return Response.status(Response.Status.PRECONDITION_FAILED).build();
         } catch (JobAlreadyQueuedException e) {
             return Response.status(Response.Status.CONFLICT).build();
         } catch (JobAlreadyRunningException e) {

@@ -231,7 +231,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public JobInfo findLastByName(final String name) {
+    public JobInfo findMostRecentByName(final String name) {
         final DBCursor cursor = collection.find(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), name)).
                 sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
@@ -239,16 +239,15 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public JobInfo findLastByNameAndResultState(final String name, final ResultState state) {
-        final DBCursor cursor = collection.find(new BasicDBObject().
-                append(JobInfoProperty.NAME.val(), name).
-                append(JobInfoProperty.RESULT_STATE.val(), state.name())).
+    public JobInfo findMostRecentByNameAndResultState(final String name, final Set<ResultState> resultStates) {
+        DBObject query = createFindByNameAndResultStateQuery(name, resultStates);
+        DBCursor cursor = collection.find(query).
                 sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
         return getFirst(cursor);
     }
 
     @Override
-    public JobInfo findLastNotActiveByName(final String name) {
+    public JobInfo findMostRecentNotActiveByName(final String name) {
         final DBCursor cursor = collection.find(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), name).
                 append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NIN.op(),
@@ -258,10 +257,10 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public List<JobInfo> findLast() {
+    public List<JobInfo> findMostRecent() {
         final List<JobInfo> jobs = new ArrayList<JobInfo>();
         for (String name : distinctJobNames()) {
-            final JobInfo jobInfo = findLastByName(name);
+            final JobInfo jobInfo = findMostRecentByName(name);
             if (jobInfo != null) {
                 jobs.add(jobInfo);
             }
@@ -270,10 +269,10 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public List<JobInfo> findLastNotActive() {
+    public List<JobInfo> findMostRecentNotActive() {
         final List<JobInfo> jobs = new ArrayList<JobInfo>();
         for (String name : distinctJobNames()) {
-            final JobInfo jobInfo = findLastNotActiveByName(name);
+            final JobInfo jobInfo = findMostRecentNotActiveByName(name);
             if (jobInfo != null) {
                 jobs.add(jobInfo);
             }
@@ -405,6 +404,15 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     private DBObject createFindByNameAndRunningStateQuery(final String name, final String state) {
         return new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
                 append(JobInfoProperty.RUNNING_STATE.val(), state);
+    }
+
+    private DBObject createFindByNameAndResultStateQuery(final String name, final Set<ResultState> states) {
+        final List<String> resultStates = new ArrayList<String>();
+        for (ResultState state : states) {
+            resultStates.add(state.name());
+        }
+        return new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
+                append(JobInfoProperty.RESULT_STATE.val(), new BasicDBObject(MongoOperator.IN.op(), resultStates));
     }
 
     private String createFinishedRunningState() {

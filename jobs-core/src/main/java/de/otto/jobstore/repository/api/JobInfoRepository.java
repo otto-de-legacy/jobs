@@ -7,6 +7,7 @@ import de.otto.jobstore.common.RunningState;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A repository which stores information on jobs. For each distinct job name only one job can be running or queued.
@@ -135,23 +136,24 @@ public interface JobInfoRepository {
      * @param name The name of the job
      * @return The job with the given name and the most current timestamp or null if none could be found.
      */
-    JobInfo findLastByName(String name);
+    JobInfo findMostRecentByName(String name);
 
     /**
-     * Returns the job with the given name and result state as well as the most current last modified timestamp.
+     * Returns the job with the given name and result state(s) as well as the most current last modified timestamp.
      *
      * @param name The name of the job
+     * @param resultStates The result states the job may have
      * @return The job with the given name and result state as well as the most current timestamp or null
      * if none could be found.
      */
-    JobInfo findLastByNameAndResultState(String name, ResultState resultState);
+    JobInfo findMostRecentByNameAndResultState(String name, Set<ResultState> resultStates);
 
     /**
      * Returns for all existing job names the job with the most current last modified timestamp regardless of its state.
      *
      * @return The jobs with distinct names and the most current last modified timestamp
      */
-    List<JobInfo> findLast();
+    List<JobInfo> findMostRecent();
 
     /**
      * Returns for all existing job names the job with the most current finished timestamp and a running state of
@@ -159,7 +161,7 @@ public interface JobInfoRepository {
      *
      * @return The jobs with distinct names and the most current last finished timestamp which is not running or queued
      */
-    List<JobInfo> findLastNotActive();
+    List<JobInfo> findMostRecentNotActive();
 
     /**
      * Returns the job with the given name which is not running or queued and which has the most current finished timestamp
@@ -167,7 +169,7 @@ public interface JobInfoRepository {
      * @param name The name of the job
      * @return The job with the given name and most current finished timestamp
      */
-    JobInfo findLastNotActiveByName(String name);
+    JobInfo findMostRecentNotActiveByName(String name);
 
     /**
      * Returns the list of all distinct job names within this repository

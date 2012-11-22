@@ -8,6 +8,7 @@ package de.otto.jobstore.repository.impl;
 enum MongoOperator {
 
     GTE("$gte"),
+    IN("$in"),
     LT("$lt"),
     LTE("$lte"),
     NE("$ne"),
