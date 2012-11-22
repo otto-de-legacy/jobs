@@ -147,13 +147,14 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public boolean abortJob(final String id, final String message) {
+    public boolean markAsFinishedById(final String id, final ResultState resultState) {
         if (ObjectId.isValid(id)) {
+            final Date dt = new Date();
             final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
-                    new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), ResultState.ABORT.name()).
-                            append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
-                            append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
-                            append(JobInfoProperty.ERROR_MESSAGE.val(), message));
+                    new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), resultState.name()).
+                            append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
+                            append(JobInfoProperty.FINISH_TIME.val(), dt).
+                            append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()));
             final WriteResult result = collection.update(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), update);
             return result.getN() == 1;
         } else {
@@ -186,13 +187,13 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     public boolean markAsFinishedWithException(final String name, final Exception ex) {
         final StringWriter sw = new StringWriter();
         ex.printStackTrace(new PrintWriter(sw));
-        return markAsFinished(name, ResultState.ERROR,
+        return markAsFinished(name, ResultState.FAILED,
                 "Problem: " + ex.getMessage() + ", Stack-Trace: " + sw.toString());
     }
 
     @Override
     public boolean markAsFinishedSuccessfully(final String name) {
-        return markAsFinished(name, ResultState.SUCCESS);
+        return markAsFinished(name, ResultState.SUCCESSFUL);
     }
 
     @Override
@@ -328,7 +329,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
                 final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
                 for (JobInfo jobInfo : getAll(cursor)) {
                     if (jobInfo.isTimedOut(currentDate)) {
-                        markAsFinished(jobInfo.getName(), ResultState.TIMEOUT);
+                        markAsFinished(jobInfo.getName(), ResultState.TIMED_OUT);
                     }
                 }
                 markAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
@@ -367,7 +368,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         if (hasJob(jobName, RunningState.RUNNING.name())) {
             final JobInfo job = findByNameAndRunningState(jobName, RunningState.RUNNING.name());
             if (job.isTimedOut(currentDate)) {
-                markAsFinished(job.getName(), ResultState.TIMEOUT);
+                markAsFinished(job.getName(), ResultState.TIMED_OUT);
             }
         }
     }

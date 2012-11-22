@@ -82,7 +82,7 @@ public class JobServiceTest {
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         jobService.shutdownJobs();
-        verify(jobInfoRepository).markAsFinished(JOB_NAME_01, ResultState.ERROR, "shutdownJobs called from executing host");
+        verify(jobInfoRepository).markAsFinished(JOB_NAME_01, ResultState.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -91,7 +91,7 @@ public class JobServiceTest {
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         jobService.shutdownJobs();
-        verify(jobInfoRepository, never()).markAsFinished(JOB_NAME_01, ResultState.ERROR, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markAsFinished(JOB_NAME_01, ResultState.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -100,8 +100,8 @@ public class JobServiceTest {
         jobService.registerJob(JOB_NAME_02, createJobInfoCallable());
         jobService.shutdownJobs();
 
-        verify(jobInfoRepository, never()).markAsFinished("jobName", ResultState.ERROR, "shutdownJobs called from executing host");
-        verify(jobInfoRepository, never()).markAsFinished("jobName2", ResultState.ERROR, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markAsFinished("jobName", ResultState.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markAsFinished("jobName2", ResultState.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -173,11 +173,11 @@ public class JobServiceTest {
     public void testExecuteQueuedJobsNoExecutionNecessary() throws Exception {
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
                 Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L)));
-        when(jobInfoRepository.abortJob(anyString(), anyString())).thenReturn(Boolean.TRUE);
+        when(jobInfoRepository.markAsFinishedById(anyString(), any(ResultState.class))).thenReturn(Boolean.TRUE);
         jobService.registerJob(JOB_NAME_01, new MockJobRunnable(1000, false));
 
         jobService.executeQueuedJobs();
-        verify(jobInfoRepository, times(1)).abortJob(anyString(), anyString());
+        verify(jobInfoRepository, times(1)).markAsFinishedById(anyString(), any(ResultState.class));
     }
 
     @Test
@@ -194,7 +194,7 @@ public class JobServiceTest {
         jobService.executeQueuedJobs();
 
         verify(jobInfoRepository, times(0)).activateQueuedJob(anyString());
-        verify(jobInfoRepository, times(0)).abortJob(anyString(), anyString());
+        verify(jobInfoRepository, times(0)).markAsFinishedById(anyString(), any(ResultState.class));
     }
 
     @Test
@@ -207,7 +207,7 @@ public class JobServiceTest {
         jobService.executeQueuedJobs();
 
         verify(jobInfoRepository, times(0)).activateQueuedJob(anyString());
-        verify(jobInfoRepository, times(0)).abortJob(anyString(), anyString());
+        verify(jobInfoRepository, times(0)).markAsFinishedById(anyString(), any(ResultState.class));
     }
 
     @Test(expectedExceptions = JobAlreadyQueuedException.class)

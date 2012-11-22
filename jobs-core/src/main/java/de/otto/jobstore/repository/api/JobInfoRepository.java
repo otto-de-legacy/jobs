@@ -193,7 +193,7 @@ public interface JobInfoRepository {
      * @return true - If the job was deleted successfully<br/>
      *          false - If no queued job with the given name could be found
      */
-    boolean abortJob(String id, String message);
+    boolean markAsFinishedById(String id, ResultState resultState);
 
     /**
      * Marks a job with the given name as finished.

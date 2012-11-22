@@ -115,7 +115,7 @@ public final class JobServiceImpl implements JobService {
             final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING.name());
             if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
                 LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", name);
-                jobInfoRepository.markAsFinished(name, ResultState.ERROR, "shutdownJobs called from executing host");
+                jobInfoRepository.markAsFinished(name, ResultState.FAILED, "shutdownJobs called from executing host");
             }
         }
     }
@@ -145,7 +145,7 @@ public final class JobServiceImpl implements JobService {
             LOGGER.debug("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={}", name);
         } else if (jobInfo.isForceExecution() || runnable.isExecutionNecessary()) {
             activateQueuedJob(name, runnable);
-        } else if (jobInfoRepository.abortJob(jobInfo.getId(), "execution is not necessary")) {
+        } else if (jobInfoRepository.markAsFinishedById(jobInfo.getId(), ResultState.NOT_EXECUTED)) {
             LOGGER.warn("ltag=JobService.executeQueuedJob.executionIsNotNecessary");
         }
     }

@@ -5,9 +5,9 @@ package de.otto.jobstore.common;
  */
 public enum ResultState {
 
-    SUCCESS,
-    ERROR,
-    TIMEOUT,
-    ABORT
+    SUCCESSFUL,
+    FAILED,
+    TIMED_OUT,
+    NOT_EXECUTED
 
 }
