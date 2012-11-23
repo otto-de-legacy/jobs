@@ -7,6 +7,8 @@ public abstract class JobException extends RuntimeException {
         super(s);
     }
 
-    // TODO: add second constructor with message and original exception
+    protected JobException(String s, Throwable throwable) {
+        super(s, throwable);
+    }
 
 }

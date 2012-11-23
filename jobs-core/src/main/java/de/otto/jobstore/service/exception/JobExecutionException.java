@@ -9,4 +9,8 @@ public final class JobExecutionException extends JobException {
         super(s);
     }
 
+    public JobExecutionException(String s, Throwable throwable) {
+        super(s, throwable);
+    }
+
 }
