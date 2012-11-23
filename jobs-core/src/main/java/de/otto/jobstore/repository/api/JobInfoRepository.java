@@ -102,7 +102,7 @@ public interface JobInfoRepository {
     JobInfo findById(String id);
 
     /**
-     * Returns all jobs with the given name.
+     * Returns all jobs with the given name sorted by
      *
      * @param name The name of the jobs
      * @return All jobs with the given name sorted descending by last modified date
@@ -119,14 +119,13 @@ public interface JobInfoRepository {
     List<JobInfo> findByName(String name, Integer limit);
 
     /**
-     * Returns a list of jobs with the given name which have a lastModified timestamp
-     * which is in between the supplied dates. If the start and end parameter are null, the result list will contain
-     * all jobs with the supplied name.
+     * Returns a list of jobs with the given name which have a lastModified timestamp which is in between the supplied
+     * dates. If the start and end parameter are null, the result list will contain all jobs with the supplied name.
      *
      * @param name The name of the jobs to return
      * @param start The date on or after which the jobs were last modified
      * @param end The date on or before which the jobs were last modified
-     * @return The list of jobs sorted by startTime in descending order
+     * @return The list of jobs sorted by creationTime in descending order
      */
     List<JobInfo> findByNameAndTimeRange(String name, Date start, Date end);
 
@@ -236,6 +235,15 @@ public interface JobInfoRepository {
      *          false - No running job with the given name could be found
      */
     boolean markAsFinishedSuccessfully(String name);
+
+    /**
+     * Marks the current queued job of the given name as not executed
+     *
+     * @param name The name of the job
+     * @return true - The job was marked as requestred<br/>
+     *          false - No queued job with the given name could be found
+     */
+    boolean setQueuedJobAsNotExecuted(final String name);
 
     /**
      * Adds additional data to a running job with the given name. If information with the given key already exists

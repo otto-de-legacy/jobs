@@ -191,6 +191,18 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
                 "Problem: " + ex.getMessage() + ", Stack-Trace: " + sw.toString());
     }
 
+    public boolean setQueuedJobAsNotExecuted(final String name) {
+        final Date dt = new Date();
+        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
+                new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), ResultState.NOT_EXECUTED.name()).
+                        append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
+                        append(JobInfoProperty.FINISH_TIME.val(), dt).
+                        append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()));
+        final WriteResult result = collection.update(new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
+                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name()), update);
+        return result.getN() == 1;
+    }
+
     @Override
     public boolean markAsFinishedSuccessfully(final String name) {
         return markAsFinished(name, ResultState.SUCCESSFUL);
@@ -222,7 +234,8 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     @Override
     public List<JobInfo> findByName(final String name, final Integer limit) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
-        final DBCursor cursor = collection.find(query.get()).sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val()));
+        final DBCursor cursor = collection.find(query.get()).
+                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
         if (limit == null) {
             return getAll(cursor);
         } else {
@@ -234,7 +247,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     public JobInfo findMostRecentByName(final String name) {
         final DBCursor cursor = collection.find(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), name)).
-                sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
+                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val())).limit(1);
         return getFirst(cursor);
     }
 
@@ -242,7 +255,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     public JobInfo findMostRecentByNameAndResultState(final String name, final Set<ResultState> resultStates) {
         DBObject query = createFindByNameAndResultStateQuery(name, resultStates);
         DBCursor cursor = collection.find(query).
-                sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
+                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val())).limit(1);
         return getFirst(cursor);
     }
 
@@ -252,7 +265,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
                 append(JobInfoProperty.NAME.val(), name).
                 append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NIN.op(),
                         Arrays.asList(RunningState.RUNNING.name(), RunningState.QUEUED.name())))).
-                sort(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), SortOrder.DESC.val())).limit(1);
+                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val())).limit(1);
         return getFirst(cursor);
     }
 

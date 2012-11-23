@@ -76,6 +76,11 @@ public final class JobServiceImpl implements JobService {
     }
 
     @Override
+    public boolean removeJobFromQueue(String name) {
+        return jobInfoRepository.setQueuedJobAsNotExecuted(name);
+    }
+
+    @Override
     public String executeJob(final String name, final boolean forceExecution) throws JobNotRegisteredException,
             JobAlreadyQueuedException, JobAlreadyRunningException, JobExecutionNotNecessaryException,
             JobExecutionDisabledException {

@@ -5,6 +5,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -15,7 +16,9 @@ public final class LogLinesRepresentation implements Iterable<LogLineRepresentat
     @XmlElement(name = "logLine")
     private List<LogLineRepresentation> logLines;
 
-    public LogLinesRepresentation() {}
+    public LogLinesRepresentation() {
+        this.logLines = new ArrayList<LogLineRepresentation>();
+    }
 
     public LogLinesRepresentation(List<LogLineRepresentation> logLines) {
         this.logLines = logLines;

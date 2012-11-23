@@ -72,6 +72,17 @@ public interface JobService {
     String executeJob(String name) throws JobNotRegisteredException, JobAlreadyQueuedException,
             JobAlreadyRunningException, JobExecutionNotNecessaryException, JobExecutionDisabledException;
 
+
+    /**
+     * Removes a job with the given from the queue and sets its result state to not executed.
+     *
+     * @param name The name of the job
+     * @return true - If a queued job with the given name was found</br>
+     *         false - If no queued job with the given name could be found
+     *
+     */
+    boolean removeJobFromQueue(String name);
+
     /**
      * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
      */

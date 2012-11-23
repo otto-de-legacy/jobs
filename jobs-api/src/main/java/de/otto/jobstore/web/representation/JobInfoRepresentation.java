@@ -41,7 +41,7 @@ public final class JobInfoRepresentation {
 
     private Map<String, String> additionalData;
 
-    private LogLinesRepresentation logLines;
+    private LogLinesRepresentation logLines = new LogLinesRepresentation();
 
     public JobInfoRepresentation() {}
 

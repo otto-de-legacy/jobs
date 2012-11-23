@@ -295,4 +295,30 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
                 EnumSet.complementOf(EnumSet.of(ResultState.NOT_EXECUTED)));
         assertEquals(ResultState.TIMED_OUT, timedOut.getResultState());
     }
+
+    @Test
+    public void testFindMostRecentByResultStateOnlyNotExecuted() throws Exception {
+        JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
+        jobInfoRepository.save(jobInfo);
+        jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME, ResultState.NOT_EXECUTED);
+
+        JobInfo notExecuted = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
+                EnumSet.of(ResultState.NOT_EXECUTED));
+        assertEquals(ResultState.NOT_EXECUTED, notExecuted.getResultState());
+
+        JobInfo job = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
+                EnumSet.complementOf(EnumSet.of(ResultState.NOT_EXECUTED)));
+        assertNull(job);
+    }
+
+    @Test
+    public void testSetQueuedJobAsNotExecuted() throws Exception {
+        assertFalse(jobInfoRepository.setQueuedJobAsNotExecuted("test"));
+        JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.QUEUED);
+        jobInfoRepository.save(jobInfo);
+        jobInfoRepository.setQueuedJobAsNotExecuted(TESTVALUE_JOBNAME);
+        List<JobInfo> jobInfoList = jobInfoRepository.findByName(TESTVALUE_JOBNAME);
+        assertEquals(1, jobInfoList.size());
+        assertEquals(ResultState.NOT_EXECUTED, jobInfoList.get(0).getResultState());
+    }
 }

@@ -2,6 +2,7 @@ package de.otto.jobstore.web;
 
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.repository.api.JobInfoRepository;
+import de.otto.jobstore.service.api.JobInfoService;
 import de.otto.jobstore.service.api.JobService;
 import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
 import de.otto.jobstore.service.exception.JobAlreadyRunningException;
@@ -37,13 +38,13 @@ public final class JobInfoResource {
     public static final String OTTO_JOB_XML = "application/vnd.otto.job+xml";
     public static final String OTTO_JOB_JSON = "application/vnd.otto.job+json";
 
-    private final JobInfoRepository jobInfoRepository;
-
     private final JobService jobService;
 
-    public JobInfoResource(JobInfoRepository jobInfoRepository, JobService jobService) {
-        this.jobInfoRepository = jobInfoRepository;
+    private final JobInfoService jobInfoService;
+
+    public JobInfoResource(JobService jobService, JobInfoService jobInfoService) {
         this.jobService = jobService;
+        this.jobInfoService = jobInfoService;
     }
 
     /**
@@ -88,7 +89,7 @@ public final class JobInfoResource {
     public Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo)  {
         try {
             final String jobId = jobService.executeJob(name, true);
-            final JobInfo jobInfo = jobInfoRepository.findById(jobId);
+            final JobInfo jobInfo = jobInfoService.getById(jobId);
             final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(jobInfo.getName()).path(jobId).build();
             return Response.created(uri).build();
         } catch (JobNotRegisteredException e) {
@@ -121,7 +122,7 @@ public final class JobInfoResource {
         try {
             final JAXBContext ctx = JAXBContext.newInstance(JobInfoRepresentation.class);
             final Marshaller marshaller = ctx.createMarshaller();
-            for (JobInfo jobInfo : jobInfoRepository.findByName(name, size)) {
+            for (JobInfo jobInfo : jobInfoService.getByName(name, size)) {
                 final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(name).path(jobInfo.getId()).build();
                 final StringWriter writer = new StringWriter();
                 marshaller.marshal(JobInfoRepresentation.fromJobInfo(jobInfo), writer);
@@ -148,7 +149,7 @@ public final class JobInfoResource {
     @Produces({ OTTO_JOBS_JSON, OTTO_JOBS_XML
     /* The next two media types will be removed on 01/12/2012 */ , OTTO_JOB_XML, OTTO_JOB_JSON })
     public Response getJob(@PathParam("name") final String name, @PathParam("id") final String id) {
-        final JobInfo jobInfo = jobInfoRepository.findById(id);
+        final JobInfo jobInfo = jobInfoService.getById(id);
         if (jobInfo == null || !jobInfo.getName().equals(name)) {
             return Response.status(Response.Status.NOT_FOUND).build();
         } else {
@@ -170,7 +171,7 @@ public final class JobInfoResource {
         final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<String, List<JobInfoRepresentation>>();
         final Date dt = new Date(new Date().getTime() - 1000 * 60 * hours);
         for (String jobName : jobNames) {
-            final List<JobInfo> jobInfoList = jobInfoRepository.findByNameAndTimeRange(jobName, dt, null);
+            final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt);
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<JobInfoRepresentation>();
             for (JobInfo jobInfo : jobInfoList) {
                 jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo));

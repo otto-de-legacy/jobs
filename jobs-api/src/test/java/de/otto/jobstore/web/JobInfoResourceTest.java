@@ -4,7 +4,7 @@ import com.mongodb.BasicDBObject;
 import com.sun.jersey.api.uri.UriBuilderImpl;
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.properties.JobInfoProperty;
-import de.otto.jobstore.repository.api.JobInfoRepository;
+import de.otto.jobstore.service.api.JobInfoService;
 import de.otto.jobstore.service.api.JobService;
 import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
 import de.otto.jobstore.service.exception.JobAlreadyRunningException;
@@ -20,7 +20,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
-
 import java.io.StringReader;
 import java.util.*;
 
@@ -34,15 +33,15 @@ public class JobInfoResourceTest {
 
     private JobInfoResource jobInfoResource;
     private JobService jobService;
-    private JobInfoRepository jobInfoRepository;
+    private JobInfoService jobInfoService;
     private UriInfo uriInfo;
     private JobInfo JOB_INFO;
 
     @BeforeMethod
     public void setUp() throws Exception {
         jobService = mock(JobService.class);
-        jobInfoRepository = mock(JobInfoRepository.class);
-        jobInfoResource = new JobInfoResource(jobInfoRepository, jobService);
+        jobInfoService = mock(JobInfoService.class);
+        jobInfoResource = new JobInfoResource(jobService, jobInfoService);
 
         uriInfo = mock(UriInfo.class);
         when(uriInfo.getBaseUriBuilder()).thenReturn(new UriBuilderImpl());
@@ -109,7 +108,7 @@ public class JobInfoResourceTest {
     @Test
     public void testExecuteJob() throws Exception {
         when(jobService.executeJob("foo", true)).thenReturn("1234");
-        when(jobInfoRepository.findById("1234")).thenReturn(JOB_INFO);
+        when(jobInfoService.getById("1234")).thenReturn(JOB_INFO);
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
         assertEquals(201, response.getStatus());
@@ -117,7 +116,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testGetJob() throws Exception {
-        when(jobInfoRepository.findById("1234")).thenReturn(JOB_INFO);
+        when(jobInfoService.getById("1234")).thenReturn(JOB_INFO);
 
         Response response = jobInfoResource.getJob("foo", "1234");
         assertEquals(200, response.getStatus());
@@ -125,7 +124,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testGetJobNotExisting() throws Exception {
-        when(jobInfoRepository.findById("1234")).thenReturn(null);
+        when(jobInfoService.getById("1234")).thenReturn(null);
 
         Response response = jobInfoResource.getJob("foo", "1234");
         assertEquals(404, response.getStatus());
@@ -133,7 +132,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testGetJobMismatchingName() throws Exception {
-        when(jobInfoRepository.findById("1234")).thenReturn(JOB_INFO);
+        when(jobInfoService.getById("1234")).thenReturn(JOB_INFO);
 
         Response response = jobInfoResource.getJob("bar", "1234");
         assertEquals(404, response.getStatus());
@@ -143,7 +142,7 @@ public class JobInfoResourceTest {
     public void testGetJobsByName() throws Exception {
         JAXBContext ctx = JAXBContext.newInstance(JobInfoRepresentation.class);
         Unmarshaller unmarshaller = ctx.createUnmarshaller();
-        when(jobInfoRepository.findByName("foo", 5)).thenReturn(createJobs(5, "foo"));
+        when(jobInfoService.getByName("foo", 5)).thenReturn(createJobs(5, "foo"));
 
         Response response = jobInfoResource.getJobsByName("foo", 5, uriInfo);
         assertEquals(200, response.getStatus());
@@ -160,7 +159,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testGetJobsByEmpty() throws Exception {
-        when(jobInfoRepository.findByName("foo", 5)).thenReturn(new ArrayList<JobInfo>());
+        when(jobInfoService.getByName("foo", 5)).thenReturn(new ArrayList<JobInfo>());
 
         Response response = jobInfoResource.getJobsByName("foo", 5, uriInfo);
         assertEquals(200, response.getStatus());
@@ -176,7 +175,7 @@ public class JobInfoResourceTest {
         Set<String> names = new HashSet<String>();
         names.add("foo");
         when(jobService.listJobNames()).thenReturn(names);
-        when(jobInfoRepository.findByNameAndTimeRange(anyString(), any(Date.class), any(Date.class))).
+        when(jobInfoService.getByNameAndTimeRange(anyString(), any(Date.class), any(Date.class))).
                 thenReturn(createJobs(5, "foo"));
 
         Response response = jobInfoResource.getJobsHistory(5);
