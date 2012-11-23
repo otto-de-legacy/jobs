@@ -58,17 +58,6 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public String create(final String name, final long maxExecutionTime, final RunningState runningState, final boolean forceExecution) {
-        return create(name, maxExecutionTime, runningState, forceExecution, new HashMap<String, String>());
-    }
-
-    @Override
-    public String create(final String name, final String host, final String thread, final long maxExecutionTime,
-                         final RunningState runningState, final boolean forceExecution) {
-        return create(name, host, thread, maxExecutionTime, runningState, forceExecution, new HashMap<String, String>());
-    }
-
-    @Override
     public String create(final String name, final long maxExecutionTime, final RunningState runningState,
                          final boolean forceExecution, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
@@ -227,10 +216,6 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
-    public List<JobInfo> findByName(final String name) {
-        return findByName(name, null);
-    }
-
     @Override
     public List<JobInfo> findByName(final String name, final Integer limit) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
@@ -336,7 +321,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING.name())) {
-            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false);
+            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, null);
             try {
                 final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
                 for (JobInfo jobInfo : getAll(cursor)) {
@@ -356,7 +341,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING.name())) {
-            create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false);
+            create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, null);
             cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, daysAfterWhichOldJobsAreDeleted)));
             markAsFinishedSuccessfully(JOB_NAME_CLEANUP);
         }

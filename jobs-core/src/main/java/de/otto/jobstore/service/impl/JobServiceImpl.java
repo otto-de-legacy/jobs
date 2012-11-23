@@ -157,7 +157,7 @@ public final class JobServiceImpl implements JobService {
 
     private String queueJob(String name, long maxExecutionTime, boolean forceExecution, String exceptionMessage)
             throws JobAlreadyQueuedException{
-        final String id = jobInfoRepository.create(name, maxExecutionTime, RunningState.QUEUED, forceExecution);
+        final String id = jobInfoRepository.create(name, maxExecutionTime, RunningState.QUEUED, forceExecution, null);
         if (id == null) {
             throw new JobAlreadyQueuedException(exceptionMessage);
         }
@@ -166,7 +166,7 @@ public final class JobServiceImpl implements JobService {
 
     private String runJob(String name, long maxExecutionTime, boolean forceExecution, String exceptionMessage)
             throws JobAlreadyRunningException {
-        final String id = jobInfoRepository.create(name, maxExecutionTime, RunningState.RUNNING, forceExecution);
+        final String id = jobInfoRepository.create(name, maxExecutionTime, RunningState.RUNNING, forceExecution, null);
         if (id == null) {
             throw new JobAlreadyRunningException(exceptionMessage);
         }

@@ -24,34 +24,10 @@ public interface JobInfoRepository {
      * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
      * @param state The state with which the job is started
      * @param forceExecution If a job should ignore preconditions defined on where or not it should run
-     * @return The id of the job if it could be created or null if a job with the same name and state already exists
-     */
-    String create(String name, long maxExecutionTime, RunningState state, boolean forceExecution);
-
-    /**
-     * Creates a new job with the given parameters. Host and thread executing the job are determined automatically.
-     *
-     * @param name The name of the job
-     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
-     * @param state The state with which the job is started
-     * @param forceExecution If a job should ignore preconditions defined on where or not it should run
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     String create(String name, long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData);
-
-    /**
-     * Creates a new job with the given parameters
-     *
-     * @param name The name of the job
-     * @param host The host, on which the job is running
-     * @param thread The thread, which runs the job
-     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
-     * @param state The state with which the job is started
-     * @param forceExecution If a job should ignore preconditions defined on where or not it should run
-     * @return The id of the job if it could be created or null if a job with the same name and state already exists
-     */
-    String create(String name, String host, String thread, long maxExecutionTime, RunningState state, boolean forceExecution);
 
     /**
      * Creates a new job with the given parameters
@@ -100,14 +76,6 @@ public interface JobInfoRepository {
      * @return The job with the given id or null if no corresponding job was found.
      */
     JobInfo findById(String id);
-
-    /**
-     * Returns all jobs with the given name sorted by
-     *
-     * @param name The name of the jobs
-     * @return All jobs with the given name sorted descending by last modified date
-     */
-    List<JobInfo> findByName(String name);
 
     /**
      * Returns all jobs with the given name.
