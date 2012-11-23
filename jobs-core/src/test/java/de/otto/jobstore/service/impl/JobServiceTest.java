@@ -152,8 +152,8 @@ public class JobServiceTest {
             }
 
             @Override
-            public void execute(JobLogger jobLogger) throws Exception {
-                throw new Exception();
+            public void execute(JobLogger jobLogger) throws JobExecutionException {
+                throw new JobExecutionException("problem while executing");
             }
         };
         jobService.registerJob(JOB_NAME_01, runnable);
@@ -311,8 +311,8 @@ public class JobServiceTest {
             }
 
             @Override
-            public void execute(JobLogger jobLogger) throws Exception {
-                throw new Exception();
+            public void execute(JobLogger jobLogger) throws JobExecutionException {
+                throw new JobExecutionException("problem while executing");
             }
         };
 
@@ -374,7 +374,7 @@ public class JobServiceTest {
         }
 
         @Override
-        public void execute(JobLogger jobLogger) throws Exception {
+        public void execute(JobLogger jobLogger) throws JobExecutionException {
             executed = true;
         }
 

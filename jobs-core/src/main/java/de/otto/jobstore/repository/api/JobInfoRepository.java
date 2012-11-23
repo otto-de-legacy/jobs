@@ -225,7 +225,7 @@ public interface JobInfoRepository {
      * @return true - The job was marked as requested<br/>
      *          false - No running job with the given name could be found
      */
-    boolean markAsFinishedWithException(String name, Exception ex);
+    boolean markAsFinishedWithException(String name, Throwable t);
 
     /**
      * Marks a job with the given name as finished successfully.

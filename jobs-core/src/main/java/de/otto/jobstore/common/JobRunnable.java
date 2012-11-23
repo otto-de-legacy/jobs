@@ -1,5 +1,7 @@
 package de.otto.jobstore.common;
 
+import de.otto.jobstore.service.exception.JobExecutionException;
+
 /**
  * A job to be executed by a JobService {@link de.otto.jobstore.service.api.JobService}
  */
@@ -24,8 +26,8 @@ public interface JobRunnable {
      * Executes the job.
      *
      * @param jobLogger The job logger used to add additional information to a job
-     * @throws Exception Thrown if the execution of the job failed
+     * @throws JobExecutionException Thrown if the execution of the job failed
      */
-    void execute(JobLogger jobLogger) throws Exception;
+    void execute(JobLogger jobLogger) throws JobExecutionException;
 
 }

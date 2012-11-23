@@ -3,6 +3,7 @@ package de.otto.jobstore.common.example;
 import de.otto.jobstore.common.JobLogger;
 import de.otto.jobstore.common.JobRunnable;
 import de.otto.jobstore.service.api.JobService;
+import de.otto.jobstore.service.exception.JobExecutionException;
 
 public final class StepOneJobRunnableExample implements JobRunnable {
 
@@ -20,7 +21,6 @@ public final class StepOneJobRunnableExample implements JobRunnable {
 
     /**
      * Only execute job one if job two is registered in the job service
-     * @return
      */
     @Override
     public boolean isExecutionNecessary() {
@@ -32,9 +32,13 @@ public final class StepOneJobRunnableExample implements JobRunnable {
      * @param jobLogger The job logger used to add additional information to a job
      */
     @Override
-    public void execute(JobLogger jobLogger) throws Exception {
-        for (int i = 0; i < 10; i++) {
-            Thread.sleep(i * 1000);
+    public void execute(JobLogger jobLogger) throws JobExecutionException {
+        try {
+            for (int i = 0; i < 10; i++) {
+                Thread.sleep(i * 1000);
+            }
+        } catch (InterruptedException e) {
+            throw new JobExecutionException("Interrupted: " + e.getMessage());
         }
         jobService.executeJob(StepTwoJobRunnableExample.STEP_TWO_JOB);
     }

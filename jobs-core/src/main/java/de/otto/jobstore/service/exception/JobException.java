@@ -7,4 +7,6 @@ public abstract class JobException extends RuntimeException {
         super(s);
     }
 
+    // TODO: add second constructor with message and original exception
+
 }

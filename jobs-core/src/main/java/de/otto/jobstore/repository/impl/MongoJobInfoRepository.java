@@ -184,11 +184,11 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public boolean markAsFinishedWithException(final String name, final Exception ex) {
+    public boolean markAsFinishedWithException(final String name, final Throwable t) {
         final StringWriter sw = new StringWriter();
-        ex.printStackTrace(new PrintWriter(sw));
+        t.printStackTrace(new PrintWriter(sw));
         return markAsFinished(name, ResultState.FAILED,
-                "Problem: " + ex.getMessage() + ", Stack-Trace: " + sw.toString());
+                "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString());
     }
 
     public boolean setQueuedJobAsNotExecuted(final String name) {

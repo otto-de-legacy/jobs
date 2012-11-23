@@ -2,7 +2,7 @@ package de.otto.jobstore.common.example;
 
 import de.otto.jobstore.common.JobLogger;
 import de.otto.jobstore.common.JobRunnable;
-import de.otto.jobstore.service.api.JobService;
+import de.otto.jobstore.service.exception.JobExecutionException;
 
 public final class StepTwoJobRunnableExample implements JobRunnable {
 
@@ -24,11 +24,10 @@ public final class StepTwoJobRunnableExample implements JobRunnable {
     /**
      * Job always finishes with an error
      * @param jobLogger The job logger used to add additional information to a job
-     * @throws Exception Always thrown
      */
     @Override
-    public void execute(JobLogger jobLogger) throws Exception {
-        throw new IllegalStateException("I do not want to work");
+    public void execute(JobLogger jobLogger) throws JobExecutionException {
+        throw new JobExecutionException("I do not want to work");
     }
 
 }
