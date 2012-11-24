@@ -77,7 +77,7 @@ public final class JobServiceImpl implements JobService {
 
     @Override
     public boolean removeJobFromQueue(String name) {
-        return jobInfoRepository.setQueuedJobAsNotExecuted(name);
+        return jobInfoRepository.markQueuedAsNotExecuted(name);
     }
 
     @Override
@@ -120,7 +120,7 @@ public final class JobServiceImpl implements JobService {
             final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING.name());
             if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
                 LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", name);
-                jobInfoRepository.markAsFinished(name, ResultState.FAILED, "shutdownJobs called from executing host");
+                jobInfoRepository.markRunningAsFinished(name, ResultState.FAILED, "shutdownJobs called from executing host");
             }
         }
     }
@@ -218,9 +218,9 @@ public final class JobServiceImpl implements JobService {
             try {
                 LOGGER.info("ltag=JobService.JobExecutionRunnable.run jobInfoName={}", jobName);
                 jobRunnable.execute(new SimpleJobLogger(jobName, jobInfoRepository));
-                jobInfoRepository.markAsFinishedSuccessfully(jobName);
+                jobInfoRepository.markRunningAsFinishedSuccessfully(jobName);
             } catch (Throwable t) {
-                jobInfoRepository.markAsFinishedWithException(jobName, t);
+                jobInfoRepository.markRunningAsFinishedWithException(jobName, t);
             }
         }
     }

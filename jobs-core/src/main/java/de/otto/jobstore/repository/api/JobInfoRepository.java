@@ -106,6 +106,13 @@ public interface JobInfoRepository {
     JobInfo findMostRecentByName(String name);
 
     /**
+     * Returns for all existing job names the job with the most current last modified timestamp regardless of its state.
+     *
+     * @return The jobs with distinct names and the most current last modified timestamp
+     */
+    List<JobInfo> findMostRecent();
+
+    /**
      * Returns the job with the given name and result state(s) as well as the most current last modified timestamp.
      *
      * @param name The name of the job
@@ -114,29 +121,6 @@ public interface JobInfoRepository {
      * if none could be found.
      */
     JobInfo findMostRecentByNameAndResultState(String name, Set<ResultState> resultStates);
-
-    /**
-     * Returns for all existing job names the job with the most current last modified timestamp regardless of its state.
-     *
-     * @return The jobs with distinct names and the most current last modified timestamp
-     */
-    List<JobInfo> findMostRecent();
-
-    /**
-     * Returns for all existing job names the job with the most current finished timestamp and a running state of
-     * neither running or queued.
-     *
-     * @return The jobs with distinct names and the most current last finished timestamp which is not running or queued
-     */
-    List<JobInfo> findMostRecentNotActive();
-
-    /**
-     * Returns the job with the given name which is not running or queued and which has the most current finished timestamp
-     *
-     * @param name The name of the job
-     * @return The job with the given name and most current finished timestamp
-     */
-    JobInfo findMostRecentNotActiveByName(String name);
 
     /**
      * Returns the list of all distinct job names within this repository
@@ -156,7 +140,7 @@ public interface JobInfoRepository {
     boolean activateQueuedJob(String name);
 
     /**
-     * Removes a queued job with the given name.
+     * Marks a running job with the given id as finished.
      *
      * @param id The id of the job
      * @return true - If the job was deleted successfully<br/>
@@ -165,17 +149,7 @@ public interface JobInfoRepository {
     boolean markAsFinishedById(String id, ResultState resultState);
 
     /**
-     * Marks a job with the given name as finished.
-     *
-     * @param name The name of the job
-     * @param state The result state of the job
-     * @return true - The job was marked as requested<br/>
-     *          false - No running job with the given name could be found
-     */
-    boolean markAsFinished(String name, ResultState state);
-
-    /**
-     * Marks a job with the given name as finished.
+     * Marks a running job with the given name as finished.
      *
      * @param name The name of the job
      * @param state The result state of the job
@@ -183,17 +157,17 @@ public interface JobInfoRepository {
      * @return true - The job was marked as requested<br/>
      *          false - No running job with the given name could be found
      */
-    boolean markAsFinished(String name, ResultState state, String errorMessage);
+    boolean markRunningAsFinished(String name, ResultState state, String errorMessage);
 
     /**
-     * Marks a job with the given name as finished with an error and writes the stack trace of the exception
-     * to the error message property of the job.
+     * Marks a running job with the given name as finished with an error and writes
+     * the stack trace of the exception to the error message property of the job.
      *
      * @param name The name of the job
      * @return true - The job was marked as requested<br/>
      *          false - No running job with the given name could be found
      */
-    boolean markAsFinishedWithException(String name, Throwable t);
+    boolean markRunningAsFinishedWithException(String name, Throwable t);
 
     /**
      * Marks a job with the given name as finished successfully.
@@ -202,7 +176,7 @@ public interface JobInfoRepository {
      * @return true - The job was marked as requested<br/>
      *          false - No running job with the given name could be found
      */
-    boolean markAsFinishedSuccessfully(String name);
+    boolean markRunningAsFinishedSuccessfully(String name);
 
     /**
      * Marks the current queued job of the given name as not executed
@@ -211,7 +185,7 @@ public interface JobInfoRepository {
      * @return true - The job was marked as requestred<br/>
      *          false - No queued job with the given name could be found
      */
-    boolean setQueuedJobAsNotExecuted(final String name);
+    boolean markQueuedAsNotExecuted(final String name);
 
     /**
      * Adds additional data to a running job with the given name. If information with the given key already exists

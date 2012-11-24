@@ -79,7 +79,7 @@ public class JobServiceTest {
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         jobService.shutdownJobs();
-        verify(jobInfoRepository).markAsFinished(JOB_NAME_01, ResultState.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository).markRunningAsFinished(JOB_NAME_01, ResultState.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -88,7 +88,7 @@ public class JobServiceTest {
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         jobService.shutdownJobs();
-        verify(jobInfoRepository, never()).markAsFinished(JOB_NAME_01, ResultState.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markRunningAsFinished(JOB_NAME_01, ResultState.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -97,8 +97,8 @@ public class JobServiceTest {
         jobService.registerJob(JOB_NAME_02, createJobInfoCallable());
         jobService.shutdownJobs();
 
-        verify(jobInfoRepository, never()).markAsFinished("jobName", ResultState.FAILED, "shutdownJobs called from executing host");
-        verify(jobInfoRepository, never()).markAsFinished("jobName2", ResultState.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markRunningAsFinished("jobName", ResultState.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markRunningAsFinished("jobName2", ResultState.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -116,7 +116,7 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
         Thread.sleep(100);
         assertTrue(runnable.isExecuted());
-        verify(jobInfoRepository, times(1)).markAsFinishedSuccessfully(JOB_NAME_01);
+        verify(jobInfoRepository, times(1)).markRunningAsFinishedSuccessfully(JOB_NAME_01);
     }
 
     @Test
@@ -131,7 +131,7 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
         Thread.sleep(100);
         assertTrue(runnable.isExecuted());
-        verify(jobInfoRepository, times(1)).markAsFinishedSuccessfully(JOB_NAME_01);
+        verify(jobInfoRepository, times(1)).markRunningAsFinishedSuccessfully(JOB_NAME_01);
     }
 
     @Test
@@ -163,7 +163,7 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
         verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
         Thread.sleep(100);
-        verify(jobInfoRepository, times(1)).markAsFinishedWithException(anyString(), any(Exception.class));
+        verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(), any(Exception.class));
     }
 
     @Test
@@ -291,7 +291,7 @@ public class JobServiceTest {
         assertEquals("1234", id);
         Thread.sleep(100);
         assertTrue(runnable.isExecuted());
-        verify(jobInfoRepository, times(1)).markAsFinishedSuccessfully(JOB_NAME_01);
+        verify(jobInfoRepository, times(1)).markRunningAsFinishedSuccessfully(JOB_NAME_01);
     }
 
     @Test
@@ -320,7 +320,7 @@ public class JobServiceTest {
         String id = jobService.executeJob(JOB_NAME_01, true);
         assertEquals("1234", id);
         Thread.sleep(100);
-        verify(jobInfoRepository, times(1)).markAsFinishedWithException(anyString(), any(Exception.class));
+        verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(), any(Exception.class));
     }
 
     @Test(expectedExceptions = JobAlreadyRunningException.class)

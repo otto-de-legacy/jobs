@@ -89,7 +89,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
         assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name()));
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING, false, null);
         assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name()).getFinishTime());
-        jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME, ResultState.SUCCESSFUL, null);
+        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultState.SUCCESSFUL, null);
         assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME, null).get(0).getFinishTime());
     }
 
@@ -143,7 +143,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
         jobInfoRepository.create(TESTVALUE_JOBNAME + 2, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false, null);
         jobInfoRepository.create(TESTVALUE_JOBNAME + 3, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false, null);
         assertEquals(3, jobInfoRepository.findMostRecent().size());
-        jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME + 1, ResultState.SUCCESSFUL, null);
+        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME + 1, ResultState.SUCCESSFUL, null);
         jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false, null);
         assertEquals(3, jobInfoRepository.findMostRecent().size());
     }
@@ -159,7 +159,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
     public void testFindLastByFinishDate() throws Exception {
         jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false, null);
         assertNull(jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME + 1, EnumSet.of(ResultState.SUCCESSFUL)));
-        jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME + 1, ResultState.SUCCESSFUL);
+        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME + 1, ResultState.SUCCESSFUL, null);
         assertNotNull(jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME + 1, EnumSet.of(ResultState.SUCCESSFUL)));
     }
 
@@ -173,23 +173,6 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
         jobInfoRepository.addLoggingData(TESTVALUE_JOBNAME + "LogLine", "bar");
         testJob = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME + "LogLine");
         assertEquals(2, testJob.getLogLines().size());
-    }
-
-    @Test
-    public void testFindingLastNotRunning() throws Exception {
-        jobInfoRepository.create("test", 1234567890, RunningState.RUNNING, false, null);
-        jobInfoRepository.markAsFinished("test", ResultState.SUCCESSFUL);
-
-        jobInfoRepository.create("test", 1234567890, RunningState.RUNNING, false, null);
-        jobInfoRepository.markAsFinished("test", ResultState.FAILED);
-
-        jobInfoRepository.create("test", 1234567890, RunningState.RUNNING, false, null);
-
-        List<JobInfo> jobs = jobInfoRepository.findMostRecentNotActive();
-        assertFalse(jobs.isEmpty());
-        JobInfo job = jobs.get(0);
-
-        assertEquals(ResultState.FAILED, job.getResultState());
     }
 
     @Test
@@ -230,7 +213,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
     @Test
     public void testMarkFinishedWithException() throws Exception {
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false, null);
-        jobInfoRepository.markAsFinishedWithException(TESTVALUE_JOBNAME, new IllegalArgumentException("This is an error", new NullPointerException()));
+        jobInfoRepository.markRunningAsFinishedWithException(TESTVALUE_JOBNAME, new IllegalArgumentException("This is an error", new NullPointerException()));
         JobInfo jobInfo = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME);
         assertEquals(ResultState.FAILED, jobInfo.getResultState());
         String runningState = jobInfo.getRunningState();
@@ -276,16 +259,16 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
     public void testFindMostRecentByResultState() throws Exception {
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
-        jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME, ResultState.FAILED);
+        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultState.FAILED, null);
         JobInfo jobInfo1 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo1);
-        jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME, ResultState.SUCCESSFUL);
+        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultState.SUCCESSFUL, null);
         JobInfo jobInfo2 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo2);
-        jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME, ResultState.TIMED_OUT);
+        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultState.TIMED_OUT, null);
         JobInfo jobInfo3 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo3);
-        jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME, ResultState.NOT_EXECUTED);
+        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultState.NOT_EXECUTED, null);
 
         JobInfo notExecuted = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
                 EnumSet.of(ResultState.NOT_EXECUTED));
@@ -300,7 +283,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
     public void testFindMostRecentByResultStateOnlyNotExecuted() throws Exception {
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
-        jobInfoRepository.markAsFinished(TESTVALUE_JOBNAME, ResultState.NOT_EXECUTED);
+        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultState.NOT_EXECUTED, null);
 
         JobInfo notExecuted = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
                 EnumSet.of(ResultState.NOT_EXECUTED));
@@ -313,10 +296,10 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
 
     @Test
     public void testSetQueuedJobAsNotExecuted() throws Exception {
-        assertFalse(jobInfoRepository.setQueuedJobAsNotExecuted("test"));
+        assertFalse(jobInfoRepository.markQueuedAsNotExecuted("test"));
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.QUEUED);
         jobInfoRepository.save(jobInfo);
-        jobInfoRepository.setQueuedJobAsNotExecuted(TESTVALUE_JOBNAME);
+        jobInfoRepository.markQueuedAsNotExecuted(TESTVALUE_JOBNAME);
         List<JobInfo> jobInfoList = jobInfoRepository.findByName(TESTVALUE_JOBNAME, null);
         assertEquals(1, jobInfoList.size());
         assertEquals(ResultState.NOT_EXECUTED, jobInfoList.get(0).getResultState());

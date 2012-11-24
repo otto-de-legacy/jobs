@@ -152,7 +152,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public boolean markAsFinished(final String name, final ResultState state, final String errorMessage) {
+    public boolean markRunningAsFinished(final String name, final ResultState state, final String errorMessage) {
         final Date dt = new Date();
         final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
                 append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
@@ -168,19 +168,14 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public boolean markAsFinished(final String name, final ResultState state) {
-        return markAsFinished(name, state, null);
-    }
-
-    @Override
-    public boolean markAsFinishedWithException(final String name, final Throwable t) {
+    public boolean markRunningAsFinishedWithException(final String name, final Throwable t) {
         final StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
-        return markAsFinished(name, ResultState.FAILED,
+        return markRunningAsFinished(name, ResultState.FAILED,
                 "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString());
     }
 
-    public boolean setQueuedJobAsNotExecuted(final String name) {
+    public boolean markQueuedAsNotExecuted(final String name) {
         final Date dt = new Date();
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), ResultState.NOT_EXECUTED.name()).
@@ -193,8 +188,8 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public boolean markAsFinishedSuccessfully(final String name) {
-        return markAsFinished(name, ResultState.SUCCESSFUL);
+    public boolean markRunningAsFinishedSuccessfully(final String name) {
+        return markRunningAsFinished(name, ResultState.SUCCESSFUL, null);
     }
 
     @Override
@@ -245,32 +240,10 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public JobInfo findMostRecentNotActiveByName(final String name) {
-        final DBCursor cursor = collection.find(new BasicDBObject().
-                append(JobInfoProperty.NAME.val(), name).
-                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NIN.op(),
-                        Arrays.asList(RunningState.RUNNING.name(), RunningState.QUEUED.name())))).
-                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val())).limit(1);
-        return getFirst(cursor);
-    }
-
-    @Override
     public List<JobInfo> findMostRecent() {
         final List<JobInfo> jobs = new ArrayList<JobInfo>();
         for (String name : distinctJobNames()) {
             final JobInfo jobInfo = findMostRecentByName(name);
-            if (jobInfo != null) {
-                jobs.add(jobInfo);
-            }
-        }
-        return jobs;
-    }
-
-    @Override
-    public List<JobInfo> findMostRecentNotActive() {
-        final List<JobInfo> jobs = new ArrayList<JobInfo>();
-        for (String name : distinctJobNames()) {
-            final JobInfo jobInfo = findMostRecentNotActiveByName(name);
             if (jobInfo != null) {
                 jobs.add(jobInfo);
             }
@@ -326,13 +299,13 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
                 final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
                 for (JobInfo jobInfo : getAll(cursor)) {
                     if (jobInfo.isTimedOut(currentDate)) {
-                        markAsFinished(jobInfo.getName(), ResultState.TIMED_OUT);
+                        markRunningAsFinished(jobInfo.getName(), ResultState.TIMED_OUT, null);
                     }
                 }
-                markAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
+                markRunningAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage(), e);
-                markAsFinishedWithException(JOB_NAME_TIMED_OUT_CLEANUP, e);
+                markRunningAsFinishedWithException(JOB_NAME_TIMED_OUT_CLEANUP, e);
             }
         }
     }
@@ -343,7 +316,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING.name())) {
             create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, null);
             cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, daysAfterWhichOldJobsAreDeleted)));
-            markAsFinishedSuccessfully(JOB_NAME_CLEANUP);
+            markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP);
         }
     }
 
@@ -365,7 +338,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         if (hasJob(jobName, RunningState.RUNNING.name())) {
             final JobInfo job = findByNameAndRunningState(jobName, RunningState.RUNNING.name());
             if (job.isTimedOut(currentDate)) {
-                markAsFinished(job.getName(), ResultState.TIMED_OUT);
+                markRunningAsFinished(job.getName(), ResultState.TIMED_OUT, null);
             }
         }
     }
