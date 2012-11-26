@@ -95,11 +95,11 @@ public final class JobInfoResource {
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
         } catch (JobExecutionDisabledException e) {
-            return Response.status(Response.Status.PRECONDITION_FAILED).build();
+            return Response.status(Response.Status.PRECONDITION_FAILED).entity(e.getMessage()).build();
         } catch (JobAlreadyQueuedException e) {
-            return Response.status(Response.Status.CONFLICT).build();
+            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         } catch (JobAlreadyRunningException e) {
-            return Response.status(Response.Status.CONFLICT).build();
+            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         }
     }
 
