@@ -219,8 +219,11 @@ public final class JobServiceImpl implements JobService {
                 LOGGER.info("ltag=JobService.JobExecutionRunnable.run jobInfoName={}", jobName);
                 jobRunnable.execute(new SimpleJobLogger(jobName, jobInfoRepository));
                 jobInfoRepository.markRunningAsFinishedSuccessfully(jobName);
-            } catch (Throwable t) {
-                jobInfoRepository.markRunningAsFinishedWithException(jobName, t);
+            } catch (Exception e) {
+                jobInfoRepository.markRunningAsFinishedWithException(jobName, e);
+            } catch (Error e) {
+                jobInfoRepository.markRunningAsFinishedWithException(jobName, e);
+                throw e;
             }
         }
     }
