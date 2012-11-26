@@ -7,7 +7,7 @@ allprojects {
 }
 
 subprojects {
-    apply plugin: 'war'
+    apply plugin: 'java'
     apply plugin: 'maven'
 
     sourceCompatibility = 1.6
@@ -22,15 +22,26 @@ subprojects {
     }
 
     configurations {
-        publishToNexus
+        archives
+    }
+
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        classifier = 'javadoc'
+        from javadoc.destinationDir
     }
 
     artifacts {
-        publishToNexus jar
+        archives sourcesJar
+        archives javadocJar
     }
 
     uploadArchives {
-        configuration = configurations.publishToNexus
+        configuration = configurations.archives
         repositories {
             mavenDeployer {
                 repository(url: "http://nexus.lhotse.ov.otto.de:8080/content/repositories/releases") {

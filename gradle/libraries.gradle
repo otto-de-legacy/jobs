@@ -2,7 +2,6 @@ project.ext.libs = [
     "apacheIo"          : "commons-io:commons-io:2.1",
     "cobertura"         : "net.sourceforge.cobertura:cobertura:1.9.4.1",
     "commonsLogging"    : "commons-logging:commons-logging:1.1.1",
-    "javaxServlet"      : "javax.servlet:javax.servlet-api:3.0.1",
     "jerseyAbdera"      : "com.sun.jersey.contribs:jersey-atom-abdera:1.14",
     "jerseyClient"      : "com.sun.jersey:jersey-client:1.14",
     "jerseyCore"        : "com.sun.jersey:jersey-core:1.14",

@@ -1,5 +1,5 @@
 uploadArchives {
-    configuration = configurations.publishToNexus
+    configuration = configurations.archives
     repositories {
         mavenDeployer {
             pom {

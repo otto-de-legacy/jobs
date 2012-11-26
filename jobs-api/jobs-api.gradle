@@ -1,5 +1,5 @@
 uploadArchives {
-    configuration = configurations.publishToNexus
+    configuration = configurations.archives
     repositories {
         mavenDeployer {
             pom {
@@ -24,7 +24,6 @@ task uploadJavadoc(dependsOn: javadoc) << {
 dependencies {
     compile project(':jobs-core')
     compile libs.jerseyAbdera, libs.jerseyClient, libs.jerseyCore
-    providedCompile libs.javaxServlet
 
     testCompile libs.testng, libs.mockito
     testCompile libs.cobertura
