@@ -29,7 +29,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     public MongoJobInfoRepository(final Mongo mongo, final String dbName, final String collectionName, final String username, final String password) {
         final DB db = mongo.getDB(dbName);
         if (username != null && !username.isEmpty()) {
-            if (db.isAuthenticated()) {
+            if (!db.isAuthenticated()) {
                 final boolean authenticateSuccess = db.authenticate(username, password.toCharArray());
                 if (!authenticateSuccess) {
                     throw new RuntimeException("The authentication at the database: " + dbName + " on the host: " +
