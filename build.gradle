@@ -60,6 +60,8 @@ subprojects {
 
     task cobertura (type: Test) {
 
+        jvmArgs '-XX:-UseSplitVerifier'
+
         useTestNG()
         systemProperties ["net.sourceforge.cobertura.datafile"] = cobSerFile
 
