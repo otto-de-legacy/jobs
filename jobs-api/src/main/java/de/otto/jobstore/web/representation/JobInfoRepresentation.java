@@ -116,7 +116,7 @@ public final class JobInfoRepresentation {
     }
 
     public static JobInfoRepresentation fromJobInfo(JobInfo jobInfo) {
-        final List<LogLineRepresentation> logLines = new ArrayList<LogLineRepresentation>();
+        final List<LogLineRepresentation> logLines = new ArrayList<>();
         for (LogLine ll : jobInfo.getLogLines()) {
             logLines.add(LogLineRepresentation.fromLogLine(ll));
         }

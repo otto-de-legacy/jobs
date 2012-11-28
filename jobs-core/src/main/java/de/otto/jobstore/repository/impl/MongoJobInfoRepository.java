@@ -241,7 +241,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
 
     @Override
     public List<JobInfo> findMostRecent() {
-        final List<JobInfo> jobs = new ArrayList<JobInfo>();
+        final List<JobInfo> jobs = new ArrayList<>();
         for (String name : distinctJobNames()) {
             final JobInfo jobInfo = findMostRecentByName(name);
             if (jobInfo != null) {
@@ -358,7 +358,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     private List<JobInfo> getAll(final DBCursor cursor) {
-        final List<JobInfo> elements = new ArrayList<JobInfo>();
+        final List<JobInfo> elements = new ArrayList<>();
         while (cursor.hasNext()) {
             elements.add(fromDbObject(cursor.next()));
         }
@@ -378,7 +378,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     private DBObject createFindByNameAndResultStateQuery(final String name, final Set<ResultState> states) {
-        final List<String> resultStates = new ArrayList<String>();
+        final List<String> resultStates = new ArrayList<>();
         for (ResultState state : states) {
             resultStates.add(state.name());
         }

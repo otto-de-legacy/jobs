@@ -91,13 +91,9 @@ public final class JobInfoResource {
             return Response.created(uri).build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
-        } catch (JobExecutionNotNecessaryException e) {
+        } catch (JobExecutionNotNecessaryException | JobExecutionDisabledException e) {
             return Response.status(Response.Status.PRECONDITION_FAILED).entity(e.getMessage()).build();
-        } catch (JobExecutionDisabledException e) {
-            return Response.status(Response.Status.PRECONDITION_FAILED).entity(e.getMessage()).build();
-        } catch (JobAlreadyQueuedException e) {
-            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
-        } catch (JobAlreadyRunningException e) {
+        } catch (JobAlreadyQueuedException | JobAlreadyRunningException e) {
             return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         }
     }
@@ -168,11 +164,11 @@ public final class JobInfoResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getJobsHistory(@QueryParam("hours") @DefaultValue("12") final int hours) {
         final Set<String> jobNames = jobService.listJobNames();
-        final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<String, List<JobInfoRepresentation>>();
+        final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
         final Date dt = new Date(new Date().getTime() - 1000 * 60 * 60 * hours);
         for (String jobName : jobNames) {
             final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt);
-            final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<JobInfoRepresentation>();
+            final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<>();
             for (JobInfo jobInfo : jobInfoList) {
                 jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo));
             }

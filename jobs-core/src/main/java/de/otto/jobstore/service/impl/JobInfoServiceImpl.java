@@ -32,7 +32,7 @@ public final class JobInfoServiceImpl implements JobInfoService {
     @Override
     public List<JobInfo> getMostRecentExecuted() {
         final List<String> names = jobInfoRepository.distinctJobNames();
-        final List<JobInfo> jobInfoList = new ArrayList<JobInfo>();
+        final List<JobInfo> jobInfoList = new ArrayList<>();
         for (String name : names) {
             final JobInfo jobInfo = getMostRecentExecuted(name);
             if (jobInfo != null) {

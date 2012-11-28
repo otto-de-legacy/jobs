@@ -52,7 +52,7 @@ public class JobInfoResourceTest {
     public void testGetJobs() throws Exception {
         JAXBContext ctx = JAXBContext.newInstance(JobNameRepresentation.class);
         Unmarshaller unmarshaller = ctx.createUnmarshaller();
-        Set<String> names = new HashSet<String>();
+        Set<String> names = new HashSet<>();
         names.add("foo"); names.add("bar");
         when(jobService.listJobNames()).thenReturn(names);
         Response response = jobInfoResource.getJobs(uriInfo);
@@ -172,7 +172,7 @@ public class JobInfoResourceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testGetJobHistory() throws Exception {
-        Set<String> names = new HashSet<String>();
+        Set<String> names = new HashSet<>();
         names.add("foo");
         when(jobService.listJobNames()).thenReturn(names);
         when(jobInfoService.getByNameAndTimeRange(anyString(), any(Date.class), any(Date.class))).
@@ -185,7 +185,7 @@ public class JobInfoResourceTest {
     }
 
     private List<JobInfo> createJobs(int number, String name) {
-        List<JobInfo> jobs = new ArrayList<JobInfo>();
+        List<JobInfo> jobs = new ArrayList<>();
         for (int i = 0; i < number; i++) {
             jobs.add(new JobInfo(new BasicDBObject().append(JobInfoProperty.ID.val(), String.valueOf(i)).
                     append(JobInfoProperty.NAME.val(), name)));

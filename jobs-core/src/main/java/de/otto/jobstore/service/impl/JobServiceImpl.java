@@ -21,8 +21,8 @@ public final class JobServiceImpl implements JobService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JobServiceImpl.class);
 
-    private final Map<String, JobRunnable> jobs = new ConcurrentHashMap<String, JobRunnable>();
-    private final Set<Set<String>> runningConstraints = new CopyOnWriteArraySet<Set<String>>();
+    private final Map<String, JobRunnable> jobs = new ConcurrentHashMap<>();
+    private final Set<Set<String>> runningConstraints = new CopyOnWriteArraySet<>();
     private final JobInfoRepository jobInfoRepository;
     private boolean executionEnabled = true;
 

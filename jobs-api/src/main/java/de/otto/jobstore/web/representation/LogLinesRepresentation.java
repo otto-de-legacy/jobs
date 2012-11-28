@@ -17,7 +17,7 @@ public final class LogLinesRepresentation implements Iterable<LogLineRepresentat
     private List<LogLineRepresentation> logLines;
 
     public LogLinesRepresentation() {
-        this.logLines = new ArrayList<LogLineRepresentation>();
+        this.logLines = new ArrayList<>();
     }
 
     public LogLinesRepresentation(List<LogLineRepresentation> logLines) {

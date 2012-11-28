@@ -90,7 +90,7 @@ public final class JobInfo extends AbstractItem {
     public Map<String, String> getAdditionalData() {
         final DBObject additionalData = getProperty(JobInfoProperty.ADDITIONAL_DATA);
         if (additionalData == null) {
-            return new HashMap<String, String>();
+            return new HashMap<>();
         } else {
             return additionalData.toMap();
         }
@@ -112,7 +112,7 @@ public final class JobInfo extends AbstractItem {
         if (hasProperty(JobInfoProperty.LOG_LINES)) {
             logLines = getProperty(JobInfoProperty.LOG_LINES);
         } else {
-            logLines = new ArrayList<DBObject>();
+            logLines = new ArrayList<>();
             addProperty(JobInfoProperty.LOG_LINES, logLines);
         }
         logLines.add(logLine.toDbObject());
@@ -120,7 +120,7 @@ public final class JobInfo extends AbstractItem {
 
     public List<LogLine> getLogLines() {
         final List<DBObject> logLines = getProperty(JobInfoProperty.LOG_LINES);
-        final List<LogLine> result = new ArrayList<LogLine>();
+        final List<LogLine> result = new ArrayList<>();
         if (logLines != null) {
             for (DBObject logLine : logLines) {
                 result.add(new LogLine(logLine));

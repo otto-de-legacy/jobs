@@ -36,7 +36,7 @@ public class JobServiceTest {
 
     @Test(expectedExceptions = JobNotRegisteredException.class)
     public void testAddingRunningConstraintForNotExistingJob() throws Exception {
-        Set<String> constraint = new HashSet<String>();
+        Set<String> constraint = new HashSet<>();
         constraint.add(JOB_NAME_01);
         constraint.add(JOB_NAME_02);
         jobService.addRunningConstraint(constraint);
@@ -46,7 +46,7 @@ public class JobServiceTest {
     public void testAddingRunningConstraint() throws Exception {
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         jobService.registerJob(JOB_NAME_02, createJobInfoCallable());
-        Set<String> constraint = new HashSet<String>();
+        Set<String> constraint = new HashSet<>();
         constraint.add(JOB_NAME_01);
         constraint.add(JOB_NAME_02);
         assertTrue(jobService.addRunningConstraint(constraint));
@@ -57,7 +57,7 @@ public class JobServiceTest {
     public void testListingJobNamesRunningConstraintsAndCleaningThem() throws Exception {
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         jobService.registerJob(JOB_NAME_02, createJobInfoCallable());
-        Set<String> constraint = new HashSet<String>();
+        Set<String> constraint = new HashSet<>();
         constraint.add(JOB_NAME_01); constraint.add(JOB_NAME_02);
         jobService.addRunningConstraint(constraint);
 
@@ -185,7 +185,7 @@ public class JobServiceTest {
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         jobService.registerJob(JOB_NAME_02, createJobInfoCallable());
-        Set<String> constraint = new HashSet<String>();
+        Set<String> constraint = new HashSet<>();
         constraint.add(JOB_NAME_01); constraint.add(JOB_NAME_02);
         jobService.addRunningConstraint(constraint);
         jobService.executeQueuedJobs();
@@ -245,7 +245,7 @@ public class JobServiceTest {
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         jobService.registerJob(JOB_NAME_02, createJobInfoCallable());
-        Set<String> constraint = new HashSet<String>();
+        Set<String> constraint = new HashSet<>();
         constraint.add(JOB_NAME_01); constraint.add(JOB_NAME_02);
         jobService.addRunningConstraint(constraint);
 
@@ -262,7 +262,7 @@ public class JobServiceTest {
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         jobService.registerJob(JOB_NAME_02, createJobInfoCallable());
-        Set<String> constraint = new HashSet<String>();
+        Set<String> constraint = new HashSet<>();
         constraint.add(JOB_NAME_01); constraint.add(JOB_NAME_02);
         jobService.addRunningConstraint(constraint);
 
