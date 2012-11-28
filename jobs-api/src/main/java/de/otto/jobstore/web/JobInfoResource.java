@@ -4,10 +4,7 @@ import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobInfoService;
 import de.otto.jobstore.service.api.JobService;
-import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
-import de.otto.jobstore.service.exception.JobAlreadyRunningException;
-import de.otto.jobstore.service.exception.JobExecutionDisabledException;
-import de.otto.jobstore.service.exception.JobNotRegisteredException;
+import de.otto.jobstore.service.exception.*;
 import de.otto.jobstore.web.representation.JobInfoRepresentation;
 import de.otto.jobstore.web.representation.JobNameRepresentation;
 import org.apache.abdera.Abdera;
@@ -94,6 +91,8 @@ public final class JobInfoResource {
             return Response.created(uri).build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
+        } catch (JobExecutionNotNecessaryException e) {
+            return Response.status(Response.Status.PRECONDITION_FAILED).entity(e.getMessage()).build();
         } catch (JobExecutionDisabledException e) {
             return Response.status(Response.Status.PRECONDITION_FAILED).entity(e.getMessage()).build();
         } catch (JobAlreadyQueuedException e) {
