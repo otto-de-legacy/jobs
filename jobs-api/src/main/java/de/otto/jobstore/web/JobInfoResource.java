@@ -165,10 +165,11 @@ public final class JobInfoResource {
      */
     @GET
     @Path("/history")
+    @Produces(MediaType.APPLICATION_JSON)
     public Response getJobsHistory(@QueryParam("hours") @DefaultValue("12") final int hours) {
         final Set<String> jobNames = jobService.listJobNames();
         final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<String, List<JobInfoRepresentation>>();
-        final Date dt = new Date(new Date().getTime() - 1000 * 60 * hours);
+        final Date dt = new Date(new Date().getTime() - 1000 * 60 * 60 * hours);
         for (String jobName : jobNames) {
             final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt);
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<JobInfoRepresentation>();
