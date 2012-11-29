@@ -2,6 +2,7 @@ package de.otto.jobstore.service.impl;
 
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.ResultState;
+import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobInfoService;
 
@@ -45,6 +46,11 @@ public final class JobInfoServiceImpl implements JobInfoService {
     @Override
     public List<JobInfo> getByName(String name) {
         return jobInfoRepository.findByName(name, null);
+    }
+
+    @Override
+    public JobInfo getByNameAndRunningState(String name, RunningState runningState) {
+        return jobInfoRepository.findByNameAndRunningState(name, runningState.name());
     }
 
     @Override

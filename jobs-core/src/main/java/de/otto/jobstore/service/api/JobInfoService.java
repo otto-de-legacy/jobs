@@ -1,6 +1,7 @@
 package de.otto.jobstore.service.api;
 
 import de.otto.jobstore.common.JobInfo;
+import de.otto.jobstore.common.RunningState;
 
 import java.util.Date;
 import java.util.List;
@@ -40,6 +41,15 @@ public interface JobInfoService {
      * @return The list of job information
      */
     List<JobInfo> getByName(String name);
+
+    /**
+     * Returns for the given name the job with the given running state or null if none exists
+     *
+     * @param name The name of the job for which to return the information
+     * @param runningState The running state the job to return
+     * @return The job with the given name and running state, or null
+     */
+    JobInfo getByNameAndRunningState(String name, RunningState runningState);
 
     /**
      * Returns for the given name all job information sorted descending by the creation time of the jobs.
