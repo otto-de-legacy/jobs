@@ -70,8 +70,9 @@ public final class JobInfo extends AbstractItem {
         return new Date(getLastModifiedTime().getTime() + getMaxExecutionTime());
     }
 
-    public Boolean isForceExecution() {
-        return getProperty(JobInfoProperty.FORCE_EXECUTION);
+    public boolean isForceExecution() {
+        final Boolean forceExecution = getProperty(JobInfoProperty.FORCE_EXECUTION);
+        return forceExecution == null ? false : forceExecution;
     }
 
     public Date getCreationTime() {
