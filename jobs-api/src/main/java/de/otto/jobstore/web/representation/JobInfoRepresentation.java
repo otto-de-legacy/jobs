@@ -41,13 +41,13 @@ public final class JobInfoRepresentation {
 
     private Map<String, String> additionalData;
 
-    private LogLinesRepresentation logLines = new LogLinesRepresentation();
+    private List<LogLineRepresentation> logLines;
 
     public JobInfoRepresentation() {}
 
     private JobInfoRepresentation(String id, String name, String host, String thread, Date creationTime, Date finishTime,
                                   String errorMessage, String runningState, ResultState resultState, Long maxExecutionTime,
-                                  Date lastModifiedTime, Map<String, String> additionalData, LogLinesRepresentation logLines) {
+                                  Date lastModifiedTime, Map<String, String> additionalData, List<LogLineRepresentation> logLines) {
         this.id = id;
         this.name = name;
         this.host = host;
@@ -111,7 +111,7 @@ public final class JobInfoRepresentation {
         return additionalData;
     }
 
-    public LogLinesRepresentation getLogLines() {
+    public List<LogLineRepresentation> getLogLines() {
         return logLines;
     }
 
@@ -124,7 +124,7 @@ public final class JobInfoRepresentation {
                 jobInfo.getThread(), jobInfo.getCreationTime(), jobInfo.getFinishTime(),
                 jobInfo.getErrorMessage(), jobInfo.getRunningState(), jobInfo.getResultState(),
                 jobInfo.getMaxExecutionTime(), jobInfo.getLastModifiedTime(), jobInfo.getAdditionalData(),
-                new LogLinesRepresentation(logLines));
+                logLines);
     }
 
 }
