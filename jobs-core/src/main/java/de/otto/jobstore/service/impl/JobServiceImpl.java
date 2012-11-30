@@ -220,6 +220,7 @@ public final class JobServiceImpl implements JobService {
                 jobRunnable.execute(new SimpleJobLogger(jobName, jobInfoRepository));
                 jobInfoRepository.markRunningAsFinishedSuccessfully(jobName);
             } catch (Exception e) {
+                LOGGER.error("Job: " + jobName+" finished with exception: "+e.getMessage(),e);
                 jobInfoRepository.markRunningAsFinishedWithException(jobName, e);
             } catch (Error e) {
                 jobInfoRepository.markRunningAsFinishedWithException(jobName, e);
