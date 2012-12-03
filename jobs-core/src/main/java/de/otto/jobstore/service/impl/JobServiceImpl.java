@@ -7,6 +7,7 @@ import de.otto.jobstore.service.exception.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PreDestroy;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -114,6 +115,7 @@ public final class JobServiceImpl implements JobService {
         }
     }
 
+    @PreDestroy // TODO: Anpassen bei Einbau asynchrone JobAusfuehrung
     @Override
     public void shutdownJobs() {
         for (String name : jobs.keySet()) {
