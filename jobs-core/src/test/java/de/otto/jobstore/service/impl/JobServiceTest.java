@@ -215,7 +215,7 @@ public class JobServiceTest {
         jobService.executeJob(JOB_NAME_01);
     }
 
-    @Test(expectedExceptions = JobAlreadyRunningException.class)
+    @Test
     public void testExecuteJobWhichIsAlreadyRunning() throws Exception {
         when(jobInfoRepository.create(JOB_NAME_01, 0, RunningState.QUEUED, false, null)).thenReturn("1234");
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED.name())).thenReturn(Boolean.FALSE);
@@ -223,10 +223,10 @@ public class JobServiceTest {
 
         jobService.registerJob(JOB_NAME_01, createJobInfoCallable());
         String id = jobService.executeJob(JOB_NAME_01);
-        //assertEquals("1234", id);
+        assertEquals("1234", id);
     }
 
-    @Test(expectedExceptions = JobAlreadyRunningException.class)
+    @Test(expectedExceptions = JobAlreadyQueuedException.class)
     public void testExecuteJobWhichIsAlreadyRunningAndQueuingFails() throws Exception {
         when(jobInfoRepository.create(JOB_NAME_01, 0, RunningState.QUEUED, false, null)).thenReturn(null);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED.name())).thenReturn(Boolean.FALSE);

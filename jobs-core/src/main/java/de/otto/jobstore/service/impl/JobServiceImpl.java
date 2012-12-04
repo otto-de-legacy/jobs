@@ -92,9 +92,9 @@ public final class JobServiceImpl implements JobService {
         } else if (jobInfoRepository.hasJob(name, RunningState.QUEUED.name())) {
             throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
         } else if (jobInfoRepository.hasJob(name, RunningState.RUNNING.name())) {
-            // TODO: bricht mit vorheriger JobInfoRepositorySemantik, reset
-            // id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "A job with name " + name + " is already running and queued for execution");
-            throw new JobAlreadyRunningException("A job with name " + name + " is already running and queued for execution");
+            // TODO: bricht mit vorheriger JobInfoRepositorySemantik?
+            id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "A job with name " + name + " is already running and queued for execution");
+            //throw new JobAlreadyRunningException("A job with name " + name + " is already running and queued for execution");
         } else if (violatesRunningConstraints(name)) {
             // TODO: executeJob semantisch ueberladen, verhaelt sich eher wie ein executeOrAlternativelyQueueJobSometimes
             id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "The job " + name + " violates running constraints and is already queued for execution");
