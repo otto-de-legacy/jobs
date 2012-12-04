@@ -4,6 +4,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 
+import javax.swing.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -12,7 +13,10 @@ import java.util.*;
 public final class JobInfo extends AbstractItem {
 
     private static final long serialVersionUID = 2454224303569320787L;
+
     private static final DateFormat LOG_LINE_DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy-HH:mm:ss zzz", Locale.ENGLISH);
+
+    private static final int MAX_LOGLINES = 100;
 
     public JobInfo(DBObject dbObject) {
         super(dbObject);
@@ -109,6 +113,7 @@ public final class JobInfo extends AbstractItem {
     }
 
     public void appendLogLine(LogLine logLine) {
+        // TODO: should we also only store the most recent MAX_LOGLINES lines?
         final List<DBObject> logLines;
         if (hasProperty(JobInfoProperty.LOG_LINES)) {
             logLines = getProperty(JobInfoProperty.LOG_LINES);
@@ -119,13 +124,20 @@ public final class JobInfo extends AbstractItem {
         logLines.add(logLine.toDbObject());
     }
 
+    public boolean hasLogLines() {
+        final List<DBObject> logLines = getProperty(JobInfoProperty.LOG_LINES);
+        return logLines != null && !logLines.isEmpty();
+    }
+
     public List<LogLine> getLogLines() {
         final List<DBObject> logLines = getProperty(JobInfoProperty.LOG_LINES);
-        final List<LogLine> result = new ArrayList<>();
-        if (logLines != null) {
-            for (DBObject logLine : logLines) {
-                result.add(new LogLine(logLine));
-            }
+        if (logLines == null) return Collections.EMPTY_LIST;
+
+        final List<LogLine> result = new ArrayList<>(Math.min(logLines.size(), MAX_LOGLINES));
+        int endPos = logLines.size();
+        int startPos = Math.max(0, endPos - MAX_LOGLINES);
+        for (DBObject logLine : logLines.subList(startPos, endPos)) {
+            result.add(new LogLine(logLine));
         }
         return result;
     }
