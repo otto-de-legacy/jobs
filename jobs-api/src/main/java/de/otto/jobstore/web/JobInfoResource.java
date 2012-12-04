@@ -1,6 +1,7 @@
 package de.otto.jobstore.web;
 
 import de.otto.jobstore.common.JobInfo;
+import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobInfoService;
 import de.otto.jobstore.service.api.JobService;
@@ -84,8 +85,9 @@ public final class JobInfoResource {
     @POST
     @Path("{name}")
     public Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo)  {
+        boolean forceExecution = true;
         try {
-            final String jobId = jobService.executeJob(name, true);
+            final String jobId = jobService.executeJob(name, forceExecution);
             final JobInfo jobInfo = jobInfoService.getById(jobId);
             final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(jobInfo.getName()).path(jobId).build();
             return Response.created(uri).build();
@@ -93,7 +95,18 @@ public final class JobInfoResource {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
         } catch (JobExecutionNotNecessaryException | JobExecutionDisabledException e) {
             return Response.status(Response.Status.PRECONDITION_FAILED).entity(e.getMessage()).build();
-        } catch (JobAlreadyQueuedException | JobAlreadyRunningException e) {
+        } catch (JobAlreadyQueuedException e) {
+            if(forceExecution) {
+                // sonderfall: queued job kann nicht geforced werden, also aktuellen Job entfernen und den request nochmal durchführen
+                // ansonsten kann man nie einen job enforcen, wenn jobs queued sind, die möglicherweise nicht enforced sind
+                jobService.removeJobFromQueue(name);
+                return executeJob(name,uriInfo);
+            } else {
+                return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
+            }
+            // TODO: Sonderfall umschreiben auf: queuedJob, wenn nicht enforced, enforcen
+
+        } catch (JobAlreadyRunningException e) {
             return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         }
     }

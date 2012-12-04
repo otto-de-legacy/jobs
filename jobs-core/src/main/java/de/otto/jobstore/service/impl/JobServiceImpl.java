@@ -145,15 +145,16 @@ public final class JobServiceImpl implements JobService {
 
     private void executeQueuedJob(final JobInfo jobInfo) {
         final String name = jobInfo.getName();
+        final String id = jobInfo.getId();
         final JobRunnable runnable = jobs.get(name);
         if (jobInfoRepository.hasJob(name, RunningState.RUNNING.name())) {
-            LOGGER.debug("ltag=JobService.executeQueuedJob.alreadyRunning jobInfoName={}", name);
+            LOGGER.info("ltag=JobService.executeQueuedJob.alreadyRunning jobInfoName={} jobInfoId={}", name, id);
         } else if (violatesRunningConstraints(name)) {
-            LOGGER.debug("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={}", name);
+            LOGGER.info("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={} jobInfoId={}", name, id);
         } else if (jobInfo.isForceExecution() || runnable.isExecutionNecessary()) {
-            activateQueuedJob(name, runnable);
+            activateQueuedJob(name, id, runnable);
         } else if (jobInfoRepository.markAsFinishedById(jobInfo.getId(), ResultState.NOT_EXECUTED)) {
-            LOGGER.warn("ltag=JobService.executeQueuedJob.executionIsNotNecessary");
+            LOGGER.warn("ltag=JobService.executeQueuedJob.executionIsNotNecessary jobInfoName={} jobInfoId={}", name, id);
         }
     }
 
@@ -175,13 +176,13 @@ public final class JobServiceImpl implements JobService {
         return id;
     }
 
-    private void activateQueuedJob(String name, JobRunnable runnable) {
+    private void activateQueuedJob(String name, String id, JobRunnable runnable) {
         if (jobInfoRepository.activateQueuedJob(name)) {
             jobInfoRepository.updateHostThreadInformation(name);
-            LOGGER.debug("ltag=JobService.activateQueuedJob.activate jobInfoName={}", name);
+            LOGGER.info("ltag=JobService.activateQueuedJob.activate jobInfoName={} jobInfoId={}", name, id);
             Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(name, runnable));
         } else {
-            LOGGER.warn("ltag=JobService.activateQueuedJob.jobIsNotQueuedAnyMore");
+            LOGGER.warn("ltag=JobService.activateQueuedJob.jobIsNotQueuedAnyMore jobInfoName={} jobInfoId={}", name, id);
         }
     }
 
