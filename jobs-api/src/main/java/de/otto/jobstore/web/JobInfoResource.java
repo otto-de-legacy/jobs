@@ -85,7 +85,10 @@ public final class JobInfoResource {
     @POST
     @Path("{name}")
     public Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo)  {
-        boolean forceExecution = true;
+        return executeJob(name, uriInfo, true);
+    }
+
+    private Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo, boolean forceExecution)  {
         try {
             final String jobId = jobService.executeJob(name, forceExecution);
             final JobInfo jobInfo = jobInfoService.getById(jobId);
@@ -100,7 +103,7 @@ public final class JobInfoResource {
                 // sonderfall: queued job kann nicht geforced werden, also aktuellen Job entfernen und den request nochmal durchführen
                 // ansonsten kann man nie einen job enforcen, wenn jobs queued sind, die möglicherweise nicht enforced sind
                 jobService.removeJobFromQueue(name);
-                return executeJob(name,uriInfo);
+                return executeJob(name,uriInfo, false);
             } else {
                 return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
             }

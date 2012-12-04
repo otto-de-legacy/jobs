@@ -24,6 +24,7 @@ import java.io.StringReader;
 import java.util.*;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -84,6 +85,7 @@ public class JobInfoResourceTest {
     @Test
     public void testExecuteJobWhichIsNotRegistered() throws Exception {
         when(jobService.executeJob("foo", true)).thenThrow(new JobNotRegisteredException(""));
+        //when(jobService.executeJob("foo", false)).thenThrow(new JobNotRegisteredException(""));
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
         assertEquals(404, response.getStatus());
@@ -92,6 +94,7 @@ public class JobInfoResourceTest {
     @Test
     public void testExecuteJobWhichIsAlreadyQueued() throws Exception {
         when(jobService.executeJob("foo", true)).thenThrow(new JobAlreadyQueuedException(""));
+        when(jobService.executeJob("foo", false)).thenThrow(new JobAlreadyQueuedException(""));
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
         assertEquals(409, response.getStatus());

@@ -3,6 +3,7 @@ package de.otto.jobstore.common.example;
 import de.otto.jobstore.common.JobLogger;
 import de.otto.jobstore.common.JobRunnable;
 import de.otto.jobstore.service.api.JobService;
+import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
 public final class StepOneJobRunnableExample implements JobRunnable {
@@ -32,7 +33,7 @@ public final class StepOneJobRunnableExample implements JobRunnable {
      * @param jobLogger The job logger used to add additional information to a job
      */
     @Override
-    public void execute(JobLogger jobLogger) throws JobExecutionException {
+    public void execute(JobLogger jobLogger) throws JobException {
         try {
             for (int i = 0; i < 10; i++) {
                 Thread.sleep(i * 1000);

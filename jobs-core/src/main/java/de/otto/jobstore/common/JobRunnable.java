@@ -1,5 +1,6 @@
 package de.otto.jobstore.common;
 
+import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
 /**
@@ -28,6 +29,6 @@ public interface JobRunnable {
      * @param jobLogger The job logger used to add additional information to a job
      * @throws JobExecutionException Thrown if the execution of the job failed
      */
-    void execute(JobLogger jobLogger) throws JobExecutionException;
+    void execute(JobLogger jobLogger) throws JobException;
 
 }
