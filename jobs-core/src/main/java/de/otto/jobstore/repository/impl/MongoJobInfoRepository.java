@@ -114,9 +114,11 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
 
     @Override
     public boolean activateQueuedJob(final String name) {
+        Date dt = new Date();
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()).
-                        append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()));
+                        append(JobInfoProperty.START_TIME.val(), dt).
+                        append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
         LOGGER.info("Activate queued job={} ...", name);
         final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED.name()), update);
         return result.getN() == 1;

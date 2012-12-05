@@ -27,6 +27,8 @@ public final class JobInfoRepresentation {
 
     private Date creationTime;
 
+    private Date startTime;
+
     private Date finishTime;
 
     private String errorMessage;
@@ -45,7 +47,7 @@ public final class JobInfoRepresentation {
 
     public JobInfoRepresentation() {}
 
-    private JobInfoRepresentation(String id, String name, String host, String thread, Date creationTime, Date finishTime,
+    private JobInfoRepresentation(String id, String name, String host, String thread, Date creationTime, Date startTime, Date finishTime,
                                   String errorMessage, String runningState, ResultState resultState, Long maxExecutionTime,
                                   Date lastModifiedTime, Map<String, String> additionalData, List<LogLineRepresentation> logLines) {
         this.id = id;
@@ -53,6 +55,7 @@ public final class JobInfoRepresentation {
         this.host = host;
         this.thread = thread;
         this.creationTime = creationTime;
+        this.startTime = startTime;
         this.finishTime = finishTime;
         this.errorMessage = errorMessage;
         this.runningState = runningState;
@@ -80,6 +83,10 @@ public final class JobInfoRepresentation {
     }
 
     public Date getCreationTime() {
+        return creationTime;
+    }
+
+    public Date getStartTime() {
         return creationTime;
     }
 
@@ -121,7 +128,7 @@ public final class JobInfoRepresentation {
             logLines.add(LogLineRepresentation.fromLogLine(ll));
         }
         return new JobInfoRepresentation(jobInfo.getId(), jobInfo.getName(), jobInfo.getHost(),
-                jobInfo.getThread(), jobInfo.getCreationTime(), jobInfo.getFinishTime(),
+                jobInfo.getThread(), jobInfo.getCreationTime(), jobInfo.getStartTime(), jobInfo.getFinishTime(),
                 jobInfo.getErrorMessage(), jobInfo.getRunningState(), jobInfo.getResultState(),
                 jobInfo.getMaxExecutionTime(), jobInfo.getLastModifiedTime(), jobInfo.getAdditionalData(),
                 logLines);
