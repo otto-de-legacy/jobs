@@ -87,7 +87,7 @@ public final class JobInfoRepresentation {
     }
 
     public Date getStartTime() {
-        return creationTime;
+        return startTime;
     }
 
     public Date getFinishTime() {
