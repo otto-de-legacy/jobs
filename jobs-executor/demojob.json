@@ -1,0 +1,8 @@
+{
+    "name": "IncrementalUpdate",
+    "ref_id": "4711",
+    "params": [
+        { "FILE1": "/var/log/syslog" },
+        { "val": "" }
+    ]
+}
