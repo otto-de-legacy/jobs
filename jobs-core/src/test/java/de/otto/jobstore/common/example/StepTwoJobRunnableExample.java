@@ -8,6 +8,13 @@ public final class StepTwoJobRunnableExample implements JobRunnable {
 
     public static final String STEP_TWO_JOB = "STEP_TWO_JOB";
 
+    /**
+     * @return name of the simple job, might differ from Classname
+     */
+    public String getName() {
+        return STEP_TWO_JOB;
+    }
+
     @Override
     public long getMaxExecutionTime() {
         return 1000 * 60 * 20;

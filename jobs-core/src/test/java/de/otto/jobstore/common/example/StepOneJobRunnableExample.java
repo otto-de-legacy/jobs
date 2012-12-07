@@ -8,8 +8,14 @@ import de.otto.jobstore.service.exception.JobExecutionException;
 
 public final class StepOneJobRunnableExample implements JobRunnable {
 
-    public static final String STEP_ONE_JOB = "STEP_ONE_JOB";
     private final JobService jobService;
+
+    /**
+     * @return name of the simple job, might differ from Classname
+     */
+    public String getName() {
+        return "STEP_ONE_JOB";
+    }
 
     public StepOneJobRunnableExample(JobService jobService) {
         this.jobService = jobService;

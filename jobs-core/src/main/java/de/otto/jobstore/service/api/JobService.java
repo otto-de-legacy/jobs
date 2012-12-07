@@ -15,14 +15,13 @@ import java.util.Set;
 public interface JobService {
 
     /**
-     * Registers a job with the given name and its corresponding runnable in this job service
+     * Registers a job with the given runnable in this job service
      *
-     * @param name The name of the job to register
      * @param runnable The job runnable
      * @return true - The job was successfully registered<br>
      *     false - A job with the given name is already registered
      */
-    boolean registerJob(String name, JobRunnable runnable);
+    boolean registerJob(JobRunnable runnable);
 
     /**
      * Adds a running constraint to this JobService instance.

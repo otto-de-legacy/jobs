@@ -51,8 +51,9 @@ public final class JobServiceImpl implements JobService {
     }
 
     @Override
-    public boolean registerJob(final String name, final JobRunnable runnable) {
+    public boolean registerJob(final JobRunnable runnable) {
         final boolean inserted;
+        final String name = runnable.getName();
         if (jobs.containsKey(name)) {
             inserted = false;
         } else {

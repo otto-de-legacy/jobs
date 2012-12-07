@@ -12,6 +12,13 @@ import java.util.Random;
 public final class SimpleJobRunnableExample implements JobRunnable {
 
     /**
+     * @return name of the simple job, might differ from Classname
+     */
+    public String getName() {
+        return "SimpleJobRunnableExampleToBeUsed";
+    }
+
+    /**
      * Job should be considered timed out after 10 minutes
      */
     @Override

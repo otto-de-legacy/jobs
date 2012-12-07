@@ -9,6 +9,13 @@ import de.otto.jobstore.service.exception.JobExecutionException;
 public interface JobRunnable {
 
     /**
+     * The name of the job
+     *
+     * @return The name of the job
+     */
+    String getName();
+
+    /**
      * The time after which a job is considered to be timed out.
      *
      * @return The time in milliseconds
