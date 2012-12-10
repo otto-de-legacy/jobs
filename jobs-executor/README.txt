@@ -1,3 +1,20 @@
+
+Foundational components:
+
+* zdaemon
+  Daemon process control library and tools for Unix-based systems
+  http://pypi.python.org/pypi/zdaemon
+
+* flask
+  Flask is a microframework for Python based on Werkzeug, Jinja 2 and good intentions.
+  http://flask.pocoo.org
+
+* fabric
+  Fabric is a Python library and command-line tool for streamlining the use of SSH for
+  application deployment or systems administration tasks.
+  http://fabfile.org
+
+
 ------------
 Requirements
 ------------
@@ -19,4 +36,4 @@ zdaemon -v
 curl -i -X POST -H'Content-Type: application/json' -d '{"name":"ls"}' http://127.0.0.1:5000/jobs
 
 curl -i   http://127.0.0.1:5000/jobs/testjob
-curl -i -X POST -H'Content-Type: application/json'  http://127.0.0.1:5000/jobs -d @demojob.json
+curl -i -X POST -H'Content-Type: application/json'  http://127.0.0.1:5000/jobs -d @samples/demojob.json

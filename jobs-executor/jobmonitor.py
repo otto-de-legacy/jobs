@@ -1,22 +1,27 @@
 #!/usr/bin/python
 
-import sys
 import io
 import os, binascii
 import logging
 
 from flask import Flask, url_for
-from flask import json, jsonify
+from flask import json
 from flask import request, Response
 
 from fabric.api import *
 
 # the user to use for the remote commands
-env.user = 'niko'
+env.user = 'nschmuck'
 
 # the servers where the commands are executed
 # TODO: for the time being only the first is used
-env.hosts = ['127.0.0.1']
+env.hosts = ['abraxas']
+
+#env.reject_unknown_hosts = False
+#env.disable_known_hosts = True
+
+#env.no_keys = True
+#env.host_string = 'nschmuck@localhost'
 
 # ------------------------------------------------------
 
@@ -49,6 +54,15 @@ def api_root():
     return 'Job Monitor'
 
 
+@app.route('/jobs', methods = ['GET'])
+def get_available_jobs():
+    job_files = []
+    for cur_file in os.listdir('templates'):
+        if os.path.isfile(cur_file):
+            job_files.append(cur_file)
+    return job_files
+
+
 @app.route('/jobs', methods = ['POST'])
 def create_job():
     # expect JSON as input
@@ -66,9 +80,10 @@ def create_job():
     app.logger.info('trying to start job %s ...' % job_name)
     # TODO in cluster environment: for hostname in env.hosts:
     with settings(host_string=env.hosts[0], warn_only=True):
-        cmd_result = run("zdaemon -C%s start" % job_filename)
+        cmd_result = local("zdaemon -C%s start" % job_filename)
         app.logger.info('Return code: %d' % cmd_result.return_code)
-    
+        app.logger.info('Result: %s' % cmd_result)
+
     # construct response
     if cmd_result.failed:
         msg = { 'error': '%s' % cmd_result }
