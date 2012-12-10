@@ -1,0 +1,8 @@
+{
+    "name": "demojob",
+    "ref_id": "4711",
+    "params": { 
+    	"sample_file": "/var/log/syslog",
+        "domain_name": "server1" 
+    }
+}
