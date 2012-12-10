@@ -20,8 +20,7 @@ Requirements
 ------------
 
 * sudo apt-get install python-pip
-* sudo apt-get install fabric
-* sudo pip install Flask
+* sudo pip install --upgrade fabric zdaemon Flask
 
 
 
