@@ -72,7 +72,7 @@ def create_job():
     # TODO: check if already running
     # Extract Job parameters from JSON
     job_name = request.json['name']
-    job_params = request.json['params']
+    job_params = request.json['parameters']
 
     app.logger.info('preparing job %s with params: %s' % (job_name, job_params))
     (job_instance, job_filename) = create_jobconf(job_name, job_params)
@@ -80,7 +80,7 @@ def create_job():
     app.logger.info('trying to start job %s ...' % job_name)
     # TODO in cluster environment: for hostname in env.hosts:
     with settings(host_string=env.hosts[0], warn_only=True):
-        cmd_result = local("zdaemon -C%s start" % job_filename)
+        cmd_result = run("zdaemon -C%s start" % job_filename)
         app.logger.info('Return code: %d' % cmd_result.return_code)
         app.logger.info('Result: %s' % cmd_result)
 

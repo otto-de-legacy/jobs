@@ -10,3 +10,5 @@ build
 **/build
 .gradle
 .idea
+job-executor/instances/*.conf
+instances/*.conf
