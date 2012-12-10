@@ -1,7 +1,7 @@
 {
+    "client_id": "4711",
     "name": "demojob",
-    "ref_id": "4711",
-    "params": { 
+    "parameters": {
     	"sample_file": "/var/log/syslog",
         "domain_name": "server1" 
     }

@@ -1,0 +1,10 @@
+{
+    "status" : "RUNNING, FINISHED",
+    "log_lines" : [ "1", "...", "100" ],
+    "result" : {
+        "ok" : "true, false",
+        "exit_code" : "0, 1, 2, ..",
+        "message" : "bla"
+    }
+
+}
