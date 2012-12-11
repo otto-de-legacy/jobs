@@ -6,6 +6,8 @@
    Control jobs on a remote server and expose a small
    JSON HTTP interface to start, stop and get status.
 """
+__version__ = "0.1"
+
 
 import io
 import os
@@ -17,74 +19,27 @@ from flask import request, Response
 
 from fabric.api import *
 
-# ~~
+# ~~ configuration (override by providing your own settings, see below)
 
-__version__ = "0.1"
-
-# the user to use for the remote commands
-env.user = 'nschmuck'
-
-# the servers where the commands are executed
-# TODO: for the time being only the first is used
-env.hosts = ['abraxas']
-
-# TODO: allow to configure own directory with job definitions to decouple
-
-# ------------------------------------------------------
-
-def get_job_instance(job_name, job_id):
-    return "%s_%s" % (job_name, job_id)
-
-def get_job_instance_filename(job_name, job_id):
-    return "%s.conf" % get_job_instance(job_name, job_id)
-
-def get_job_instance_filepath(job_name, job_id):
-    file_path = "instances/%s" % get_job_instance_filename(job_name, job_id)
-    return os.path.abspath(file_path)
-
-def ensure_job_instance_directory():
-    if not os.path.exists("instances"):
-        os.makedirs("instances")
-
-def exists_job_instance(job_name, job_id):
-    return os.path.exists(get_job_instance_filepath(job_name, job_id))
-
-def get_job_template_filename(job_name):
-    return "%s.conf" % job_name
-
-def get_job_template_filepath(job_name):
-    file_path = "templates/%s" % get_job_template_filename(job_name)
-    return os.path.abspath(file_path)
-
-def get_job_template_names():
-    template_path = os.path.abspath('templates')
-    names = []
-    for cur_file in os.listdir(template_path):
-        (basename, ext) = os.path.splitext(cur_file)
-        if os.path.isfile(os.path.join(template_path, cur_file)) and  ext == '.conf':
-            names.append(basename)
-    return names
-
-def create_jobconf(job_id, job_name, params):
-    # create new instance file for writing
-    ensure_job_instance_directory()
-    file_path = get_job_instance_filepath(job_name, job_id)
-    instance_file = io.open(file_path, 'w')
-
-    # read the lines from the template, substitute the values, and write to the instance
-    for line in io.open(get_job_template_filepath(job_name), 'r'):
-        for (key, value) in params.items():
-            line = line.replace('$'+key, value)
-        instance_file.write(line)
-
-    instance_file.close()
-    return file_path
+DEBUG = True
+LOGFILE = 'jobmonitor.log'
+JOB_TEMPLATES_DIR = 'templates'
+JOB_INSTANCES_DIR = 'instances'
+JOB_HOSTNAME = 'localhost'
+#JOB_USERNAME = '...'
 
 
-# ------------------------------------------------------
-
+# ~~ create web application
 app = Flask(__name__)
 
+# (1) configure from default settings (see constants of this class)
+app.config.from_object(__name__)
+
+# (2) read in configuration file as specified by environment variable
+app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
+
+
+# ------------------------------------------------------
 
 @app.route('/')
 def api_root():
@@ -98,7 +53,6 @@ def get_available_jobs():
     msg = { 'jobs': available_jobs }
     js = json.dumps(msg)
     return Response(js, status=200, mimetype='application/json')
-
 
 
 @app.route('/jobs/<job_name>', methods = ['POST'])
@@ -118,7 +72,7 @@ def create_job(job_name):
     # ~~ going to start of daemonized process
     app.logger.info('trying to start job %s ...' % job_name)
     # TODO in cluster environment: for hostname in env.hosts:
-    with settings(host_string=env.hosts[0], warn_only=True):
+    with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
         cmd_result = run("zdaemon -C%s start" % job_filename)
         app.logger.info('Return code: %d' % cmd_result.return_code)
 
@@ -154,8 +108,7 @@ def get_job_status(job_name, job_id):
 
     with settings(host_string=env.hosts[0], warn_only=True):
         cmd_result = run("zdaemon -C%s status" % get_job_instance_filepath(job_name, job_id))
-        log_output = get("demojob.log")
-        # TODO: how to only get the 'delta' messages, happened since last call?
+        # via fabric: log_output = get("demojob.log")
         app.logger.info('Return code: %d' % cmd_result.return_code)
 
     msg = { 'status': '%s' % cmd_result }
@@ -179,40 +132,64 @@ def kill_job(job_name, job_id):
     return Response(js, status=200, mimetype='application/json')
 
 
+# ------------------------------------------------------
+
+def get_job_instance(job_name, job_id):
+    return "%s_%s" % (job_name, job_id)
+
+def get_job_instance_filename(job_name, job_id):
+    return "%s.conf" % get_job_instance(job_name, job_id)
+
+def get_job_instance_filepath(job_name, job_id):
+    return os.path.join(app.config['JOB_INSTANCES_DIR'], get_job_instance_filename(job_name, job_id))
+
+def ensure_job_instance_directory():
+    if not os.path.exists(app.config['JOB_INSTANCES_DIR']):
+        os.makedirs(app.config['JOB_INSTANCES_DIR'])
+
+def exists_job_instance(job_name, job_id):
+    return os.path.exists(get_job_instance_filepath(job_name, job_id))
+
+def get_job_template_filename(job_name):
+    return "%s.conf" % job_name
+
+def get_job_template_filepath(job_name):
+    return os.path.join(app.config['JOB_TEMPLATES_DIR'], get_job_template_filename(job_name))
+
+def get_job_template_names():
+    template_path = app.config['JOB_TEMPLATES_DIR']
+    names = []
+    for cur_file in os.listdir(template_path):
+        (basename, ext) = os.path.splitext(cur_file)
+        if os.path.isfile(os.path.join(template_path, cur_file)) and  ext == '.conf':
+            names.append(basename)
+    return names
+
+def create_jobconf(job_id, job_name, params):
+    # create new instance file for writing
+    ensure_job_instance_directory()
+    file_path = get_job_instance_filepath(job_name, job_id)
+    instance_file = io.open(file_path, 'w')
+
+    # read the lines from the template, substitute the values, and write to the instance
+    for line in io.open(get_job_template_filepath(job_name), 'r'):
+        for (key, value) in params.items():
+            line = line.replace('$'+key, value)
+        instance_file.write(line)
+
+    instance_file.close()
+    return os.path.abspath(file_path)
+
+
 # ---------------------------------------
 if __name__ == '__main__':
-    #logging.basicConfig(stream= sys.stdout, level = logging.INFO)
-    #logging.info('Started')
-    #app.logger.level = logging.INFO
-    #app.logger.info("Start ...")
 
-    # create logger
-    #logger = logging.getLogger()
-    #logger.setLevel(logging.DEBUG)
-
-    # create console handler and set level to debug
-    #ch = logging.StreamHandler()
-    #ch.setLevel(logging.DEBUG)
-
-    # create formatter
-    #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-    # add formatter to ch
-    #ch.setFormatter(formatter)
-
-    # add ch to logger
-    #app.logger.addHandler(ch)
-    #app.logger_name = "jobmonitor"
-
+    # ~~ configure logging for production
     if not app.debug:
-        import logging
-        file_handler = logging.FileHandler(filename="jobmonitor.log")
+        file_handler = logging.FileHandler(filename=app.config['LOGFILE'])
         file_handler.setLevel(logging.INFO)
         file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         app.logger.addHandler(file_handler)
 
     app.logger.info("Going to start jobmonitor ...")
-
-    #logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-
-    app.run(debug=False)
+    app.run()
