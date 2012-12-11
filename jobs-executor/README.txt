@@ -49,6 +49,11 @@ To start a new job:
 
     curl -i -X POST -H'Content-Type: application/json' http://127.0.0.1:5000/jobs/demojob -d @samples/demojob.json
 
-To stop a job:
+As part of the response you will get inside the response header a link
+which you can follow to get more information about the job instance:
 
-    curl -i -X DELETE http://127.0.0.1:5000/jobs/demojob
+    curl -i http://localhost:5000/jobs/demojob/030bb50f4571
+
+To stop this job instance simply run:
+
+    curl -i -X DELETE http://127.0.0.1:5000/jobs/demojob/030bb50f4571
