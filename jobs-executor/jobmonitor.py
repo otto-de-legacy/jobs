@@ -1,4 +1,11 @@
 #!/usr/bin/python
+"""
+   jobmonitor
+   ~~~~~~~~~~
+
+   Control jobs on a remote server and expose a small
+   JSON HTTP interface to start, stop and get status.
+"""
 
 import io
 import os
@@ -9,6 +16,8 @@ from flask import json
 from flask import request, Response
 
 from fabric.api import *
+
+# ~~
 
 __version__ = "0.1"
 
@@ -33,6 +42,10 @@ def get_job_instance_filepath(job_name, job_id):
     file_path = "instances/%s" % get_job_instance_filename(job_name, job_id)
     return os.path.abspath(file_path)
 
+def ensure_job_instance_directory():
+    if not os.path.exists("instances"):
+        os.makedirs("instances")
+
 def exists_job_instance(job_name, job_id):
     return os.path.exists(get_job_instance_filepath(job_name, job_id))
 
@@ -52,13 +65,13 @@ def get_job_template_names():
             names.append(basename)
     return names
 
-
 def create_jobconf(job_id, job_name, params):
+    # create new instance file for writing
+    ensure_job_instance_directory()
     file_path = get_job_instance_filepath(job_name, job_id)
-    # create new config file for writing
     instance_file = io.open(file_path, 'w')
 
-    # read the lines from the template, substitute the values, and write to the new config file
+    # read the lines from the template, substitute the values, and write to the instance
     for line in io.open(get_job_template_filepath(job_name), 'r'):
         for (key, value) in params.items():
             line = line.replace('$'+key, value)
@@ -69,13 +82,13 @@ def create_jobconf(job_id, job_name, params):
 
 
 # ------------------------------------------------------
-# Control jobs on a remote server 
-# ------------------------------------------------------
 
 app = Flask(__name__)
 
+
 @app.route('/')
 def api_root():
+    app.logger.info("START")
     return 'Job Monitor (v %s)' % __version__
 
 
@@ -143,10 +156,11 @@ def get_job_status(job_name, job_id):
         cmd_result = run("zdaemon -C%s status" % get_job_instance_filepath(job_name, job_id))
         log_output = get("demojob.log")
         # TODO: how to only get the 'delta' messages, happened since last call?
-        app.logger.info('LOG---> ' + str(log_output))
         app.logger.info('Return code: %d' % cmd_result.return_code)
 
-    return 'Status: ' + cmd_result
+    msg = { 'status': '%s' % cmd_result }
+    js = json.dumps(msg)
+    return Response(js, status=200, mimetype='application/json')
 
 
 @app.route('/jobs/<job_name>/<job_id>', methods = ['DELETE'])
@@ -160,10 +174,45 @@ def kill_job(job_name, job_id):
         cmd_result = run("zdaemon -C%s stop" % get_job_instance_filepath(job_name, job_id))
         app.logger.info('Return code: %d' % cmd_result.return_code)
 
-    return 'Status: ' + cmd_result
+    msg = { 'status': '%s' % cmd_result }
+    js = json.dumps(msg)
+    return Response(js, status=200, mimetype='application/json')
 
 
 # ---------------------------------------
 if __name__ == '__main__':
-    logging.basicConfig()
-    app.run(debug=True)
+    #logging.basicConfig(stream= sys.stdout, level = logging.INFO)
+    #logging.info('Started')
+    #app.logger.level = logging.INFO
+    #app.logger.info("Start ...")
+
+    # create logger
+    #logger = logging.getLogger()
+    #logger.setLevel(logging.DEBUG)
+
+    # create console handler and set level to debug
+    #ch = logging.StreamHandler()
+    #ch.setLevel(logging.DEBUG)
+
+    # create formatter
+    #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # add formatter to ch
+    #ch.setFormatter(formatter)
+
+    # add ch to logger
+    #app.logger.addHandler(ch)
+    #app.logger_name = "jobmonitor"
+
+    if not app.debug:
+        import logging
+        file_handler = logging.FileHandler(filename="jobmonitor.log")
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        app.logger.addHandler(file_handler)
+
+    app.logger.info("Going to start jobmonitor ...")
+
+    #logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
+    app.run(debug=False)

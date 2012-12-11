@@ -30,9 +30,15 @@ python jobmonitor.py
 
 ... should now listen on port 5000
 
-curl -X POST -d "name=asdhk" http://127.0.0.1:5000/jobs?huh=heinz
-zdaemon -v
-curl -i -X POST -H'Content-Type: application/json' -d '{"name":"ls"}' http://127.0.0.1:5000/jobs
+curl -i   http://127.0.0.1:5000/
 
-curl -i   http://127.0.0.1:5000/jobs/testjob
-curl -i -X POST -H'Content-Type: application/json'  http://127.0.0.1:5000/jobs -d @samples/demojob.json
+and return version information.
+
+
+To start a new job:
+
+curl -i -X POST -H'Content-Type: application/json' http://127.0.0.1:5000/jobs/demojob -d @samples/demojob.json
+
+To stop a job:
+
+curl -i -X DELETE http://127.0.0.1:5000/jobs/demojob
