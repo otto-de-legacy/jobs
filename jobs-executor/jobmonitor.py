@@ -97,8 +97,7 @@ def create_job(job_name):
         # TODO in cluster environment: for hostname in env.hosts
         with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
             cmd_result = run("zdaemon -C%s start" % job_filepath)
-            app.logger.info('Return code: %d' % cmd_result.return_code)
-            # TODO: handle return_code
+            app.logger.info('Started %s [return code: %d]' % (job_name, cmd_result.return_code))
 
         # ~~ construct response
         if cmd_result.succeeded and "daemon process started" in cmd_result:
@@ -107,20 +106,12 @@ def create_job(job_name):
             resp = Response(json.dumps(msg), status=201, mimetype='application/json')
             resp.headers['Link'] = url_for('get_job_status', job_name=job_name, job_id=job_id)
         else:
-            msg = { 'status': 'FINISHED', 'result': {'ok': False, 'message': '%s' % cmd_result }}
+            msg = { 'status': 'FINISHED', 'result': {'ok': False, 'message': '%s' % cmd_result,
+                                                     'exit_code': cmd_result.result_code }}
             resp = Response(json.dumps(msg), status=500, mimetype='application/json')
 
     return resp
 
-
-@app.route('/jobs/<job_name>/<job_id>', methods = ['GET'])
-def get_job_status(job_name, job_id):
-    # check if job exists
-    if not exists_job_instance(job_name, job_id):
-        return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
-
-    (job_active, job_process_id) = get_job_status(job_name, job_id)
-    return response_job_status(job_name, job_active, job_id, job_process_id)
 
 @app.route('/jobs/<job_name>', methods = ['GET'])
 def get_current_job(job_name):
@@ -132,6 +123,17 @@ def get_current_job(job_name):
     else:
         msg = { 'result': {'message': "No job instance found for '%s'" % job_name }}
         return Response(json.dumps(msg), status=404, mimetype='application/json')
+
+
+@app.route('/jobs/<job_name>/<job_id>', methods = ['GET'])
+def get_job_by_id(job_name, job_id):
+    # check if job exists
+    if not exists_job_instance(job_name, job_id):
+        return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
+
+    (job_active, job_process_id) = get_job_status(job_name, job_id)
+    return response_job_status(job_name, job_active, job_id, job_process_id)
+
 
 
 @app.route('/jobs/<job_name>/<job_id>', methods = ['DELETE'])
