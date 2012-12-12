@@ -5,9 +5,16 @@
 
    Control jobs on a remote server and expose a small
    JSON HTTP interface to start, stop and get status.
+
+   From a fixed set of job templates the user can trigger
+   new instances spaned up by zdaemon, only one executed
+   at the same time.  Each job instance creates also its
+   own log file in the TRANSCRIPT_DIR.
 """
 
 __version__ = "0.1"
+__author__ = "Niko Schmuck"
+__credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
 import io
 import os
@@ -19,17 +26,17 @@ from flask import Flask, url_for
 from flask import json
 from flask import request, Response
 
-from fabric.api import *
+from fabric.api import run, settings
 
 
-# ~~ configuration (override by providing your own settings, see below)
+# ~~ configuration (override by providing your own settings, see below [2])
 
-DEBUG = True
-LOGFILE = 'jobmonitor.log'
+DEBUG             = True
+LOGFILE           = 'jobmonitor.log'
+TRANSCRIPT_DIR    = '/tmp'
 JOB_TEMPLATES_DIR = 'templates'
 JOB_INSTANCES_DIR = 'instances'
-JOB_HOSTNAME = 'localhost'
-#JOB_USERNAME = '...'
+JOB_HOSTNAME      = 'localhost'
 
 
 # ~~ create web application
@@ -53,8 +60,7 @@ def api_root():
 def get_available_jobs():
     available_jobs = get_job_template_names()
     msg = { 'jobs': available_jobs }
-    js = json.dumps(msg)
-    return Response(js, status=200, mimetype='application/json')
+    return Response(json.dumps(msg), status=200, mimetype='application/json')
 
 
 @app.route('/jobs/<job_name>', methods = ['POST'])
@@ -75,9 +81,8 @@ def create_job(job_name):
 
     if job_active:
         job_id = extract_job_id(latest_job_filepath)
-        msg = { 'message': "job '%s' is still running with process id %d" % (job_name, job_process_id) }
-        js = json.dumps(msg)
-        resp = Response(js, status=303, mimetype='application/json')
+        msg = { 'status': 'RUNNING', 'result': {'message': "job '%s' is still running with process id %d" % (job_name, job_process_id)} }
+        resp = Response(json.dumps(msg), status=303, mimetype='application/json')
         resp.headers['Link'] = url_for('get_job_status', job_name=job_name, job_id=job_id)
     else:
         # ~~ extract Job parameters from JSON and create job config
@@ -93,18 +98,17 @@ def create_job(job_name):
         with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
             cmd_result = run("zdaemon -C%s start" % job_filepath)
             app.logger.info('Return code: %d' % cmd_result.return_code)
+            # TODO: handle return_code
 
         # ~~ construct response
         if cmd_result.succeeded and "daemon process started" in cmd_result:
             job_process_id = extract_process_id(cmd_result)
-            msg = { 'message': "job '%s' started with process id=%d" % (job_name, job_process_id) }
-            js = json.dumps(msg)
-            resp = Response(js, status=201, mimetype='application/json')
+            msg = { 'status': 'STARTED', 'result': {'ok': True, 'message': "job '%s' started with process id=%d" % (job_name, job_process_id) } }
+            resp = Response(json.dumps(msg), status=201, mimetype='application/json')
             resp.headers['Link'] = url_for('get_job_status', job_name=job_name, job_id=job_id)
         else:
-            msg = { 'error': '%s' % cmd_result }
-            js = json.dumps(msg)
-            resp = Response(js, status=500, mimetype='application/json')
+            msg = { 'status': 'FINISHED', 'result': {'ok': False, 'message': '%s' % cmd_result }}
+            resp = Response(json.dumps(msg), status=500, mimetype='application/json')
 
     return resp
 
@@ -115,17 +119,23 @@ def get_job_status(job_name, job_id):
     if not exists_job_instance(job_name, job_id):
         return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
 
-    with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
-        cmd_result = run("zdaemon -C%s status" % get_job_instance_filepath(job_name, job_id))
-        app.logger.info('Return code: %d' % cmd_result.return_code)
+    (job_active, job_process_id) = get_job_status(job_name, job_id)
+    return response_job_status(job_name, job_active, job_id, job_process_id)
 
-    msg = { 'status': '%s' % cmd_result }
-    js = json.dumps(msg)
-    return Response(js, status=200, mimetype='application/json')
+@app.route('/jobs/<job_name>', methods = ['GET'])
+def get_current_job(job_name):
+    latest_job_filepath = get_latest_job_instance(job_name)
+    if latest_job_filepath:
+        app.logger.info("Found job instance, check if still running...")
+        (job_active, job_process_id) = get_job_status(job_name, latest_job_filepath)
+        return response_job_status(job_name, job_active, extract_job_id(latest_job_filepath), job_process_id)
+    else:
+        msg = { 'result': {'message': "No job instance found for '%s'" % job_name }}
+        return Response(json.dumps(msg), status=404, mimetype='application/json')
 
 
 @app.route('/jobs/<job_name>/<job_id>', methods = ['DELETE'])
-def kill_job(job_name, job_id):
+def kill_job_instance(job_name, job_id):
     # check if job exists
     if not exists_job_instance(job_name, job_id):
         return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
@@ -134,18 +144,27 @@ def kill_job(job_name, job_id):
     job_fullpath = get_job_instance_filepath(job_name, job_id)
     (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
     if not job_active:
-        msg = { 'status': 'job is not running' }
-        js = json.dumps(msg)
-        return Response(js, status=403, mimetype='application/json')
+        msg = { 'status': 'FINISHED', 'result':{'message':'job has already finished' }}
+        return Response(json.dumps(msg), status=403, mimetype='application/json')
     else:
         with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
             cmd_result = run("zdaemon -C%s stop" % job_fullpath)
             app.logger.info('Return code: %d' % cmd_result.return_code)
+            # TODO handle cmd_result.return_code
 
         msg = { 'status': '%s' % cmd_result }
-        js = json.dumps(msg)
-        return Response(js, status=200, mimetype='application/json')
+        return Response(json.dumps(msg), status=200, mimetype='application/json')
 
+# --
+
+def response_job_status(job_name, job_active, job_id, job_process_id):
+    if job_active:
+        msg = { 'status': 'RUNNING', 'job_id': "%s" % job_id, 'result':{'ok': True,
+                'message': "job '%s' is running with process id %d" % (job_name, job_process_id)}}
+        return Response(json.dumps(msg), status=200, mimetype='application/json')
+    else:
+        msg = { 'status': 'FINISHED', 'result':{'ok': True, 'message': "job '%s' is not running any more" % job_name }}
+        return Response(json.dumps(msg), status=200, mimetype='application/json')
 
 # ------------------------------------------------------
 
@@ -158,6 +177,9 @@ def get_job_instance(job_name, job_id):
 
 def get_job_instance_filename(job_name, job_id):
     return "%s.conf" % get_job_instance(job_name, job_id)
+
+def get_job_instance_logname(job_name, job_id):
+    return "%s.log" % get_job_instance(job_name, job_id)
 
 def get_job_instance_filepath(job_name, job_id):
     abs_instances_dir = os.path.abspath(app.config['JOB_INSTANCES_DIR'])
@@ -201,6 +223,8 @@ def get_job_status(job_name, job_filepath):
     job_process_id = -1
     with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
         cmd_result = run("zdaemon -C%s status" % job_filepath)
+        if cmd_result.return_code > 0:
+            app.logger.warn("Problem while checking job status: %s" % cmd_result)
         job_active = cmd_result.succeeded and "program running" in cmd_result
         if job_active:
             job_process_id = extract_process_id(cmd_result)
@@ -228,6 +252,8 @@ def create_jobconf(job_id, job_name, params):
     ensure_job_instance_directory()
     file_path = get_job_instance_filepath(job_name, job_id)
     instance_file = io.open(file_path, 'w')
+    # add standard values to replace dictionary
+    params['transcript_file'] = os.path.join(app.config['TRANSCRIPT_DIR'], get_job_instance_logname(job_name, job_id))
 
     # read the lines from the template, substitute the values, and write to the instance
     for line in io.open(get_job_template_filepath(job_name), 'r'):
