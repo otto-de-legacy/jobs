@@ -30,7 +30,7 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
             final URI uri = remoteJobExecutorService.startJob(new RemoteJob(getName(), getParameters()));
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), uri.toString());
         } catch (RemoteJobAlreadyRunningException e) {
-            jobLogger.insertOrUpdateAdditionalData("resumedAlreadyStartedJob", e.getJobUri().toString());
+            jobLogger.insertOrUpdateAdditionalData("resumedAlreadyRunningJob", e.getJobUri().toString());
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), e.getJobUri().toString());
         }
     }

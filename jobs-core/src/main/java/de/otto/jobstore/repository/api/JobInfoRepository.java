@@ -28,7 +28,7 @@ public interface JobInfoRepository {
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    String create(String name, long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData);
+    String create(String name, long maxExecutionTime, RunningState state, boolean forceExecution, boolean remote, Map<String, String> additionalData);
 
     /**
      * Creates a new job with the given parameters
@@ -42,7 +42,7 @@ public interface JobInfoRepository {
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    String create(String name, String host, String thread, long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData);
+    String create(String name, String host, String thread, long maxExecutionTime, RunningState state, boolean forceExecution, boolean remote, Map<String, String> additionalData);
 
     /**
      * Returns job with the given name and running state
@@ -201,14 +201,6 @@ public interface JobInfoRepository {
     boolean addAdditionalData(String name, String key, String value);
 
     /**
-     *
-     * @param name
-     * @param remoteJobUri
-     * @return
-     */
-    boolean addRemoteJobUri(String name, URI remoteJobUri);
-
-    /**
      * Updates the host and thread information on the running job with the given name. Host and thread information
      * are determined automatically.
      *
@@ -240,16 +232,26 @@ public interface JobInfoRepository {
     boolean addLogLine(String name, String line);
 
     /**
+     *
+     * @param jobName
+     * @param lines
+     * @return
+     */
+    boolean setLogLines(String jobName, List<String> lines);
+
+    /**
+     *
+     * @param jobName
+     * @param currentDate
+     */
+    void removeJobIfTimedOut(String jobName, Date currentDate);
+
+    /**
      * Clears all elements from the repository
      *
      * @param dropCollection Flag if the collection should be dropped
      */
     void clear(boolean dropCollection);
-
-    /**
-     * Marks all timed out jobs in the repository as timed out
-     */
-    void cleanupTimedOutJobs();
 
     /**
      * Counts the number of documents in the repository
@@ -258,5 +260,4 @@ public interface JobInfoRepository {
      */
     long count();
 
-    boolean setLogLines(String jobName, List<String> lines);
 }

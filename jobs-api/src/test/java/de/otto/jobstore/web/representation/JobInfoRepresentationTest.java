@@ -18,7 +18,7 @@ public class JobInfoRepresentationTest {
 
     @Test
     public void testFromJobInfo() throws Exception {
-        JobInfo jobInfo = new JobInfo("foo", "host", "thread", 1234L, RunningState.RUNNING, true, new HashMap<String, String>());
+        JobInfo jobInfo = new JobInfo("foo", "host", "thread", 1234L, RunningState.RUNNING, true, false, new HashMap<String, String>());
         jobInfo.appendLogLine(new LogLine("line1", new Date()));
         jobInfo.appendLogLine(new LogLine("line2", new Date()));
         jobInfo.putAdditionalData("key1", "value1");

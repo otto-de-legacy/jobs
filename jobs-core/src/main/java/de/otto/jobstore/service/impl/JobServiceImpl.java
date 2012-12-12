@@ -97,15 +97,17 @@ public final class JobServiceImpl implements JobService {
         final String id;
         if (!executionEnabled) {
             throw new JobExecutionDisabledException("Execution of jobs has been disabled");
-        } else if (jobInfoRepository.hasJob(name, RunningState.QUEUED.name())) {
+        }
+        jobInfoRepository.removeJobIfTimedOut(name, new Date());
+        if (jobInfoRepository.hasJob(name, RunningState.QUEUED.name())) {
             throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
         } else if (jobInfoRepository.hasJob(name, RunningState.RUNNING.name())) {
             // TODO: bricht mit vorheriger JobInfoRepositorySemantik?
-            id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "A job with name " + name + " is already running and queued for execution");
+            id = queueJob(runnable, forceExecution, "A job with name " + name + " is already running and queued for execution");
             //throw new JobAlreadyRunningException("A job with name " + name + " is already running and queued for execution");
         } else if (violatesRunningConstraints(name)) {
             // TODO: executeJob semantisch ueberladen, verhaelt sich eher wie ein executeOrAlternativelyQueueJobSometimes
-            id = queueJob(name, runnable.getMaxExecutionTime(), forceExecution, "The job " + name + " violates running constraints and is already queued for execution");
+            id = queueJob(runnable, forceExecution, "The job " + name + " violates running constraints and is already queued for execution");
         } else if (forceExecution || runnable.isExecutionNecessary()) {
             id = runJob(runnable, forceExecution, "A job with name " + name + " is already running");
             LOGGER.debug("ltag=JobService.runJob.executingJob jobInfoName={}", name);
@@ -143,24 +145,6 @@ public final class JobServiceImpl implements JobService {
         }
     }
 
-    private boolean jobRequiresUpdate(Date lastModificationTime, long currentTime, long pollingInterval) {
-        return new Date(currentTime - pollingInterval).after(lastModificationTime);
-    }
-
-    private void updateJobStatus(JobInfo jobInfo, RemoteJobStatus remoteJobStatus) {
-        if (remoteJobStatus.getStatus() == RemoteJobStatus.Status.RUNNING) {
-            jobInfoRepository.setLogLines(jobInfo.getName(), remoteJobStatus.getLogLines());
-        } else if (remoteJobStatus.getStatus() == RemoteJobStatus.Status.FINISHED) {
-            final RemoteJobResult result = remoteJobStatus.getResult();
-            if (result.isOk()) {
-                jobInfoRepository.markRunningAsFinishedSuccessfully(jobInfo.getName());
-            } else {
-                jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(result.getExitCode()));
-                jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultState.FAILED, result.getMessage());
-            }
-        }
-    }
-
     @PreDestroy
     @Override
     public void shutdownJobs() {
@@ -191,21 +175,26 @@ public final class JobServiceImpl implements JobService {
         return Collections.unmodifiableSet(runningConstraints);
     }
 
-    private void executeJob(JobRunnable runnable) {
-        if (runnable.isRemote()) {
-            executeRemoteJob(runnable);
-        } else {
-            Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(runnable, jobInfoRepository));
+    private boolean jobRequiresUpdate(Date lastModificationTime, long currentTime, long pollingInterval) {
+        return new Date(currentTime - pollingInterval).after(lastModificationTime);
+    }
 
+    private void updateJobStatus(JobInfo jobInfo, RemoteJobStatus remoteJobStatus) {
+        if (remoteJobStatus.getStatus() == RemoteJobStatus.Status.RUNNING) {
+            jobInfoRepository.setLogLines(jobInfo.getName(), remoteJobStatus.getLogLines());
+        } else if (remoteJobStatus.getStatus() == RemoteJobStatus.Status.FINISHED) {
+            final RemoteJobResult result = remoteJobStatus.getResult();
+            if (result.isOk()) {
+                jobInfoRepository.markRunningAsFinishedSuccessfully(jobInfo.getName());
+            } else {
+                jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(result.getExitCode()));
+                jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultState.FAILED, result.getMessage());
+            }
         }
     }
 
-    private void executeRemoteJob(JobRunnable runnable) {
-        try {
-            runnable.execute(new SimpleJobLogger(runnable.getName(), jobInfoRepository));
-        } catch (Exception e) {
-            jobInfoRepository.markRunningAsFinishedWithException(runnable.getName(), e);
-        }
+    private void executeJob(JobRunnable runnable) {
+        Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(runnable, jobInfoRepository));
     }
 
     private void executeQueuedJob(final JobInfo jobInfo) {
@@ -223,9 +212,10 @@ public final class JobServiceImpl implements JobService {
         }
     }
 
-    private String queueJob(String name, long maxExecutionTime, boolean forceExecution, String exceptionMessage)
+    private String queueJob(JobRunnable runnable, boolean forceExecution, String exceptionMessage)
             throws JobAlreadyQueuedException{
-        final String id = jobInfoRepository.create(name, maxExecutionTime, RunningState.QUEUED, forceExecution, null);
+        final String id = jobInfoRepository.create(runnable.getName(), runnable.getMaxExecutionTime(),
+                RunningState.QUEUED, forceExecution, runnable.isRemote(), null);
         if (id == null) {
             throw new JobAlreadyQueuedException(exceptionMessage);
         }
@@ -234,7 +224,8 @@ public final class JobServiceImpl implements JobService {
 
     private String runJob(JobRunnable runnable, boolean forceExecution, String exceptionMessage)
             throws JobAlreadyRunningException {
-        final String id = jobInfoRepository.create(runnable.getName(), runnable.getMaxExecutionTime(), RunningState.RUNNING, forceExecution, null);
+        final String id = jobInfoRepository.create(runnable.getName(), runnable.getMaxExecutionTime(),
+                RunningState.RUNNING, forceExecution, runnable.isRemote(), null);
         if (id == null) {
             throw new JobAlreadyRunningException(exceptionMessage);
         }

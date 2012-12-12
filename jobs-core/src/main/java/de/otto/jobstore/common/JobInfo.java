@@ -26,10 +26,10 @@ public final class JobInfo extends AbstractItem {
     }
 
     public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state) {
-        this(name, host, thread, maxExecutionTime, state, false, null);
+        this(name, host, thread, maxExecutionTime, state, false, false, null);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData) {
+    public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state, boolean forceExecution, boolean remote, Map<String, String> additionalData) {
         final Date dt = new Date();
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
@@ -40,6 +40,7 @@ public final class JobInfo extends AbstractItem {
         addProperty(JobInfoProperty.CREATION_TIME, dt);
         addProperty(JobInfoProperty.FORCE_EXECUTION, forceExecution);
         addProperty(JobInfoProperty.RUNNING_STATE, state.name());
+        addProperty(JobInfoProperty.REMOTE, remote);
         setLastModifiedTime(dt);
         addProperty(JobInfoProperty.MAX_EXECUTION_TIME, maxExecutionTime);
         if (additionalData != null) {
