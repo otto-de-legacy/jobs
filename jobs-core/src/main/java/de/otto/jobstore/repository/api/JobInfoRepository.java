@@ -51,7 +51,7 @@ public interface JobInfoRepository {
      * @param runningState The running state of the job
      * @return The running job or null if no job with the given name is currently running
      */
-    JobInfo findByNameAndRunningState(String name, String runningState, Boolean remote);
+    JobInfo findByNameAndRunningState(String name, String runningState);
 
     /**
      * Checks if a job with the given name and state exists

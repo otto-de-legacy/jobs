@@ -11,12 +11,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.URI;
 import java.util.*;
 
 public final class MongoJobInfoRepository implements JobInfoRepository {
 
     private static final String JOB_NAME_CLEANUP = "JobInfo_Cleanup";
+    private static final String JOB_NAME_TIMED_OUT_CLEANUP = "JobInfo_TimedOut_Cleanup";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoJobInfoRepository.class);
     private final DBCollection collection;
@@ -70,7 +70,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
                          final RunningState runningState, final boolean forceExecution, final boolean remote, final Map<String, String> additionalData) {
         try {
             LOGGER.info("Create job={} in state={} ...", name, runningState);
-            final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, forceExecution, remote, additionalData);
+            final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, forceExecution, additionalData);
             save(jobInfo, WriteConcern.SAFE);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
@@ -80,18 +80,14 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public JobInfo findByNameAndRunningState(final String name, final String runningState, Boolean remote) {
-        final BasicDBObject q = createFindByNameAndRunningStateQuery(name, runningState);
-        if (remote != null) {
-            q.append(JobInfoProperty.REMOTE.val(), remote);
-        }
-        final DBObject jobInfo = collection.findOne(q);
+    public JobInfo findByNameAndRunningState(final String name, final String runningState) {
+        final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, runningState));
         return fromDbObject(jobInfo);
     }
 
     @Override
     public boolean hasJob(final String name, final String runningState) {
-        return findByNameAndRunningState(name, runningState, null) != null;
+        return findByNameAndRunningState(name, runningState) != null;
     }
 
     @Override
@@ -289,7 +285,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     @Override
     public void removeJobIfTimedOut(final String jobName, final Date currentDate) {
         if (hasJob(jobName, RunningState.RUNNING.name())) {
-            final JobInfo job = findByNameAndRunningState(jobName, RunningState.RUNNING.name(), null);
+            final JobInfo job = findByNameAndRunningState(jobName, RunningState.RUNNING.name());
             if (job.isTimedOut(currentDate)) {
                 markRunningAsFinished(job.getName(), ResultState.TIMED_OUT, null);
             }
@@ -316,6 +312,26 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     @Override
     public long count() {
         return collection.count();
+    }
+
+    public void cleanupTimedOutJobs() {
+        final Date currentDate = new Date();
+        removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
+        if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING.name())) {
+            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, false, null);
+            try {
+                final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
+                for (JobInfo jobInfo : getAll(cursor)) {
+                    if (jobInfo.isTimedOut(currentDate)) {
+                        markRunningAsFinished(jobInfo.getName(), ResultState.TIMED_OUT, null);
+                    }
+                }
+                markRunningAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
+            } catch (Exception e) {
+                LOGGER.error(e.getMessage(), e);
+                markRunningAsFinishedWithException(JOB_NAME_TIMED_OUT_CLEANUP, e);
+            }
+        }
     }
 
     public void cleanupOldJobs() {

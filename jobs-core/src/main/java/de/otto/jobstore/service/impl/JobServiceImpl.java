@@ -97,9 +97,7 @@ public final class JobServiceImpl implements JobService {
         final String id;
         if (!executionEnabled) {
             throw new JobExecutionDisabledException("Execution of jobs has been disabled");
-        }
-        jobInfoRepository.removeJobIfTimedOut(name, new Date());
-        if (jobInfoRepository.hasJob(name, RunningState.QUEUED.name())) {
+        } else if (jobInfoRepository.hasJob(name, RunningState.QUEUED.name())) {
             throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
         } else if (jobInfoRepository.hasJob(name, RunningState.RUNNING.name())) {
             // TODO: bricht mit vorheriger JobInfoRepositorySemantik?
@@ -131,14 +129,17 @@ public final class JobServiceImpl implements JobService {
     @Override
     public void pollRemoteJobs() {
         if (executionEnabled) {
-            for (String name : jobs.keySet()) {
-                final JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING.name(), true);
-                final JobRunnable runnable = jobs.get(jobInfo.getName());
-                if (jobRequiresUpdate(jobInfo.getLastModifiedTime(), System.currentTimeMillis(), runnable.getPollingInterval())) {
-                    final RemoteJobStatus remoteJobStatus = remoteJobExecutorService.getStatus(
-                            URI.create(jobInfo.getAdditionalData().get(JobInfoProperty.REMOTE_JOB_URI.val())));
-                    if (remoteJobStatus != null) {
-                        updateJobStatus(jobInfo, remoteJobStatus);
+            for (Map.Entry<String, JobRunnable> job : jobs.entrySet()) {
+                if (job.getValue().isRemote()) {
+                    final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(job.getKey(), RunningState.RUNNING.name());
+                    if (runningJob != null) {
+                        if (jobRequiresUpdate(runningJob.getLastModifiedTime(), System.currentTimeMillis(), job.getValue().getPollingInterval())) {
+                            final RemoteJobStatus remoteJobStatus = remoteJobExecutorService.getStatus(
+                                    URI.create(runningJob.getAdditionalData().get(JobInfoProperty.REMOTE_JOB_URI.val())));
+                            if (remoteJobStatus != null) {
+                                updateJobStatus(runningJob, remoteJobStatus);
+                            }
+                        }
                     }
                 }
             }
@@ -149,11 +150,13 @@ public final class JobServiceImpl implements JobService {
     @Override
     public void shutdownJobs() {
         if (executionEnabled) {
-            for (String name : jobs.keySet()) {
-                final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING.name(), false);
-                if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
-                    LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", name);
-                    jobInfoRepository.markRunningAsFinished(name, ResultState.FAILED, "shutdownJobs called from executing host");
+            for (Map.Entry<String, JobRunnable> job : jobs.entrySet()) {
+                if (!job.getValue().isRemote()) {
+                    final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(job.getKey(), RunningState.RUNNING.name());
+                    if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
+                        LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", job.getKey());
+                        jobInfoRepository.markRunningAsFinished(job.getKey(), ResultState.FAILED, "shutdownJobs called from executing host");
+                    }
                 }
             }
         }

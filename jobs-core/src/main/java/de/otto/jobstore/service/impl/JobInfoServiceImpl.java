@@ -50,7 +50,7 @@ public final class JobInfoServiceImpl implements JobInfoService {
 
     @Override
     public JobInfo getByNameAndRunningState(String name, RunningState runningState) {
-        return jobInfoRepository.findByNameAndRunningState(name, runningState.name(), null);
+        return jobInfoRepository.findByNameAndRunningState(name, runningState.name());
     }
 
     @Override
