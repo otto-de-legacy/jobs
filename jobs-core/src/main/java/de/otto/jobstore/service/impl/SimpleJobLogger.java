@@ -8,19 +8,19 @@ final class SimpleJobLogger implements JobLogger {
     private final String jobName;
     private final JobInfoRepository jobInfoRepository;
 
-    public SimpleJobLogger(String jobName, JobInfoRepository jobInfoRepository) {
+    SimpleJobLogger(String jobName, JobInfoRepository jobInfoRepository) {
         this.jobName = jobName;
         this.jobInfoRepository = jobInfoRepository;
     }
 
     @Override
     public void addLoggingData(String log) {
-        jobInfoRepository.addLoggingData(jobName, log);
+        jobInfoRepository.addLogLine(jobName, log);
     }
 
     @Override
     public void insertOrUpdateAdditionalData(String key, String value) {
-        jobInfoRepository.insertAdditionalData(jobName, key, value);
+        jobInfoRepository.addAdditionalData(jobName, key, value);
     }
 
 }

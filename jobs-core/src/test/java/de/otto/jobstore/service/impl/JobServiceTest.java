@@ -3,6 +3,7 @@ package de.otto.jobstore.service.impl;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobService;
+import de.otto.jobstore.service.api.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.*;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -18,6 +19,7 @@ public class JobServiceTest {
 
     private JobService jobService;
     private JobInfoRepository jobInfoRepository;
+    private RemoteJobExecutorService remoteJobExecutorService;
 
     private static final String JOB_NAME_01 = "test";
     private static final String JOB_NAME_02 = "test2";
@@ -25,7 +27,8 @@ public class JobServiceTest {
     @BeforeMethod
     public void setUp() throws Exception {
         jobInfoRepository = mock(JobInfoRepository.class);
-        jobService = new JobServiceImpl(jobInfoRepository);
+        remoteJobExecutorService = mock(RemoteJobExecutorService.class);
+        jobService = new JobServiceImpl(jobInfoRepository, remoteJobExecutorService);
     }
 
     @Test
@@ -75,7 +78,8 @@ public class JobServiceTest {
 
     @Test
     public void testStopAllJobsJobRunning() throws Exception {
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING.name())).thenReturn(new JobInfo(JOB_NAME_01, InternetUtils.getHostName(), "bla", 60000L));
+        jobService.registerJob(createJobInfoCallable(JOB_NAME_01));
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING.name(), false)).thenReturn(new JobInfo(JOB_NAME_01, InternetUtils.getHostName(), "bla", 60000L));
 
         jobService.registerJob(createJobInfoCallable(JOB_NAME_01));
         jobService.shutdownJobs();
@@ -84,7 +88,7 @@ public class JobServiceTest {
 
     @Test
     public void testStopAllJobsJobRunningOnDifferentHost() throws Exception {
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING.name())).thenReturn(new JobInfo(JOB_NAME_01, "differentHost", "bla", 60000L));
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING.name(), null)).thenReturn(new JobInfo(JOB_NAME_01, "differentHost", "bla", 60000L));
 
         jobService.registerJob(createJobInfoCallable(JOB_NAME_01));
         jobService.shutdownJobs();
@@ -140,7 +144,7 @@ public class JobServiceTest {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
                 Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L), new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
-        JobRunnable runnable = new JobRunnable() {
+        JobRunnable runnable = new AbstractLocalJobRunnable() {
 
             @Override
             public String getName() {
@@ -305,7 +309,7 @@ public class JobServiceTest {
         when(jobInfoRepository.create(JOB_NAME_01, 0, RunningState.RUNNING, true, null)).thenReturn("1234");
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED.name())).thenReturn(Boolean.FALSE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING.name())).thenReturn(Boolean.FALSE);
-        JobRunnable runnable = new JobRunnable() {
+        JobRunnable runnable = new AbstractLocalJobRunnable() {
 
             @Override
             public String getName() {
@@ -348,7 +352,7 @@ public class JobServiceTest {
 
     @Test(expectedExceptions = JobExecutionDisabledException.class)
     public void testJobExecutedDisabled() throws Exception {
-        JobServiceImpl jobServiceImpl = new JobServiceImpl(jobInfoRepository);
+        JobServiceImpl jobServiceImpl = new JobServiceImpl(jobInfoRepository, remoteJobExecutorService);
         jobServiceImpl.setExecutionEnabled(false);
 
         jobServiceImpl.registerJob(createJobInfoCallable(JOB_NAME_01));
@@ -364,7 +368,7 @@ public class JobServiceTest {
         return new MockJobRunnable(name, 0, true);
     }
 
-    private class MockJobRunnable implements JobRunnable {
+    private class MockJobRunnable extends AbstractLocalJobRunnable {
 
         private String name;
         private long maxExecutionTime;

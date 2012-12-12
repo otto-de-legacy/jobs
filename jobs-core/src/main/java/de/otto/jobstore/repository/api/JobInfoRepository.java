@@ -4,6 +4,7 @@ import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.ResultState;
 import de.otto.jobstore.common.RunningState;
 
+import java.net.URI;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,7 @@ public interface JobInfoRepository {
      * @param runningState The running state of the job
      * @return The running job or null if no job with the given name is currently running
      */
-    JobInfo findByNameAndRunningState(String name, String runningState);
+    JobInfo findByNameAndRunningState(String name, String runningState, Boolean remote);
 
     /**
      * Checks if a job with the given name and state exists
@@ -197,7 +198,15 @@ public interface JobInfoRepository {
      * @return true - The data was successfully added to the job<br/>
      *          false - No running job with the given name could be found
      */
-    boolean insertAdditionalData(String name, String key, String value);
+    boolean addAdditionalData(String name, String key, String value);
+
+    /**
+     *
+     * @param name
+     * @param remoteJobUri
+     * @return
+     */
+    boolean addRemoteJobUri(String name, URI remoteJobUri);
 
     /**
      * Updates the host and thread information on the running job with the given name. Host and thread information
@@ -228,7 +237,7 @@ public interface JobInfoRepository {
      * @return true - The data was successfully added to the job<br/>
      *         false - No running job with the given name could be found
      */
-    boolean addLoggingData(String name, String line);
+    boolean addLogLine(String name, String line);
 
     /**
      * Clears all elements from the repository
@@ -249,4 +258,5 @@ public interface JobInfoRepository {
      */
     long count();
 
+    boolean setLogLines(String jobName, List<String> lines);
 }

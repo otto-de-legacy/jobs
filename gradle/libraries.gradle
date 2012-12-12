@@ -4,6 +4,7 @@ project.ext.libs = [
     "commonsLogging"    : "commons-logging:commons-logging:1.1.1",
     "jerseyAbdera"      : "com.sun.jersey.contribs:jersey-atom-abdera:1.14",
     "jerseyClient"      : "com.sun.jersey:jersey-client:1.14",
+    "jerseyClientJSON"  : "com.sun.jersey:jersey-json:1.14",
     "jerseyCore"        : "com.sun.jersey:jersey-core:1.14",
     "mockito"           : "org.mockito:mockito-all:1.8.5",
     "mongoDb"           : 'org.mongodb:mongo-java-driver:2.9.1',
