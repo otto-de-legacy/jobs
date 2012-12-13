@@ -22,5 +22,4 @@ public final class RemoteJobStatus {
         this.logLines = logLines;
         this.result = result;
     }
-
 }

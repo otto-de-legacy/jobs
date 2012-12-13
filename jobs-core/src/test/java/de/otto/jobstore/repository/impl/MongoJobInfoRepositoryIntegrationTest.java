@@ -30,7 +30,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
 
     @BeforeMethod
     public void setup() throws Exception {
-        jobInfoRepository.clear(true);
+        jobInfoRepository.clear(false);
     }
 
     @Test

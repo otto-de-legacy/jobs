@@ -9,12 +9,4 @@ public final class RemoteJobResult {
     public int exitCode;
     public String message;
 
-    public RemoteJobResult() {}
-
-    public RemoteJobResult(boolean ok, int exitCode, String message) {
-        this.ok = ok;
-        this.exitCode = exitCode;
-        this.message = message;
-    }
-
 }

@@ -11,8 +11,6 @@ public final class RemoteJob {
     public String name;
     public List<Parameter> parameters;
 
-    public RemoteJob() {}
-
     public RemoteJob(String name, List<Parameter> parameters) {
         this.name = name;
         this.parameters = parameters;
@@ -27,6 +25,26 @@ public final class RemoteJob {
         }
         obj.put("parameters", params);
         return obj;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        RemoteJob remoteJob = (RemoteJob) o;
+
+        if (name != null ? !name.equals(remoteJob.name) : remoteJob.name != null) return false;
+        if (parameters != null ? !parameters.equals(remoteJob.parameters) : remoteJob.parameters != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name != null ? name.hashCode() : 0;
+        result = 31 * result + (parameters != null ? parameters.hashCode() : 0);
+        return result;
     }
 
 }
