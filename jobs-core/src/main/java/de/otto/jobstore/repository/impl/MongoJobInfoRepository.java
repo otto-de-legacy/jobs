@@ -102,10 +102,10 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
         if (start != null) {
-            query.append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new BasicDBObject(MongoOperator.GTE.op(), start));
+            query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.GTE.op(), start));
         }
         if (end != null) {
-            query.append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), start));
+            query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), start));
         }
         final DBCursor cursor = collection.find(query.get()).
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
@@ -348,6 +348,8 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     private void prepareCollection() {
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1));
+        collection.ensureIndex(new BasicDBObject().
+                append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "name_creationTime", true);
         collection.ensureIndex(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
     }

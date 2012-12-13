@@ -87,12 +87,12 @@ public interface JobInfoRepository {
     List<JobInfo> findByName(String name, Integer limit);
 
     /**
-     * Returns a list of jobs with the given name which have a lastModified timestamp which is in between the supplied
+     * Returns a list of jobs with the given name which have a creation timestamp which is in between the supplied
      * dates. If the start and end parameter are null, the result list will contain all jobs with the supplied name.
      *
      * @param name The name of the jobs to return
-     * @param start The date on or after which the jobs were last modified
-     * @param end The date on or before which the jobs were last modified
+     * @param start The date on or after which the jobs were created
+     * @param end The date on or before which the jobs were created
      * @return The list of jobs sorted by creationTime in descending order
      */
     List<JobInfo> findByNameAndTimeRange(String name, Date start, Date end);
