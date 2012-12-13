@@ -80,7 +80,8 @@ def get_current_job(job_name):
 def get_job_by_id(job_name, job_id):
     # check if job exists
     if not exists_job_instance(job_name, job_id):
-        return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
+        msg = { 'message': "No job instance '%s' found for '%s'" % (job_id, job_name)}
+        return Response(json.dumps(msg), status=404, mimetype='application/json')
 
     job_fullpath = get_job_instance_filepath(job_name, job_id)
     (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
@@ -91,10 +92,6 @@ def get_job_by_id(job_name, job_id):
 def create_job(job_name):
     """Register new job (template) in the job monitor"""
 
-    # ~~ expect JSON as input
-    if request.headers['Content-Type'] != 'application/json':
-        return Response("Only 'application/json' currently supported as media type", status=415)
-
     if exists_job_template(job_name):
         msg = { 'message': "job '%s' does already exist" % job_name}
         resp = Response(json.dumps(msg), status=303, mimetype='application/json')
@@ -104,6 +101,19 @@ def create_job(job_name):
         resp = Response("", status=201, mimetype='application/json')
 
     resp.headers['Link'] = url_for('get_current_job', job_name=job_name)
+    return resp
+
+@app.route('/jobs/<job_name>', methods = ['DELETE'])
+def delete_job(job_name):
+    """Unregister job and delete associated template."""
+
+    if exists_job_template(job_name):
+        remove_job_template(job_name)
+        resp = Response("", status=200, mimetype='application/json')
+    else:
+        msg = {"No job definition found for %s..." % job_name}
+        resp = Response(json.dumps(msg), status=404, mimetype='application/json')
+
     return resp
 
 
@@ -207,6 +217,10 @@ def save_job_template(job_name, data):
     fullpath = get_job_template_filepath(job_name)
     file = open(fullpath, 'w')
     file.write(data)
+
+def remove_job_template(job_name):
+    fullpath = get_job_template_filepath(job_name)
+    os.remove(fullpath)
 
 def get_job_template_names():
     templates_dir = app.config['JOB_TEMPLATES_DIR']

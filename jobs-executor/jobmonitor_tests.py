@@ -37,6 +37,29 @@ class JobMonitorTestCase(unittest.TestCase):
         self.assertEqual('application/json', rv.headers['Content-Type'])
         self.assertIn('demojob', rv.data)
 
+    def test_get_unknown_job(self):
+        rv = self.app.get('/jobs/foobar')
+        self.assertEqual(404, rv.status_code)
+        self.assertEqual('application/json', rv.headers['Content-Type'])
+        self.assertIn("No job instance found for 'foobar'", rv.data)
+
+    def test_get_unknown_job_instance(self):
+        rv = self.app.get('/jobs/foobar/4711')
+        self.assertEqual(404, rv.status_code)
+        self.assertEqual('application/json', rv.headers['Content-Type'])
+        self.assertIn("No job instance '4711' found for 'foobar'", rv.data)
+
+    def test_create_new_job_(self):
+        payload = open('tests/test_job.conf', 'r').read()
+        rv = self.app.post('/jobs/test_job', data=payload)
+        self.assertEqual(201, rv.status_code)
+        self.assertEqual('application/json', rv.headers['Content-Type'])
+        job_url = rv.headers["Link"]
+        rv_get = self.app.get(job_url)
+        self.assertEqual(200, rv_get.status_code)
+        rv_delete = self.app.delete(job_url)
+        self.assertEqual(200, rv_delete.status_code)
+
     def test_create_job_instance_missing_parameter(self):
         payload = { 'parameters': { "key1": "val1"} }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))

@@ -44,10 +44,14 @@ List available jobs:
 
     curl -i http://127.0.0.1:5000/jobs/
 
+To upload a new job:
 
-To start a new job:
+    curl -i -X POST http://127.0.0.1:5000/jobs/test_job -d @samples/demojob.json
 
-    curl -i -X POST -H'Content-Type: application/json' http://127.0.0.1:5000/jobs/demojob -d @samples/demojob.json
+
+To start a new job instance:
+
+    curl -i -X POST -H'Content-Type: application/json' http://127.0.0.1:5000/jobs/demojob/start -d @samples/demojob.json
 
 As part of the response you will get inside the response header a link
 which you can follow to get more information about the job instance:
@@ -57,3 +61,26 @@ which you can follow to get more information about the job instance:
 To stop this job instance simply run:
 
     curl -i -X DELETE http://127.0.0.1:5000/jobs/demojob/030bb50f4571
+
+
+--------------
+For developers
+--------------
+
+Execute test suite:
+
+    python jobmonitor_tests.py
+
+Run single test:
+
+    python jobmonitor_tests.py JobMonitorTestCase.test_get_job_instance
+
+Execute tests and measuring coverage:
+(requires: pip install nosexcover)
+
+    nosetests --with-xcoverage --with-xunit --cover-package=jobmonitor
+
+Run lint over sources:
+(requires: pip install pylint)
+
+    pylint -f parseable jobmonitor.py
