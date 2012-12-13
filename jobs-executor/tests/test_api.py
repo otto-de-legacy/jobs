@@ -9,7 +9,7 @@ class JobMonitorTestCase(unittest.TestCase):
         self.db_fd, jobmonitor.app.config['DATABASE'] = tempfile.mkstemp()
         jobmonitor.app.config['TESTING'] = True
         self.app = jobmonitor.app.test_client()
-        jobmonitor.create_job("demojob")
+        jobmonitor.start_job_instance("demojob")
 
     def tearDown(self):
         os.close(self.db_fd)

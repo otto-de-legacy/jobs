@@ -51,6 +51,7 @@ app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
 
 # ------------------------------------------------------
 
+
 @app.route('/')
 def api_root():
     return 'Job Monitor (v %s)' % __version__
@@ -63,8 +64,50 @@ def get_available_jobs():
     return Response(json.dumps(msg), status=200, mimetype='application/json')
 
 
+@app.route('/jobs/<job_name>', methods = ['GET'])
+def get_current_job(job_name):
+    latest_job_filepath = get_latest_job_instance(job_name)
+    if latest_job_filepath:
+        app.logger.info("Found job instance, check if still running...")
+        (job_active, job_process_id) = get_job_status(job_name, latest_job_filepath)
+        return response_job_status(job_name, job_active, extract_job_id(latest_job_filepath), job_process_id)
+    else:
+        msg = { 'message': "No job instance found for '%s'" % job_name }
+        return Response(json.dumps(msg), status=404, mimetype='application/json')
+
+
+@app.route('/jobs/<job_name>/<job_id>', methods = ['GET'])
+def get_job_by_id(job_name, job_id):
+    # check if job exists
+    if not exists_job_instance(job_name, job_id):
+        return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
+
+    (job_active, job_process_id) = get_job_status(job_name, job_id)
+    return response_job_status(job_name, job_active, job_id, job_process_id)
+
+
 @app.route('/jobs/<job_name>', methods = ['POST'])
 def create_job(job_name):
+    """Register new job (template) in the job monitor"""
+
+    # ~~ expect JSON as input
+    if request.headers['Content-Type'] != 'application/json':
+        return Response("Only 'application/json' currently supported as media type", status=415)
+
+    if exists_job_template(job_name):
+        msg = { 'message': "job '%s' does already exist" % job_name}
+        resp = Response(json.dumps(msg), status=303, mimetype='application/json')
+    else:
+        app.logger.info("Save new job definition for %s...", job_name)
+        save_job_template(job_name, request.data)
+        resp = Response("", status=201, mimetype='application/json')
+
+    resp.headers['Link'] = url_for('get_current_job', job_name=job_name)
+    return resp
+
+
+@app.route('/jobs/<job_name>/start', methods = ['POST'])
+def start_job_instance(job_name):
     """Trigger new job on remote server with given name"""
 
     # ~~ expect JSON as input
@@ -81,13 +124,13 @@ def create_job(job_name):
 
     if job_active:
         job_id = extract_job_id(latest_job_filepath)
-        msg = { 'status': 'RUNNING', 'result': {'message': "job '%s' is still running with process id %d" % (job_name, job_process_id)} }
+        msg = { 'status': 'RUNNING', 'message': "job '%s' is still running with process id %d" % (job_name, job_process_id)}
         resp = Response(json.dumps(msg), status=303, mimetype='application/json')
         resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
     else:
         # ~~ extract Job parameters from JSON and create job config
         job_id = create_job_id()
-        job_params = request.json['parameters']
+        job_params = request.json['parameters'] if request.json['parameters'] else {}
 
         app.logger.info('preparing job %s with params: %s' % (job_name, job_params))
         job_filepath = create_jobconf(job_id, job_name, job_params)
@@ -102,7 +145,7 @@ def create_job(job_name):
         # ~~ construct response
         if cmd_result.succeeded and "daemon process started" in cmd_result:
             job_process_id = extract_process_id(cmd_result)
-            msg = { 'status': 'STARTED', 'result': {'ok': True, 'message': "job '%s' started with process id=%d" % (job_name, job_process_id) } }
+            msg = { 'status': 'STARTED', 'message': "job '%s' started with process id=%d" % (job_name, job_process_id) }
             resp = Response(json.dumps(msg), status=201, mimetype='application/json')
             resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
         else:
@@ -113,30 +156,7 @@ def create_job(job_name):
     return resp
 
 
-@app.route('/jobs/<job_name>', methods = ['GET'])
-def get_current_job(job_name):
-    latest_job_filepath = get_latest_job_instance(job_name)
-    if latest_job_filepath:
-        app.logger.info("Found job instance, check if still running...")
-        (job_active, job_process_id) = get_job_status(job_name, latest_job_filepath)
-        return response_job_status(job_name, job_active, extract_job_id(latest_job_filepath), job_process_id)
-    else:
-        msg = { 'result': {'message': "No job instance found for '%s'" % job_name }}
-        return Response(json.dumps(msg), status=404, mimetype='application/json')
-
-
-@app.route('/jobs/<job_name>/<job_id>', methods = ['GET'])
-def get_job_by_id(job_name, job_id):
-    # check if job exists
-    if not exists_job_instance(job_name, job_id):
-        return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
-
-    (job_active, job_process_id) = get_job_status(job_name, job_id)
-    return response_job_status(job_name, job_active, job_id, job_process_id)
-
-
-
-@app.route('/jobs/<job_name>/<job_id>', methods = ['DELETE'])
+@app.route('/jobs/<job_name>/<job_id>/stop', methods = ['POST'])
 def kill_job_instance(job_name, job_id):
     # check if job exists
     if not exists_job_instance(job_name, job_id):
@@ -146,7 +166,7 @@ def kill_job_instance(job_name, job_id):
     job_fullpath = get_job_instance_filepath(job_name, job_id)
     (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
     if not job_active:
-        msg = { 'status': 'FINISHED', 'result':{'message':'job has already finished' }}
+        msg = { 'status': 'FINISHED', 'message':'job has already finished' }
         return Response(json.dumps(msg), status=403, mimetype='application/json')
     else:
         with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
@@ -164,14 +184,37 @@ def kill_job_instance(job_name, job_id):
 
 def response_job_status(job_name, job_active, job_id, job_process_id):
     if job_active:
-        msg = { 'status': 'RUNNING', 'job_id': "%s" % job_id, 'result':{'ok': True,
-                'message': "job '%s' is running with process id %d" % (job_name, job_process_id)}}
+        msg = { 'status': 'RUNNING', 'job_id': "%s" % job_id,
+                'message': "job '%s' is running with process id %d" % (job_name, job_process_id)}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
     else:
         msg = { 'status': 'FINISHED', 'result':{'ok': True, 'message': "job '%s' is not running any more" % job_name }}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
 
 # ------------------------------------------------------
+
+def get_job_template_filename(job_name):
+    return "%s.conf" % job_name
+
+def get_job_template_filepath(job_name):
+    return os.path.join(app.config['JOB_TEMPLATES_DIR'], get_job_template_filename(job_name))
+
+def exists_job_template(job_name):
+    return os.path.exists(get_job_template_filepath(job_name))
+
+def save_job_template(job_name, data):
+    fullpath = get_job_template_filepath(job_name)
+    file = open(fullpath, 'w')
+    file.write(data)
+
+def get_job_template_names():
+    templates_dir = app.config['JOB_TEMPLATES_DIR']
+    names = []
+    for filename in os.listdir(templates_dir):
+        (basename, ext) = os.path.splitext(filename)
+        if os.path.isfile(os.path.join(templates_dir, filename)) and ext == '.conf':
+            names.append(basename)
+    return names
 
 def create_job_id():
     """Generate ID which can be used to uniquely refer to a job instance"""
@@ -197,20 +240,6 @@ def ensure_job_instance_directory():
 def exists_job_instance(job_name, job_id):
     return os.path.exists(get_job_instance_filepath(job_name, job_id))
 
-def get_job_template_filename(job_name):
-    return "%s.conf" % job_name
-
-def get_job_template_filepath(job_name):
-    return os.path.join(app.config['JOB_TEMPLATES_DIR'], get_job_template_filename(job_name))
-
-def get_job_template_names():
-    templates_dir = app.config['JOB_TEMPLATES_DIR']
-    names = []
-    for filename in os.listdir(templates_dir):
-        (basename, ext) = os.path.splitext(filename)
-        if os.path.isfile(os.path.join(templates_dir, filename)) and ext == '.conf':
-            names.append(basename)
-    return names
 
 def extract_job_id(filepath):
     matcher = re.search(r'.+_(.+).conf', filepath)

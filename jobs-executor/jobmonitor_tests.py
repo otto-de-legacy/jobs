@@ -20,8 +20,8 @@ class JobMonitorTestCase(unittest.TestCase):
             resp_js = flask.json.loads(rv.data)
             if resp_js.has_key('job_id'):
                 job_id = resp_js['job_id']
-                rv_delete = self.app.delete('/jobs/demojob/%s' % job_id)
-                self.assertEqual(200, rv_delete.status_code)
+                rv_stop = self.app.post('/jobs/demojob/%s/stop' % job_id)
+                self.assertEqual(200, rv_stop.status_code)
 
     def tearDown(self):
         pass
@@ -39,21 +39,21 @@ class JobMonitorTestCase(unittest.TestCase):
 
     def test_create_job_instance_missing_parameter(self):
         payload = { 'parameters': { "key1": "val1"} }
-        rv = self.app.post('/jobs/demojob', content_type='application/json', data=json.dumps(payload))
+        rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(500, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
         self.assertIn('Error: no replacement for \'sample_file\'', rv.data)
 
     def test_create_job_instance_successfull(self):
         payload = { 'parameters': { "sample_file": "/var/log/syslog" } }
-        rv = self.app.post('/jobs/demojob', content_type='application/json', data=json.dumps(payload))
+        rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(201, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
         self.assertIn('job \'demojob\' started with process id=', rv.data)
 
     def test_get_job_instance(self):
         payload = { 'parameters': { "sample_file": "/var/log/syslog" } }
-        rv = self.app.post('/jobs/demojob', content_type='application/json', data=json.dumps(payload))
+        rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(201, rv.status_code)
         # Follow link as per respsone header
         job_url = rv.headers["Link"]
