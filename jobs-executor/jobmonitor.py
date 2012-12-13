@@ -83,7 +83,7 @@ def create_job(job_name):
         job_id = extract_job_id(latest_job_filepath)
         msg = { 'status': 'RUNNING', 'result': {'message': "job '%s' is still running with process id %d" % (job_name, job_process_id)} }
         resp = Response(json.dumps(msg), status=303, mimetype='application/json')
-        resp.headers['Link'] = url_for('get_job_status', job_name=job_name, job_id=job_id)
+        resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
     else:
         # ~~ extract Job parameters from JSON and create job config
         job_id = create_job_id()
