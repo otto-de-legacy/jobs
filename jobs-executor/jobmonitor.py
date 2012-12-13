@@ -104,10 +104,10 @@ def create_job(job_name):
             job_process_id = extract_process_id(cmd_result)
             msg = { 'status': 'STARTED', 'result': {'ok': True, 'message': "job '%s' started with process id=%d" % (job_name, job_process_id) } }
             resp = Response(json.dumps(msg), status=201, mimetype='application/json')
-            resp.headers['Link'] = url_for('get_job_status', job_name=job_name, job_id=job_id)
+            resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
         else:
             msg = { 'status': 'FINISHED', 'result': {'ok': False, 'message': '%s' % cmd_result,
-                                                     'exit_code': cmd_result.result_code }}
+                                                     'exit_code': cmd_result.return_code }}
             resp = Response(json.dumps(msg), status=500, mimetype='application/json')
 
     return resp
@@ -151,11 +151,14 @@ def kill_job_instance(job_name, job_id):
     else:
         with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
             cmd_result = run("zdaemon -C%s stop" % job_fullpath)
-            app.logger.info('Return code: %d' % cmd_result.return_code)
-            # TODO handle cmd_result.return_code
+            app.logger.info('Return code from stop job %s: %d' % (job_name, cmd_result.return_code))
 
-        msg = { 'status': '%s' % cmd_result }
-        return Response(json.dumps(msg), status=200, mimetype='application/json')
+        if cmd_result.succeeded and "daemon process stopped" in cmd_result:
+            msg = { 'status': 'FINISHED', 'result': {'ok': True, 'message': "job '%s' stopped with process id=%d" % (job_name, job_process_id) } }
+            return Response(json.dumps(msg), status=200, mimetype='application/json')
+        else:
+            msg = { 'status': 'ERROR', 'result': {'ok': False, 'message': "%s" % cmd_result } }
+            return Response(json.dumps(msg), status=500, mimetype='application/json')
 
 # --
 
@@ -210,13 +213,13 @@ def get_job_template_names():
     return names
 
 def extract_job_id(filepath):
-    m = re.search(r'.+_(.+).conf', filepath)
-    return m.group(1)
+    matcher = re.search(r'.+_(.+).conf', filepath)
+    return matcher.group(1)
 
 def extract_process_id(cmd_result):
-    m = re.search(r'pid=(\d+)', cmd_result)
-    if m:
-        return int(m.group(1))
+    matcher = re.search(r'pid=(\d+)', cmd_result)
+    if matcher:
+        return int(matcher.group(1))
     else:
         return -1
 
