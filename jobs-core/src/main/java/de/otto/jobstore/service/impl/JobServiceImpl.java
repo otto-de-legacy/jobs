@@ -183,15 +183,15 @@ public final class JobServiceImpl implements JobService {
     }
 
     private void updateJobStatus(JobInfo jobInfo, RemoteJobStatus remoteJobStatus) {
-        if (remoteJobStatus.getStatus() == RemoteJobStatus.Status.RUNNING) {
-            jobInfoRepository.setLogLines(jobInfo.getName(), remoteJobStatus.getLogLines());
-        } else if (remoteJobStatus.getStatus() == RemoteJobStatus.Status.FINISHED) {
-            final RemoteJobResult result = remoteJobStatus.getResult();
-            if (result.isOk()) {
+        if (remoteJobStatus.status == RemoteJobStatus.Status.RUNNING) {
+            jobInfoRepository.setLogLines(jobInfo.getName(), remoteJobStatus.logLines);
+        } else if (remoteJobStatus.status == RemoteJobStatus.Status.FINISHED) {
+            final RemoteJobResult result = remoteJobStatus.result;
+            if (result.ok) {
                 jobInfoRepository.markRunningAsFinishedSuccessfully(jobInfo.getName());
             } else {
-                jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(result.getExitCode()));
-                jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultState.FAILED, result.getMessage());
+                jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(result.exitCode));
+                jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultState.FAILED, result.message);
             }
         }
     }

@@ -12,6 +12,8 @@ public interface RemoteJobExecutorService {
 
     URI startJob(RemoteJob job) throws JobException;
 
+    void stopJob(URI jobUri) throws JobException;
+
     RemoteJobStatus getStatus(URI jobUri);
 
 }

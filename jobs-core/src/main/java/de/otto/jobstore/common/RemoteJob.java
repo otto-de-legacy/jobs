@@ -1,14 +1,15 @@
 package de.otto.jobstore.common;
 
 
-import javax.xml.bind.annotation.XmlRootElement;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
 import java.util.List;
 
-@XmlRootElement
 public final class RemoteJob {
 
-    private String name;
-    private List<Parameter> parameters;
+    public String name;
+    public List<Parameter> parameters;
 
     public RemoteJob() {}
 
@@ -17,20 +18,15 @@ public final class RemoteJob {
         this.parameters = parameters;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public List<Parameter> getParameters() {
-        return parameters;
-    }
-
-    public void setParameters(List<Parameter> parameters) {
-        this.parameters = parameters;
+    public JSONObject toJsonObject() throws JSONException {
+        final JSONObject obj = new JSONObject();
+        obj.put("name", name);
+        final JSONObject params = new JSONObject();
+        for (Parameter parameter : parameters) {
+            params.put(parameter.key, parameter.value);
+        }
+        obj.put("parameters", params);
+        return obj;
     }
 
 }

@@ -56,7 +56,7 @@ def api_root():
     return 'Job Monitor (v %s)' % __version__
 
 
-@app.route('/jobs', methods = ['GET'])
+@app.route('/jobs/', methods = ['GET'])
 def get_available_jobs():
     available_jobs = get_job_template_names()
     msg = { 'jobs': available_jobs }
@@ -131,7 +131,8 @@ def get_job_by_id(job_name, job_id):
     if not exists_job_instance(job_name, job_id):
         return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
 
-    (job_active, job_process_id) = get_job_status(job_name, job_id)
+    job_fullpath = get_job_instance_filepath(job_name, job_id)
+    (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
     return response_job_status(job_name, job_active, job_id, job_process_id)
 
 
@@ -258,6 +259,7 @@ def create_jobconf(job_id, job_name, params):
     file_path = get_job_instance_filepath(job_name, job_id)
     instance_file = io.open(file_path, 'w')
     # add standard values to replace dictionary
+    print params
     params['transcript_file'] = os.path.join(app.config['TRANSCRIPT_DIR'], get_job_instance_logname(job_name, job_id))
 
     # read the lines from the template, substitute the values, and write to the instance

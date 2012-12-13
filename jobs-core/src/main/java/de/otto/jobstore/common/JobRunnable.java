@@ -6,7 +6,7 @@ import de.otto.jobstore.service.exception.JobExecutionException;
 /**
  * A job to be executed by a JobService {@link de.otto.jobstore.service.api.JobService}
  */
-public interface JobRunnable<E> {
+public interface JobRunnable {
 
     /**
      * The name of the job

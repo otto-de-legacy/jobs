@@ -5,9 +5,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public final class RemoteJobResult {
 
-    private boolean ok;
-    private int exitCode;
-    private String message;
+    public boolean ok;
+    public int exitCode;
+    public String message;
 
     public RemoteJobResult() {}
 
@@ -17,27 +17,4 @@ public final class RemoteJobResult {
         this.message = message;
     }
 
-    public boolean isOk() {
-        return ok;
-    }
-
-    public void setOk(boolean ok) {
-        this.ok = ok;
-    }
-
-    public int getExitCode() {
-        return exitCode;
-    }
-
-    public void setExitCode(int exitCode) {
-        this.exitCode = exitCode;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
 }

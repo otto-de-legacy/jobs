@@ -11,9 +11,9 @@ public final class RemoteJobStatus {
         FINISHED
     }
 
-    private Status status;
-    private List<String> logLines;
-    private RemoteJobResult result;
+    public Status status;
+    public List<String> logLines;
+    public RemoteJobResult result;
 
     public RemoteJobStatus() {}
 
@@ -23,27 +23,4 @@ public final class RemoteJobStatus {
         this.result = result;
     }
 
-    public Status getStatus() {
-        return status;
-    }
-
-    public void setStatus(Status status) {
-        this.status = status;
-    }
-
-    public List<String> getLogLines() {
-        return logLines;
-    }
-
-    public void setLogLines(List<String> logLines) {
-        this.logLines = logLines;
-    }
-
-    public RemoteJobResult getResult() {
-        return result;
-    }
-
-    public void setResult(RemoteJobResult result) {
-        this.result = result;
-    }
 }

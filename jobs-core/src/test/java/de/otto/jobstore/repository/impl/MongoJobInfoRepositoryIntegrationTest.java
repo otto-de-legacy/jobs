@@ -28,7 +28,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
     @Resource
     private MongoJobInfoRepository jobInfoRepository;
 
-    @BeforeMethod @AfterMethod
+    @BeforeMethod
     public void setup() throws Exception {
         jobInfoRepository.clear(true);
     }

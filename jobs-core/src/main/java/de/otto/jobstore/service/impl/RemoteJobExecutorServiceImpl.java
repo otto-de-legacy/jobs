@@ -11,9 +11,12 @@ import de.otto.jobstore.service.api.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
+import de.otto.jobstore.service.exception.RemoteJobNotRunningException;
+import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.MediaType;
 import java.net.URI;
 
 public final class RemoteJobExecutorServiceImpl implements RemoteJobExecutorService {
@@ -28,37 +31,52 @@ public final class RemoteJobExecutorServiceImpl implements RemoteJobExecutorServ
     }
 
     @Override
-    public URI startJob(RemoteJob job) throws JobException {
+    public URI startJob(final RemoteJob job) throws JobException {
         try {
-            final ClientResponse response = client.resource(jobExecutorUri + job.getName()).post(ClientResponse.class, job);
+            final ClientResponse response = client.resource(jobExecutorUri + job.name).
+                    type(MediaType.APPLICATION_JSON).post(ClientResponse.class, job.toJsonObject());
             if (response.getStatus() == 201) {
-                return URI.create(response.getHeaders().getFirst("Link"));
+                return createJobUri(response.getHeaders().getFirst("Link"));
+            } else if (response.getStatus() == 303) {
+                throw new RemoteJobAlreadyRunningException("Remote job is already running", createJobUri(response.getHeaders().getFirst("Link")));
             }
-            throw new JobExecutionException("Received unexpected status code" + response.getStatus() + "when trying to create remote job " + job.getName());
-        } catch (UniformInterfaceException e) {
-            final ClientResponse response = e.getResponse();
-            if (response.getStatus() == 303) {
-                throw new RemoteJobAlreadyRunningException("Remote job is already running", URI.create(response.getHeaders().getFirst("Link")));
-            } else {
-                throw new JobExecutionException("Received unexpected status code" + response.getStatus() + "when trying to create remote job " + job.getName());
-            }
+            throw new JobExecutionException("Received unexpected status code " + response.getStatus() + " when trying to create remote job " + job.name);
+        } catch (JSONException e) {
+            throw new JobExecutionException("Could not create json object from remote job object", e);
+        } catch (UniformInterfaceException | ClientHandlerException  e) {
+            throw new JobExecutionException("Received unexpected exception when trying to create remote job " + job.name, e);
         }
     }
 
     @Override
-    public RemoteJobStatus getStatus(URI jobUri) {
+    public void stopJob(URI jobUri) throws JobException {
         try {
-            final ClientResponse response = client.resource(jobUri.toString()).get(ClientResponse.class);
+            client.resource(jobUri).delete();
+        } catch (UniformInterfaceException e) {
+            if (e.getResponse().getStatus() == 403) {
+                throw new RemoteJobNotRunningException("Remote job '" + jobUri.toString() + "' is not running");
+            }
+            throw e;
+        }
+    }
+
+    @Override
+    public RemoteJobStatus getStatus(final URI jobUri) {
+        try {
+            final ClientResponse response = client.resource(jobUri.toString()).
+                    accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
             if (response.getStatus() == 200) {
                 return response.getEntity(RemoteJobStatus.class);
             }
             LOGGER.warn("Received unexpected status code {} when trying to retrieve status for remote job from: {}", response.getStatus(), jobUri);
-        } catch (UniformInterfaceException e) {
-            LOGGER.warn("Received unexpected status code {} when trying to retrieve status for remote job from: {}", e.getResponse().getStatus(), jobUri);
-        } catch (ClientHandlerException e) {
-            LOGGER.error("Received exception while trying to retrieve remote job status", e);
+        } catch (UniformInterfaceException | ClientHandlerException e) {
+            LOGGER.warn("Received unexpected exception when trying to retrieve status for remote job from: {}", jobUri, e);
         }
         return null;
+    }
+
+    private URI createJobUri(String path) {
+        return URI.create(jobExecutorUri).resolve(path);
     }
 
 }

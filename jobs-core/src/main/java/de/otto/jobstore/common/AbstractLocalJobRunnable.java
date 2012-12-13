@@ -8,7 +8,7 @@ public abstract class AbstractLocalJobRunnable implements JobRunnable {
 
     @Override
     public final long getPollingInterval() {
-        return 0;
+        throw new UnsupportedOperationException();
     }
 
     @Override
