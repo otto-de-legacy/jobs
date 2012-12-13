@@ -242,6 +242,11 @@ public interface JobInfoRepository {
     boolean setLogLines(String name, List<String> lines);
 
     /**
+     * Flags all running jobs as timed out if the have not be updated within the max execution time
+     */
+    void cleanupTimedOutJobs();
+
+    /**
      * Removed the running job (flags it as timed out) with the given name if it is timed out
      *
      * @param name The name of the job

@@ -314,6 +314,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return collection.count();
     }
 
+    @Override
     public void cleanupTimedOutJobs() {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
