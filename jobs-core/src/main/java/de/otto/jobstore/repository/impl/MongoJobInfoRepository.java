@@ -270,7 +270,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public boolean setLogLines(final String jobName, final List<String> lines) {
+    public boolean setLogLines(final String name, final List<String> lines) {
         final Date dt = new Date();
         final List<DBObject> logLines = new ArrayList<>();
         for (String line : lines) {
@@ -278,14 +278,14 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).append(JobInfoProperty.LOG_LINES.val(), logLines));
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(jobName, RunningState.RUNNING.name()), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
         return result.getN() == 1;
     }
 
     @Override
-    public void removeJobIfTimedOut(final String jobName, final Date currentDate) {
-        if (hasJob(jobName, RunningState.RUNNING.name())) {
-            final JobInfo job = findByNameAndRunningState(jobName, RunningState.RUNNING.name());
+    public void removeJobIfTimedOut(final String name, final Date currentDate) {
+        if (hasJob(name, RunningState.RUNNING.name())) {
+            final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING.name());
             if (job.isTimedOut(currentDate)) {
                 markRunningAsFinished(job.getName(), ResultState.TIMED_OUT, null);
             }

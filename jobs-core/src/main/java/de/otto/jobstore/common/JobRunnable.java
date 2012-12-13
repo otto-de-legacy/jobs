@@ -23,8 +23,9 @@ public interface JobRunnable {
     long getMaxExecutionTime();
 
     /**
+     * The interval after which the job should be polled for new information
      *
-     * @return
+     * @return The interval in milliseconds
      */
     long getPollingInterval();
 
@@ -37,8 +38,10 @@ public interface JobRunnable {
     boolean isExecutionNecessary();
 
     /**
+     * Flag if the job is executed locally or remotely
      *
-     * @return
+     * @return true - The job is executed remotely</br>
+     *          false - The job is executed locally
      */
     boolean isRemote();
 

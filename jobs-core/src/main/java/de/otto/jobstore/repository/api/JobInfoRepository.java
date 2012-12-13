@@ -232,19 +232,22 @@ public interface JobInfoRepository {
     boolean addLogLine(String name, String line);
 
     /**
+     * Sets the log lines of the running job with the supplies name
      *
-     * @param jobName
-     * @param lines
-     * @return
+     * @param name The name of the job
+     * @param lines the log lines to add
+     * @return true - The data was successfully added to the job<br/>
+     *         false - No running job with the given name could be found
      */
-    boolean setLogLines(String jobName, List<String> lines);
+    boolean setLogLines(String name, List<String> lines);
 
     /**
+     * Removed the running job (flags it as timed out) with the given name if it is timed out
      *
-     * @param jobName
-     * @param currentDate
+     * @param name The name of the job
+     * @param currentDate The current date
      */
-    void removeJobIfTimedOut(String jobName, Date currentDate);
+    void removeJobIfTimedOut(String name, Date currentDate);
 
     /**
      * Clears all elements from the repository
