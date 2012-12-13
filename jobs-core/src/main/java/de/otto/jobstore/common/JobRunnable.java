@@ -23,6 +23,13 @@ public interface JobRunnable {
     long getMaxExecutionTime();
 
     /**
+     * The interval after which the job should be polled for new information
+     *
+     * @return The interval in milliseconds
+     */
+    long getPollingInterval();
+
+    /**
      * Determines if the execution of a job is necessary or not.
      *
      * @return true - If execution is necessary<br/>
@@ -31,10 +38,18 @@ public interface JobRunnable {
     boolean isExecutionNecessary();
 
     /**
+     * Flag if the job is executed locally or remotely
+     *
+     * @return true - The job is executed remotely</br>
+     *          false - The job is executed locally
+     */
+    boolean isRemote();
+
+    /**
      * Executes the job.
      *
      * @param jobLogger The job logger used to add additional information to a job
-     * @throws JobExecutionException Thrown if the execution of the job failed
+     * @throws de.otto.jobstore.service.exception.JobExecutionException Thrown if the execution of the job failed
      */
     void execute(JobLogger jobLogger) throws JobException;
 

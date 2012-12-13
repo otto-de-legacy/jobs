@@ -82,7 +82,8 @@ def get_job_by_id(job_name, job_id):
     if not exists_job_instance(job_name, job_id):
         return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
 
-    (job_active, job_process_id) = get_job_status(job_name, job_id)
+    job_fullpath = get_job_instance_filepath(job_name, job_id)
+    (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
     return response_job_status(job_name, job_active, job_id, job_process_id)
 
 

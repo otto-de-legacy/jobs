@@ -4,6 +4,7 @@ import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.ResultState;
 import de.otto.jobstore.common.RunningState;
 
+import java.net.URI;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ public interface JobInfoRepository {
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    String create(String name, long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData);
+    String create(String name, long maxExecutionTime, RunningState state, boolean forceExecution, boolean remote, Map<String, String> additionalData);
 
     /**
      * Creates a new job with the given parameters
@@ -41,7 +42,7 @@ public interface JobInfoRepository {
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    String create(String name, String host, String thread, long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData);
+    String create(String name, String host, String thread, long maxExecutionTime, RunningState state, boolean forceExecution, boolean remote, Map<String, String> additionalData);
 
     /**
      * Returns job with the given name and running state
@@ -197,7 +198,7 @@ public interface JobInfoRepository {
      * @return true - The data was successfully added to the job<br/>
      *          false - No running job with the given name could be found
      */
-    boolean insertAdditionalData(String name, String key, String value);
+    boolean addAdditionalData(String name, String key, String value);
 
     /**
      * Updates the host and thread information on the running job with the given name. Host and thread information
@@ -228,7 +229,30 @@ public interface JobInfoRepository {
      * @return true - The data was successfully added to the job<br/>
      *         false - No running job with the given name could be found
      */
-    boolean addLoggingData(String name, String line);
+    boolean addLogLine(String name, String line);
+
+    /**
+     * Sets the log lines of the running job with the supplies name
+     *
+     * @param name The name of the job
+     * @param lines the log lines to add
+     * @return true - The data was successfully added to the job<br/>
+     *         false - No running job with the given name could be found
+     */
+    boolean setLogLines(String name, List<String> lines);
+
+    /**
+     * Flags all running jobs as timed out if the have not be updated within the max execution time
+     */
+    void cleanupTimedOutJobs();
+
+    /**
+     * Removed the running job (flags it as timed out) with the given name if it is timed out
+     *
+     * @param name The name of the job
+     * @param currentDate The current date
+     */
+    void removeJobIfTimedOut(String name, Date currentDate);
 
     /**
      * Clears all elements from the repository
@@ -236,11 +260,6 @@ public interface JobInfoRepository {
      * @param dropCollection Flag if the collection should be dropped
      */
     void clear(boolean dropCollection);
-
-    /**
-     * Marks all timed out jobs in the repository as timed out
-     */
-    void cleanupTimedOutJobs();
 
     /**
      * Counts the number of documents in the repository

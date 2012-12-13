@@ -88,6 +88,11 @@ public interface JobService {
     void executeQueuedJobs();
 
     /**
+     *
+     */
+    void pollRemoteJobs();
+
+    /**
      * Removed all registered jobs and constraints from the JobService instance
      */
     void clean();
@@ -110,5 +115,4 @@ public interface JobService {
      * Stops all jobs registered with this JobService and running on this host.
      */
     void shutdownJobs();
-
 }

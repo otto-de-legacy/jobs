@@ -10,7 +10,7 @@ build
 **/build
 .gradle
 .idea
-job-executor/instances/*.conf
+jobs-executor/instances/*
 instances/*.conf
 job-executor/coverage.xml
 *.log

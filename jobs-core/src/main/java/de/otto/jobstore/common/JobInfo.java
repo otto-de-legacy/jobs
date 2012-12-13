@@ -4,17 +4,12 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 
-import javax.swing.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 
 public final class JobInfo extends AbstractItem {
 
     private static final long serialVersionUID = 2454224303569320787L;
-
-    private static final DateFormat LOG_LINE_DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy-HH:mm:ss zzz", Locale.ENGLISH);
 
     private static final int MAX_LOGLINES = 100;
 

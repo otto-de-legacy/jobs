@@ -1,10 +1,10 @@
 package de.otto.jobstore.common.example;
 
+import de.otto.jobstore.common.AbstractLocalJobRunnable;
 import de.otto.jobstore.common.JobLogger;
-import de.otto.jobstore.common.JobRunnable;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
-public final class StepTwoJobRunnableExample implements JobRunnable {
+public final class StepTwoJobRunnableExample extends AbstractLocalJobRunnable {
 
     public static final String STEP_TWO_JOB = "STEP_TWO_JOB";
 
