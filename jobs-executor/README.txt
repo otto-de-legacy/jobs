@@ -73,7 +73,11 @@ Execute test suite:
 
 Run single test:
 
-    python jobmonitor_tests.py JobMonitorTestCase.test_get_job_instance
+    python jobmonitor_tests.py JobMonitorIntegrationTests.test_get_job_instance
+
+Run all unit tests:
+
+    python jobmonitor_tests.py JobMonitorUnitTests
 
 Execute tests and measuring coverage:
 (requires: pip install nosexcover)

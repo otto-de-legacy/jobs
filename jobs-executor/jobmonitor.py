@@ -172,7 +172,7 @@ def start_job_instance(job_name):
 
 
 @app.route('/jobs/<job_name>/<job_id>/stop', methods = ['POST'])
-def kill_job_instance(job_name, job_id):
+def stop_job_instance(job_name, job_id):
     # check if job exists
     if not exists_job_instance(job_name, job_id):
         return Response("No job instance '%s' found for '%s'" % (job_id, job_name), status=404)
@@ -316,8 +316,8 @@ def extract_job_id(filepath):
     matcher = re.search(r'.+_(.+).conf', filepath)
     return matcher.group(1)
 
-def extract_process_id(cmd_result):
-    matcher = re.search(r'pid=(\d+)', cmd_result)
+def extract_process_id(cmd_string):
+    matcher = re.search(r'pid=(\d+)', cmd_string)
     if matcher:
         return int(matcher.group(1))
     else:
