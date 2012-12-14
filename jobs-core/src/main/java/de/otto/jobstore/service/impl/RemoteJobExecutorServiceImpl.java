@@ -33,7 +33,7 @@ public final class RemoteJobExecutorServiceImpl implements RemoteJobExecutorServ
     @Override
     public URI startJob(final RemoteJob job) throws JobException {
         try {
-            final ClientResponse response = client.resource(jobExecutorUri + job.name).
+            final ClientResponse response = client.resource(jobExecutorUri + job.name + "/start").
                     type(MediaType.APPLICATION_JSON).post(ClientResponse.class, job.toJsonObject());
             if (response.getStatus() == 201) {
                 return createJobUri(response.getHeaders().getFirst("Link"));
@@ -51,7 +51,7 @@ public final class RemoteJobExecutorServiceImpl implements RemoteJobExecutorServ
     @Override
     public void stopJob(URI jobUri) throws JobException {
         try {
-            client.resource(jobUri).delete();
+            client.resource(jobUri + "/stop").post();
         } catch (UniformInterfaceException e) {
             if (e.getResponse().getStatus() == 403) {
                 throw new RemoteJobNotRunningException("Remote job '" + jobUri.toString() + "' is not running");
