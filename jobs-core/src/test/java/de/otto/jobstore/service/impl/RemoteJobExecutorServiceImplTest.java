@@ -27,7 +27,7 @@ public class RemoteJobExecutorServiceImplTest extends AbstractTestNGSpringContex
     @Resource
     private RemoteJobExecutorService remoteJobExecutorService;
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testStartingDemoJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(new RemoteJob(JOB_NAME, Arrays.asList(new Parameter("sample_file", "/var/log/syslog"))));
         assertNotNull(uri);
@@ -36,7 +36,7 @@ public class RemoteJobExecutorServiceImplTest extends AbstractTestNGSpringContex
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(expectedExceptions = RemoteJobAlreadyRunningException.class, enabled = true)
+    @Test(expectedExceptions = RemoteJobAlreadyRunningException.class, enabled = false)
     public void testStartingDemoJobWhichIsAlreadyRunning() throws Exception {
         URI uri = null;
         try {
@@ -54,19 +54,19 @@ public class RemoteJobExecutorServiceImplTest extends AbstractTestNGSpringContex
         }
     }
 
-    @Test(expectedExceptions = RemoteJobNotRunningException.class, enabled = true)
+    @Test(expectedExceptions = RemoteJobNotRunningException.class, enabled = false)
     public void testStoppingJobTwice() throws Exception {
         URI uri = remoteJobExecutorService.startJob(new RemoteJob(JOB_NAME, Arrays.asList(new Parameter("sample_file", "/var/log/syslog"))));
         remoteJobExecutorService.stopJob(uri);
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(expectedExceptions = UniformInterfaceException.class, enabled = true)
+    @Test(expectedExceptions = UniformInterfaceException.class, enabled = false)
     public void testStoppingNotExistingJob() throws Exception {
         remoteJobExecutorService.stopJob(URI.create("http://localhost:5000/jobs/" + JOB_NAME + "/12345"));
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testGettingStatusOfRunningJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(new RemoteJob(JOB_NAME, Arrays.asList(new Parameter("sample_file", "/var/log/syslog"))));
         RemoteJobStatus status = remoteJobExecutorService.getStatus(uri);
@@ -77,7 +77,7 @@ public class RemoteJobExecutorServiceImplTest extends AbstractTestNGSpringContex
         //assertNull(status.result);
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testGettingStatusOfFinishedJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(new RemoteJob(JOB_NAME, Arrays.asList(new Parameter("sample_file", "/var/log/syslog"))));
         remoteJobExecutorService.stopJob(uri);
