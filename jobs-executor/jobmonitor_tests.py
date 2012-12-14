@@ -3,10 +3,13 @@
    Tests for the jobmonitor web application.
 """
 
+import os
+import unittest
+
 import flask
 from flask.helpers import json
+
 import jobmonitor
-import unittest
 
 class JobMonitorTestCase(unittest.TestCase):
 
@@ -22,6 +25,10 @@ class JobMonitorTestCase(unittest.TestCase):
                 job_id = resp_js['job_id']
                 rv_stop = self.app.post('/jobs/demojob/%s/stop' % job_id)
                 self.assertEqual(200, rv_stop.status_code)
+        # delete old test job
+        rv_delete = self.app.delete('/jobs/test_job')
+        self.assertLess(rv_delete.status_code, 500)
+
 
     def tearDown(self):
         pass
@@ -41,7 +48,7 @@ class JobMonitorTestCase(unittest.TestCase):
         rv = self.app.get('/jobs/foobar')
         self.assertEqual(404, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
-        self.assertIn("No job instance found for 'foobar'", rv.data)
+        self.assertIn("No job template exists for 'foobar'", rv.data)
 
     def test_get_unknown_job_instance(self):
         rv = self.app.get('/jobs/foobar/4711')
@@ -55,10 +62,10 @@ class JobMonitorTestCase(unittest.TestCase):
         self.assertEqual(201, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
         job_url = rv.headers["Link"]
+        self.assertTrue(os.path.exists("templates/test_job.conf"), "Template was not uploaded properly")
+        # try to follow link
         rv_get = self.app.get(job_url)
-        self.assertEqual(200, rv_get.status_code)
-        rv_delete = self.app.delete(job_url)
-        self.assertEqual(200, rv_delete.status_code)
+        self.assertEqual(200, rv_get.status_code, "Link '%s' cannot be resolved" % job_url)
 
     def test_create_job_instance_missing_parameter(self):
         payload = { 'parameters': { "key1": "val1"} }
