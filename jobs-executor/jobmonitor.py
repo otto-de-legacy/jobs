@@ -12,13 +12,15 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.2"
+__version__ = "0.3"
 __author__ = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
 import io
 import os
 import re
+import time
+import threading
 import socket
 import binascii
 import logging
@@ -332,16 +334,28 @@ def extract_process_id(cmd_string):
         return -1
 
 def get_last_lines(filepath, nr_lines):
+    """Return the last nr_lines from file (as given by filepath)."""
     if os.path.exists(filepath):
         fh = open(filepath, 'r')
         file_size = fh.tell()
         fh.seek(max(file_size - 4*1024, 0))
-
         # this will get rid of trailing newlines, unlike readlines()
         return fh.read().splitlines()[-nr_lines:]
     else:
         return []
 
+def remove_old_files(dir, days):
+    """Delete files older than specified days from file system."""
+    app.logger.info("Clean up old files in %s ..." % dir)
+    now = time.time()
+    for filename in os.listdir(dir):
+        fullpath = os.path.join(dir, filename)
+        if os.stat(fullpath).st_mtime < now - days * 86400:
+            os.remove(os.path.join(dir, filename))
+
+def permanent_check():
+    remove_old_files(app.config['JOB_INSTANCES_DIR'], 3)
+    threading.Timer(15 * 60, permanent_check).start()
 
 # ---------------------------------------
 
@@ -356,4 +370,5 @@ if __name__ == '__main__':
 
     app.logger.info("Going to start jobmonitor ...")
     app.logger.info("using configuration: %s" % app.config)
-    app.run(host='0.0.0.0')  # TODO: make port configurable?
+    permanent_check()
+    app.run(host='0.0.0.0', port=5000)  # TODO: make port configurable?
