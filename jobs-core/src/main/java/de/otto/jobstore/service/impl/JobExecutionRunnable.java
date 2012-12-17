@@ -24,6 +24,7 @@ final class JobExecutionRunnable implements Runnable {
             LOGGER.info("ltag=JobService.JobExecutionRunnable.run jobInfoName={}", jobRunnable.getName());
             jobRunnable.execute(new SimpleJobLogger(jobRunnable.getName(), jobInfoRepository));
             jobInfoRepository.markRunningAsFinishedSuccessfully(jobRunnable.getName());
+            jobRunnable.executeOnSuccess();
         } catch (Exception e) {
             LOGGER.error("Job: " + jobRunnable.getName()+" finished with exception: "+e.getMessage(),e);
             jobInfoRepository.markRunningAsFinishedWithException(jobRunnable.getName(), e);

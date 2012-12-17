@@ -53,4 +53,9 @@ public interface JobRunnable {
      */
     void execute(JobLogger jobLogger) throws JobException;
 
+    /**
+     * This method is called once the job is executed successfully
+     */
+    public void executeOnSuccess() throws JobException;
+
 }
