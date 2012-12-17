@@ -7,22 +7,26 @@ Foundational components
   Daemon process control library and tools for Unix-based systems
   http://pypi.python.org/pypi/zdaemon
 
-* flask
-  Flask is a microframework for Python based on Werkzeug, Jinja 2 and good intentions.
-  http://flask.pocoo.org
-
 * fabric
   Fabric is a Python library and command-line tool for streamlining the use of SSH for
   application deployment or systems administration tasks.
   http://fabfile.org
 
+* flask
+  Flask is a microframework for Python based on Werkzeug, Jinja 2 and good intentions.
+  http://flask.pocoo.org
 
 ------------
 Requirements
 ------------
 
-* sudo apt-get install python-pip
-* sudo pip install --upgrade fabric zdaemon Flask
+* on the local system running the jobmonitor
+    sudo apt-get install python-pip
+    sudo pip install --upgrade fabric Flask
+
+* on the remote system for job execution (by default: localhost):
+    sudo apt-get install python-zdaemon
+
 
 
 ---------------
