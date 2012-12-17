@@ -1,12 +1,12 @@
 #!/bin/bash
 
-VERSION=0.2
+VERSION=$1
 
 # download artefact from Nexus
 curl -s -S http://nexus.lhotse.ov.otto.de:8080/content/repositories/releases/de/otto/jobs-executor/$VERSION/jobs-executor-$VERSION.zip -o jobs-executor.zip
 
 # extract and prepare
-unzip jobs-executor.zip
+unzip -o jobs-executor.zip
 cd jobs-executor
 
 # Assume: zdaemon is already installed
@@ -16,6 +16,6 @@ virtualenv venv
 . venv/bin/activate
 pip install --quiet fabric Flask
 
-# TODO confi
+# TODO configure by provide env variable JOBMONITOR_SETTINGS pointing to file
 echo "Starting job executor ..."
 nohup python jobmonitor.py &
