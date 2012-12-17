@@ -20,7 +20,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoJobInfoRepository.class);
     private final DBCollection collection;
-    private int daysAfterWhichOldJobsAreDeleted;
+    private int daysAfterWhichOldJobsAreDeleted = 7;
 
     public MongoJobInfoRepository(final Mongo mongo, final String dbName, final String collectionName) {
         this(mongo, dbName, collectionName, null, null);
