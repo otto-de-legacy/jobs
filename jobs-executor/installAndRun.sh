@@ -9,6 +9,7 @@ curl -s -S http://nexus.lhotse.ov.otto.de:8080/content/repositories/releases/de/
 unzip -o jobs-executor.zip
 rm jobs-executor.zip
 cd jobs-executor
+mkdir -p instances
 
 # Assume: zdaemon is already installed
 
@@ -17,6 +18,9 @@ virtualenv venv
 . venv/bin/activate
 pip install --quiet fabric Flask paramiko pycrypto
 
+# TODO how to stop the old process better?
+killall -9 python
+
 # TODO configure by provide env variable JOBMONITOR_SETTINGS pointing to file
 echo "Starting job executor ..."
-nohup python jobmonitor.py &
+nohup "python jobmonitor.py" &
