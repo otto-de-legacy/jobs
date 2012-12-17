@@ -141,6 +141,7 @@ class JobMonitorIntegrationTests(TestCase):
         rv_get = self.app.get(job_url)
         self.assertEqual(200, rv_get.status_code)
 
+    @disabled
     def test_stop_job_two_times(self):
         payload = { 'parameters': { "sample_file": "/var/log/syslog" } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
