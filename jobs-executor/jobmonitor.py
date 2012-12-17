@@ -21,6 +21,7 @@ import os
 import re
 import binascii
 import logging
+import getpass
 
 from flask import Flask, url_for
 from flask import json
@@ -37,7 +38,7 @@ TRANSCRIPT_DIR    = '/tmp'
 JOB_TEMPLATES_DIR = 'templates'
 JOB_INSTANCES_DIR = 'instances'
 JOB_HOSTNAME      = 'localhost'
-JOB_USERNAME      = 'jenkins'
+JOB_USERNAME      = getpass.getuser()
 
 
 # ~~ create web application
@@ -154,7 +155,7 @@ def start_job_instance(job_name):
         # ~~ going to start of daemonized process
         app.logger.info('trying to start job %s ...' % job_name)
         # TODO in cluster environment: for hostname in env.hosts
-        with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True, user=JOB_USERNAME):
+        with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
             cmd_result = run("zdaemon -C%s start" % job_filepath)
             app.logger.info('Started %s [return code: %d]' % (job_name, cmd_result.return_code))
 
@@ -185,7 +186,7 @@ def stop_job_instance(job_name, job_id):
         msg = { 'status': 'FINISHED', 'message':'job has already finished' }
         return Response(json.dumps(msg), status=403, mimetype='application/json')
     else:
-        with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
+        with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
             cmd_result = run("zdaemon -C%s stop" % job_fullpath)
             app.logger.info('Return code from stop job %s: %d' % (job_name, cmd_result.return_code))
 
@@ -213,7 +214,7 @@ def response_job_status(job_name, job_active, job_id, job_process_id):
 def get_job_status(job_name, job_filepath):
     job_active = False
     job_process_id = -1
-    with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
+    with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
         cmd_result = run("zdaemon -C%s status" % job_filepath)
         if cmd_result.return_code > 0:
             app.logger.warn("Problem while checking job status: %s" % cmd_result)
@@ -348,4 +349,5 @@ if __name__ == '__main__':
         app.logger.addHandler(file_handler)
 
     app.logger.info("Going to start jobmonitor ...")
+    app.logger.info("using configuration: %s" % app.config)
     app.run()

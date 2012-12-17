@@ -35,6 +35,7 @@ class JobMonitorIntegrationTests(TestCase):
     def setUp(self):
         jobmonitor.app.config['TESTING'] = True
         self.app = jobmonitor.app.test_client()
+        print "starting test using: %s" % jobmonitor.app.config
         # if running job instance, kill it first
         rv = self.app.get('/jobs/demojob')
         self.assertLess(rv.status_code, 500)
