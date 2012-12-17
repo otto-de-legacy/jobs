@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.1"
+__version__ = "0.2"
 __author__ = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -36,12 +36,12 @@ from fabric.api import run, settings
 DEBUG             = True
 LOGFILE           = 'jobmonitor.log'
 TRANSCRIPT_DIR    = '/tmp'
-SERVER_NAME       = socket.gethostname()
 JOB_TEMPLATES_DIR = 'templates'
 JOB_INSTANCES_DIR = 'instances'
 JOB_HOSTNAME      = 'localhost'
+HOSTNAME          = socket.gethostname()
 
-if 'jenkins' in SERVER_NAME:
+if 'jenkins' in HOSTNAME:
     JOB_USERNAME  = 'jenkins'
 else:
     JOB_USERNAME  = getpass.getuser()
@@ -356,4 +356,4 @@ if __name__ == '__main__':
 
     app.logger.info("Going to start jobmonitor ...")
     app.logger.info("using configuration: %s" % app.config)
-    app.run()
+    app.run(host='0.0.0.0')  # TODO: make port configurable?
