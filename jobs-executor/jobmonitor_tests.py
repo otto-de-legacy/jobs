@@ -8,10 +8,11 @@ import unittest
 
 import flask
 from flask.helpers import json
+from auto_stub import TestCase
 
 import jobmonitor
 
-class JobMonitorUnitTests(unittest.TestCase):
+class JobMonitorUnitTests(TestCase):
 
     def test_create_jobconf(self):
         fullpath = jobmonitor.create_jobconf('4711', 'demojob', {'domain_name':'server1','key2':'var2'})
@@ -29,7 +30,7 @@ class JobMonitorUnitTests(unittest.TestCase):
         pid = jobmonitor.extract_process_id("pid=A711")
         self.assertEqual(pid, -1)
 
-class JobMonitorIntegrationTests(unittest.TestCase):
+class JobMonitorIntegrationTests(TestCase):
 
     def setUp(self):
         jobmonitor.app.config['TESTING'] = True
