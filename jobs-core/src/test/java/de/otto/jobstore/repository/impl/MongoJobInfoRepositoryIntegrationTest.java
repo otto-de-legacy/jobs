@@ -1,5 +1,7 @@
 package de.otto.jobstore.repository.impl;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import org.bson.types.ObjectId;
@@ -325,4 +327,5 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
         JobInfo retrievedJobInfo = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME);
         assertEquals(3, retrievedJobInfo.getLogLines().size());
     }
+
 }

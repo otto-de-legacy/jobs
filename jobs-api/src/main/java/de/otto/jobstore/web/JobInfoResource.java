@@ -1,8 +1,6 @@
 package de.otto.jobstore.web;
 
 import de.otto.jobstore.common.JobInfo;
-import de.otto.jobstore.common.RunningState;
-import de.otto.jobstore.repository.api.JobInfoRepository;
 import de.otto.jobstore.service.api.JobInfoService;
 import de.otto.jobstore.service.api.JobService;
 import de.otto.jobstore.service.exception.*;
