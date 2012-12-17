@@ -19,6 +19,7 @@ __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 import io
 import os
 import re
+import socket
 import binascii
 import logging
 import getpass
@@ -35,10 +36,15 @@ from fabric.api import run, settings
 DEBUG             = True
 LOGFILE           = 'jobmonitor.log'
 TRANSCRIPT_DIR    = '/tmp'
+SERVER_NAME       = socket.gethostname()
 JOB_TEMPLATES_DIR = 'templates'
 JOB_INSTANCES_DIR = 'instances'
 JOB_HOSTNAME      = 'localhost'
-JOB_USERNAME      = getpass.getuser()
+
+if 'jenkins' in SERVER_NAME:
+    JOB_USERNAME  = 'jenkins'
+else:
+    JOB_USERNAME  = getpass.getuser()
 
 
 # ~~ create web application
