@@ -37,6 +37,7 @@ TRANSCRIPT_DIR    = '/tmp'
 JOB_TEMPLATES_DIR = 'templates'
 JOB_INSTANCES_DIR = 'instances'
 JOB_HOSTNAME      = 'localhost'
+JOB_USERNAME      = 'jenkins'
 
 
 # ~~ create web application
@@ -153,7 +154,7 @@ def start_job_instance(job_name):
         # ~~ going to start of daemonized process
         app.logger.info('trying to start job %s ...' % job_name)
         # TODO in cluster environment: for hostname in env.hosts
-        with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True):
+        with settings(host_string=app.config['JOB_HOSTNAME'], warn_only=True, user=JOB_USERNAME):
             cmd_result = run("zdaemon -C%s start" % job_filepath)
             app.logger.info('Started %s [return code: %d]' % (job_name, cmd_result.return_code))
 
