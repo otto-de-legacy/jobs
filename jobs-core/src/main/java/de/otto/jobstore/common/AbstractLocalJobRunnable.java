@@ -1,6 +1,8 @@
 package de.otto.jobstore.common;
 
 
+import de.otto.jobstore.service.exception.JobException;
+
 /**
  *
  */
@@ -15,5 +17,8 @@ public abstract class AbstractLocalJobRunnable implements JobRunnable {
     public final boolean isRemote() {
         return false;
     }
+
+    @Override
+    public void executeOnSuccess() throws JobException {}
 
 }
