@@ -315,34 +315,36 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     }
 
     @Override
-    public void cleanupTimedOutJobs() {
+    public int cleanupTimedOutJobs() {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
+        int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING.name())) {
             create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, false, null);
-            try {
-                final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
-                for (JobInfo jobInfo : getAll(cursor)) {
-                    if (jobInfo.isTimedOut(currentDate)) {
-                        markRunningAsFinished(jobInfo.getName(), ResultState.TIMED_OUT, null);
-                    }
+            final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
+            for (JobInfo jobInfo : getAll(cursor)) {
+                if (jobInfo.isTimedOut(currentDate)) {
+                    markRunningAsFinished(jobInfo.getName(), ResultState.TIMED_OUT, null);
+                    ++numberOfRemovedJobs;
                 }
-                markRunningAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
-            } catch (Exception e) {
-                LOGGER.error(e.getMessage(), e);
-                markRunningAsFinishedWithException(JOB_NAME_TIMED_OUT_CLEANUP, e);
             }
+            addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+            markRunningAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
         }
+        return numberOfRemovedJobs;
     }
 
-    public void cleanupOldJobs() {
+    public int cleanupOldJobs() {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
+        int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING.name())) {
             create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, false, null);
-            cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, daysAfterWhichOldJobsAreDeleted)));
+            numberOfRemovedJobs = cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, daysAfterWhichOldJobsAreDeleted)));
+            addAdditionalData(JOB_NAME_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP);
         }
+        return numberOfRemovedJobs;
     }
 
     protected void save(JobInfo jobInfo) {
@@ -353,10 +355,11 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         collection.save(jobInfo.toDbObject(), writeConcern);
     }
 
-    protected void cleanup(Date clearJobsBefore) {
-        collection.remove(new BasicDBObject().
+    protected int cleanup(Date clearJobsBefore) {
+        final WriteResult result = collection.remove(new BasicDBObject().
                 append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
                 append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())));
+        return result.getN();
     }
 
     private void prepareCollection() {

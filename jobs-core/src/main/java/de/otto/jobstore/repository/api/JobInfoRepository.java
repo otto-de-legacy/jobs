@@ -244,7 +244,7 @@ public interface JobInfoRepository {
     /**
      * Flags all running jobs as timed out if the have not be updated within the max execution time
      */
-    void cleanupTimedOutJobs();
+    int cleanupTimedOutJobs();
 
     /**
      * Removed the running job (flags it as timed out) with the given name if it is timed out
