@@ -357,7 +357,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
 
     protected int cleanup(Date clearJobsBefore) {
         final WriteResult result = collection.remove(new BasicDBObject().
-                append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
+                append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
                 append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())));
         return result.getN();
     }
@@ -365,6 +365,8 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
     private void prepareCollection() {
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1));
+        collection.ensureIndex(new BasicDBObject().
+                append(JobInfoProperty.RUNNING_STATE.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "runningState_creationTime", true);
         collection.ensureIndex(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "name_creationTime", true);
         collection.ensureIndex(new BasicDBObject().
