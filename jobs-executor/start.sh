@@ -1,4 +1,5 @@
 #!/bin/bash
+cd "$(dirname "$0")"
 
 # we execute in our own environment to not mix up anything
 virtualenv venv
