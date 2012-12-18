@@ -12,12 +12,12 @@ public class JobInfoTest {
 
     @Test
     public void testIsTimeoutReached() throws Exception {
-        JobInfo jobInfo = new JobInfo("test", null, null, 1000L);
+        JobInfo jobInfo = new JobInfo("test", null, null, 60 * 1000L); //Timeout eine Minute
         Date current = new Date();
-        Date lastModified = new Date(current.getTime() - 1000);
+        Date lastModified = new Date(current.getTime() - 2 * 60 * 1000L); //Last modified vor 2 Minuten
         jobInfo.setLastModifiedTime(lastModified);
-        assertFalse(jobInfo.isTimedOut(new Date(current.getTime() - 500)));
-        assertTrue(jobInfo.isTimedOut(new Date(current.getTime() + 500)));
+        assertTrue(jobInfo.isTimedOut(current)); //Timeout da zuletzt vor zwei Minuten update
+        assertFalse(jobInfo.isTimedOut(new Date(current.getTime() - Math.round(1.5 * 60 * 1000)))); //Kein Timeout, da vor 500ms update
     }
 
 }
