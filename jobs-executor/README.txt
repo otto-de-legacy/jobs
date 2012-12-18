@@ -50,12 +50,12 @@ List available jobs:
 
 To upload a new job:
 
-    curl -i -X POST http://127.0.0.1:5000/jobs/test_job -d @samples/demojob.json
+    curl -i -X POST -H'Content-Type: application/text' -d @samples/demojob.json http://127.0.0.1:5000/jobs/test_job
 
 
 To start a new job instance:
 
-    curl -i -X POST -H'Content-Type: application/json' http://127.0.0.1:5000/jobs/demojob/start -d @samples/demojob.json
+    curl -i -X POST -H'Content-Type: application/json' -d @samples/demojob.json http://127.0.0.1:5000/jobs/demojob/start
 
 As part of the response you will get inside the response header a link
 which you can follow to get more information about the job instance:

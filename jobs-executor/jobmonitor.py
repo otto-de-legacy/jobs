@@ -106,12 +106,17 @@ def get_job_by_id(job_name, job_id):
 def create_job(job_name):
     """Register new job (template) in the job monitor"""
 
+    # ~~ expect JSON as input
+    if request.headers['Content-Type'] != 'application/text':
+        return Response("Only 'application/text' currently supported as media type", status=415)
+
     if exists_job_template(job_name):
         msg = { 'message': "job '%s' does already exist" % job_name}
         resp = Response(json.dumps(msg), status=303, mimetype='application/json')
     else:
-        app.logger.info("Save new job definition for %s...", job_name)
-        save_job_template(job_name, request.data)
+        definition = request.data
+        app.logger.info("Save new job definition for %s ...", job_name)
+        save_job_template(job_name, definition)
         resp = Response("", status=201, mimetype='application/json')
 
     resp.headers['Link'] = url_for('get_current_job', job_name=job_name)
