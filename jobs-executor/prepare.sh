@@ -22,5 +22,5 @@ pip install --quiet fabric Flask paramiko pycrypto
 kill $(ps aux | grep '[p]ython jobmonitor.py' | awk '{print $2}')
 
 # TODO configure by provide env variable JOBMONITOR_SETTINGS pointing to file
-echo "Starting job executor ..."
-nohup python jobmonitor.py &
+#echo "Starting job executor ..."
+#nohup python jobmonitor.py &
