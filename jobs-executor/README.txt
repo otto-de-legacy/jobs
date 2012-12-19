@@ -17,16 +17,17 @@ Foundational components
   http://flask.pocoo.org
 
 ------------
-Requirements
+Setup
 ------------
 
 * on the local system running the jobmonitor
     sudo apt-get install python-pip
+    (for SuSE based systems: python-pip, python-virtualenv, python-devel)
     sudo pip install --upgrade fabric Flask
 
 * on the remote system for job execution (by default: localhost):
     sudo apt-get install python-zdaemon
-
+    (for SuSE based systems: zdaemon)
 
 
 ---------------
@@ -64,7 +65,7 @@ which you can follow to get more information about the job instance:
 
 To stop this job instance simply run:
 
-    curl -i -X DELETE http://127.0.0.1:5000/jobs/demojob/030bb50f4571
+    curl -i -X POST http://127.0.0.1:5000/jobs/demojob/030bb50f4571/stop
 
 
 --------------

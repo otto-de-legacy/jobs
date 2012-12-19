@@ -24,7 +24,6 @@ import threading
 import socket
 import binascii
 import logging
-import getpass
 
 from flask import Flask, url_for
 from flask import json
@@ -46,7 +45,7 @@ HOSTNAME          = socket.gethostname()
 if 'jenkins' in HOSTNAME:
     JOB_USERNAME  = 'jenkins'
 else:
-    JOB_USERNAME  = getpass.getuser()
+    JOB_USERNAME  = 'fred' # TODO IMPROVE: getpass.getuser()
 
 
 # ~~ create web application
@@ -73,34 +72,6 @@ def get_available_jobs():
     available_jobs = get_job_template_names()
     msg = { 'jobs': available_jobs }
     return Response(json.dumps(msg), status=200, mimetype='application/json')
-
-
-@app.route('/jobs/<job_name>', methods = ['GET'])
-def get_current_job(job_name):
-    latest_job_filepath = get_latest_job_instance(job_name)
-    if latest_job_filepath:
-        app.logger.info("Found job instance, check if still running...")
-        (job_active, job_process_id) = get_job_status(job_name, latest_job_filepath)
-        return response_job_status(job_name, job_active, extract_job_id(latest_job_filepath), job_process_id)
-    else:
-        if exists_job_template(job_name):
-            msg = { 'message': "No job instance found for '%s'" % job_name }
-            return Response(json.dumps(msg), status=200, mimetype='application/json')
-        else:
-            msg = { 'message': "No job template exists for '%s'" % job_name }
-            return Response(json.dumps(msg), status=404, mimetype='application/json')
-
-@app.route('/jobs/<job_name>/<job_id>', methods = ['GET'])
-def get_job_by_id(job_name, job_id):
-    # check if job exists
-    if not exists_job_instance(job_name, job_id):
-        msg = { 'message': "No job instance '%s' found for '%s'" % (job_id, job_name)}
-        return Response(json.dumps(msg), status=404, mimetype='application/json')
-
-    job_fullpath = get_job_instance_filepath(job_name, job_id)
-    (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
-    return response_job_status(job_name, job_active, job_id, job_process_id)
-
 
 @app.route('/jobs/<job_name>', methods = ['POST'])
 def create_job(job_name):
@@ -134,6 +105,33 @@ def delete_job(job_name):
         resp = Response(json.dumps(msg), status=404, mimetype='application/json')
 
     return resp
+
+
+@app.route('/jobs/<job_name>', methods = ['GET'])
+def get_current_job(job_name):
+    latest_job_filepath = get_latest_job_instance(job_name)
+    if latest_job_filepath:
+        app.logger.info("Found job instance, check if still running...")
+        (job_active, job_process_id) = get_job_status(job_name, latest_job_filepath)
+        return response_job_status(job_name, job_active, extract_job_id(latest_job_filepath), job_process_id)
+    else:
+        if exists_job_template(job_name):
+            msg = { 'message': "No job instance found for '%s'" % job_name }
+            return Response(json.dumps(msg), status=200, mimetype='application/json')
+        else:
+            msg = { 'message': "No job template exists for '%s'" % job_name }
+            return Response(json.dumps(msg), status=404, mimetype='application/json')
+
+@app.route('/jobs/<job_name>/<job_id>', methods = ['GET'])
+def get_job_by_id(job_name, job_id):
+    # check if job exists
+    if not exists_job_instance(job_name, job_id):
+        msg = { 'message': "No job instance '%s' found for '%s'" % (job_id, job_name)}
+        return Response(json.dumps(msg), status=404, mimetype='application/json')
+
+    job_fullpath = get_job_instance_filepath(job_name, job_id)
+    (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
+    return response_job_status(job_name, job_active, job_id, job_process_id)
 
 
 @app.route('/jobs/<job_name>/start', methods = ['POST'])
