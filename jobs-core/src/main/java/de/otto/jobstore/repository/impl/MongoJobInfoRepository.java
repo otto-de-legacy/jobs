@@ -164,7 +164,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
             set.append(JobInfoProperty.ERROR_MESSAGE.val(), errorMessage);
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update, false, false, WriteConcern.SAFE);
         return result.getN() == 1;
     }
 
