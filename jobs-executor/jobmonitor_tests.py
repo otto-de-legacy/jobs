@@ -82,6 +82,10 @@ class JobMonitorIntegrationTests(TestCase):
         self.assertEqual('application/json', rv.headers['Content-Type'])
         self.assertIn("No job instance '4711' found for 'foobar'", rv.data)
 
+    def test_create_new_empty_job(self):
+        rv = self.app.post('/jobs/test_job', content_type='application/text')
+        self.assertEqual(400, rv.status_code)
+
     def test_create_new_job(self):
         payload = open('tests/test_job.conf', 'r').read()
         rv = self.app.post('/jobs/test_job', data=payload, content_type='application/text')
