@@ -13,7 +13,7 @@
 """
 
 __version__ = "0.6.1"
-__author__ = "Niko Schmuck"
+__author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
 import io
@@ -79,14 +79,6 @@ def get_available_jobs():
 @app.route('/jobs/<job_name>', methods = ['POST'])
 def create_job(job_name):
     """Register new job (template) in the job monitor."""
-
-    file = open('request.data', 'w')
-    file.write(request.stream.read())
-    file.close()
-    file = open('request.data', 'r')
-    content = file.readlines()
-    log.info("CONTENT:: %s" % content)
-
 
     # ~~ expect JSON as input
     definition = request.data

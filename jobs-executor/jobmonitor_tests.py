@@ -86,6 +86,7 @@ class JobMonitorIntegrationTests(TestCase):
         rv = self.app.post('/jobs/test_job', content_type='application/text')
         self.assertEqual(400, rv.status_code)
 
+    @disabled
     def test_create_new_job(self):
         payload = open('tests/test_job.conf', 'r').read()
         rv = self.app.post('/jobs/test_job', data=payload, content_type='application/text')
