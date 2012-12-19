@@ -2,6 +2,8 @@
 curl -i http://fh02.develop-ci.lhotse.ov.otto.de:5000/jobs
 curl -i http://fh02.develop-ci.lhotse.ov.otto.de:5000/jobs/FHSearchSuggestUpdate
 
+curl -i -X POST -H'Content-Type: application/text' -d @FHSearchSuggestUpdate.conf http://fh02.develop-ci.lhotse.ov.otto.de:5000/jobs/FHSearchSuggestUpdate
+
 curl -i -X POST -H'Content-Type: application/json' -d @suggestUpdate.json http://fh02.develop-ci.lhotse.ov.otto.de:5000/jobs/FHSearchSuggestUpdate/start
 
 

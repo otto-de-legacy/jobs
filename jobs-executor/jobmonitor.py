@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.5-SNAPSHOT"
+__version__ = "0.5"
 __author__ = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -38,7 +38,7 @@ DEBUG             = True
 LOGFILE           = 'jobmonitor.log'
 TRANSCRIPT_DIR    = '/tmp'
 JOB_TEMPLATES_DIR = 'templates'
-JOB_INSTANCES_DIR = 'instances'
+JOB_INSTANCES_DIR = '/tmp/instances' # TODO check on startup if exists, dir must be readably by JOB_USERNAME
 JOB_HOSTNAME      = 'localhost'
 HOSTNAME          = socket.gethostname()
 
@@ -113,6 +113,7 @@ def get_current_job(job_name):
     if latest_job_filepath:
         app.logger.info("Found job instance, check if still running...")
         (job_active, job_process_id) = get_job_status(job_name, latest_job_filepath)
+        # TODO: also care for exit code
         return response_job_status(job_name, job_active, extract_job_id(latest_job_filepath), job_process_id)
     else:
         if exists_job_template(job_name):
@@ -142,6 +143,8 @@ def start_job_instance(job_name):
     if request.headers['Content-Type'] != 'application/json':
         return Response("Only 'application/json' currently supported as media type", status=415)
 
+    # ~~ check if instances directory exists otherwise create
+    ensure_job_instance_directory()
     # ~~ check if already running
     job_active = False
     job_process_id = -1
@@ -253,7 +256,6 @@ def get_latest_job_instance(job_name):
 
 def create_jobconf(job_id, job_name, params):
     # create new instance file for writing
-    ensure_job_instance_directory()
     file_path = get_job_instance_filepath(job_name, job_id)
     instance_file = io.open(file_path, 'w')
     # add standard values to replace dictionary
