@@ -84,7 +84,7 @@ class JobMonitorIntegrationTests(TestCase):
 
     def test_create_new_job(self):
         payload = open('tests/test_job.conf', 'r').read()
-        rv = self.app.post('/jobs/test_job', data=payload)
+        rv = self.app.post('/jobs/test_job', data=payload, content_type='application/text')
         self.assertEqual(201, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
         job_url = rv.headers["Link"]
