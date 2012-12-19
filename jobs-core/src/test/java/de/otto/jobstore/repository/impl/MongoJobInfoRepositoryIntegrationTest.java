@@ -28,7 +28,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
 
     @BeforeMethod
     public void setup() throws Exception {
-        jobInfoRepository.clear(false);
+        jobInfoRepository.clear(true);
     }
 
     @Test
@@ -248,7 +248,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
     public void testCleanupOldJobs() throws Exception {
         jobInfoRepository.setDaysAfterWhichOldJobsAreDeleted(1);
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.FINISHED);
-        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.LAST_MODIFICATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.CREATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 12));
         jobInfoRepository.save(jobInfo);
         assertEquals(1L, jobInfoRepository.count());
         jobInfoRepository.cleanupOldJobs();
