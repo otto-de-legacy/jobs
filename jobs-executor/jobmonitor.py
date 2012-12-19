@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.6"
+__version__ = "0.6.1"
 __author__ = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -22,7 +22,7 @@ import re
 import time
 import threading
 import socket
-import binascii
+import getpass
 import logging
 
 from flask import Flask, url_for
@@ -32,24 +32,25 @@ from flask import request, Response
 from fabric.api import run, settings
 
 
-# ~~ configuration (override by providing your own settings, see below [2])
+# ~~ configuration: override by providing your own settings, see (2)
 
 DEBUG             = True
+HTTP_PORT         = 5000
 LOGFILE           = 'jobmonitor.log'
 TRANSCRIPT_DIR    = '/tmp'
 JOB_TEMPLATES_DIR = 'templates'
-JOB_INSTANCES_DIR = '/tmp/instances' # TODO check on startup if exists, dir must be readably by JOB_USERNAME
+JOB_INSTANCES_DIR = '/tmp/instances' # IMPORTANT: must be readably by user <JOB_USERNAME>
 JOB_HOSTNAME      = 'localhost'
 HOSTNAME          = socket.gethostname()
 
 if 'jenkins' in HOSTNAME:
     JOB_USERNAME  = 'jenkins'
 else:
-    JOB_USERNAME  = 'fred' # TODO IMPROVE: getpass.getuser()
-
+    JOB_USERNAME  = getpass.getuser()  # TODO IMPROVE: make it part of the the job definition
 
 # ~~ create web application
 app = Flask(__name__)
+log = logging.getLogger('jobmonitor')
 
 # (1) configure from default settings (see constants of this class)
 app.config.from_object(__name__)
@@ -64,20 +65,33 @@ app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
 
 @app.route('/')
 def api_root():
+    """Index page spitting out who we are."""
     return 'Job Monitor (v %s)' % __version__
 
 
 @app.route('/jobs', methods = ['GET'])
 def get_available_jobs():
+    """List all registered jobs known to the system."""
     available_jobs = get_job_template_names()
     msg = { 'jobs': available_jobs }
     return Response(json.dumps(msg), status=200, mimetype='application/json')
 
 @app.route('/jobs/<job_name>', methods = ['POST'])
 def create_job(job_name):
-    """Register new job (template) in the job monitor"""
+    """Register new job (template) in the job monitor."""
+
+    file = open('request.data', 'w')
+    file.write(request.stream.read())
+    file.close()
+    file = open('request.data', 'r')
+    content = file.readlines()
+    log.info("CONTENT:: %s" % content)
+
 
     # ~~ expect JSON as input
+    definition = request.data
+    if not definition:
+        return Response("Require job definition as body", status=400)
     if request.headers['Content-Type'] != 'application/text':
         return Response("Only 'application/text' currently supported as media type", status=415)
 
@@ -85,8 +99,7 @@ def create_job(job_name):
         msg = { 'message': "job '%s' does already exist" % job_name}
         resp = Response(json.dumps(msg), status=303, mimetype='application/json')
     else:
-        definition = request.data
-        app.logger.info("Save new job definition for %s ...", job_name)
+        log.info("Save new job definition for %s ...", job_name)
         save_job_template(job_name, definition)
         resp = Response("", status=201, mimetype='application/json')
 
@@ -111,7 +124,7 @@ def delete_job(job_name):
 def get_current_job(job_name):
     latest_job_filepath = get_latest_job_instance(job_name)
     if latest_job_filepath:
-        app.logger.info("Found job instance, check if still running...")
+        log.info("Found job instance, check if still running...")
         (job_active, job_process_id) = get_job_status(job_name, latest_job_filepath)
         # TODO: also care for exit code
         return response_job_status(job_name, job_active, extract_job_id(latest_job_filepath), job_process_id)
@@ -143,14 +156,12 @@ def start_job_instance(job_name):
     if request.headers['Content-Type'] != 'application/json':
         return Response("Only 'application/json' currently supported as media type", status=415)
 
-    # ~~ check if instances directory exists otherwise create
-    ensure_job_instance_directory()
     # ~~ check if already running
     job_active = False
     job_process_id = -1
     latest_job_filepath = get_latest_job_instance(job_name)
     if latest_job_filepath:
-        app.logger.info("Found job instance, check if still running...")
+        log.info("Found job instance, check if still running...")
         (job_active, job_process_id) = get_job_status(job_name, latest_job_filepath)
 
     if job_active:
@@ -163,15 +174,15 @@ def start_job_instance(job_name):
         job_id = create_job_id()
         job_params = request.json['parameters'] if request.json['parameters'] else {}
 
-        app.logger.info('preparing job %s with params: %s' % (job_name, job_params))
+        log.info('preparing job %s with params: %s' % (job_name, job_params))
         job_filepath = create_jobconf(job_id, job_name, job_params)
 
         # ~~ going to start of daemonized process
-        app.logger.info('trying to start job %s ...' % job_name)
+        log.info('trying to start job %s ...' % job_name)
         # TODO in cluster environment: for hostname in env.hosts
         with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
-            cmd_result = run("zdaemon -C%s start" % job_filepath)
-            app.logger.info('Started %s [return code: %d]' % (job_name, cmd_result.return_code))
+            cmd_result = run("zdaemon -C %s start" % job_filepath)
+            log.info('Started %s [return code: %d]' % (job_name, cmd_result.return_code))
 
         # ~~ construct response
         if cmd_result.succeeded and "daemon process started" in cmd_result:
@@ -201,8 +212,8 @@ def stop_job_instance(job_name, job_id):
         return Response(json.dumps(msg), status=403, mimetype='application/json')
     else:
         with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
-            cmd_result = run("zdaemon -C%s stop" % job_fullpath)
-            app.logger.info('Return code from stop job %s: %d' % (job_name, cmd_result.return_code))
+            cmd_result = run("zdaemon -C %s stop" % job_fullpath)
+            log.info('Return code from stop job %s: %d' % (job_name, cmd_result.return_code))
 
         if cmd_result.succeeded and "daemon process stopped" in cmd_result:
             msg = { 'status': 'FINISHED', 'result': {'ok': True, 'message': "job '%s' stopped with process id=%d" % (job_name, job_process_id) } }
@@ -229,18 +240,19 @@ def get_job_status(job_name, job_filepath):
     job_active = False
     job_process_id = -1
     with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
-        cmd_result = run("zdaemon -C%s status" % job_filepath)
+        cmd_result = run("zdaemon -C %s status" % job_filepath)
         if cmd_result.return_code > 0:
-            app.logger.warn("Problem while checking job status: %s" % cmd_result)
+            log.warn("Problem while checking job status: %s" % cmd_result)
         job_active = cmd_result.succeeded and "program running" in cmd_result
         if job_active:
             job_process_id = extract_process_id(cmd_result)
-        app.logger.info('%s running? %s [pid=%d]' % (job_name, job_active, job_process_id))
+        log.info('%s running? %s [pid=%d]' % (job_name, job_active, job_process_id))
     return job_active, job_process_id
 
 
 def get_latest_job_instance(job_name):
     """Lookup job instances for the given name and return the full path to latest instance"""
+    ensure_job_instance_directory()
     instances_dir = os.path.abspath(app.config['JOB_INSTANCES_DIR'])
     inst_files = []
     for filename in os.listdir(instances_dir):
@@ -282,9 +294,15 @@ def exists_job_template(job_name):
     return os.path.exists(get_job_template_filepath(job_name))
 
 def save_job_template(job_name, data):
+    """Saves the given data to a job template definition file."""
     fullpath = get_job_template_filepath(job_name)
     file = open(fullpath, 'w')
-    file.write(data)
+    file.write(make_multiline_conf(data))
+
+def make_multiline_conf(line):
+    """A bit of a hack: make sure the zdaemon definition is split on multiple lines."""
+    trans1 = re.sub(r'<(/?\w+)>', r'\n<\1>\n', line)
+    return re.sub(r'(transcript )', r'\n\1', trans1)
 
 def remove_job_template(job_name):
     fullpath = get_job_template_filepath(job_name)
@@ -301,7 +319,7 @@ def get_job_template_names():
 
 def create_job_id():
     """Generate ID which can be used to uniquely refer to a job instance"""
-    return binascii.b2a_hex(os.urandom(6))
+    return time.strftime("%Y-%m-%d_%H%M%S")
 
 def get_job_instance(job_name, job_id):
     return "%s_%s" % (job_name, job_id)
@@ -351,7 +369,7 @@ def get_last_lines(filepath, nr_lines):
 
 def remove_old_files(dir, days):
     """Delete files older than specified days from file system."""
-    app.logger.info("Clean up old files in %s ..." % dir)
+    log.info("Clean up old files in %s ..." % dir)
     now = time.time()
     for filename in os.listdir(dir):
         fullpath = os.path.join(dir, filename)
@@ -359,21 +377,21 @@ def remove_old_files(dir, days):
             os.remove(os.path.join(dir, filename))
 
 def permanent_check():
-    remove_old_files(app.config['JOB_INSTANCES_DIR'], 3)
+    remove_old_files(app.config['JOB_INSTANCES_DIR'], 3) # days
+    # execute every ... minutes
     threading.Timer(15 * 60, permanent_check).start()
+
 
 # ---------------------------------------
 
 if __name__ == '__main__':
 
-    # ~~ configure logging for production
-    if not app.debug:
-        file_handler = logging.FileHandler(filename=app.config['LOGFILE'])
-        file_handler.setLevel(logging.INFO)
-        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-        app.logger.addHandler(file_handler)
+    # configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
-    app.logger.info("Going to start jobmonitor ...")
-    app.logger.info("using configuration: %s" % app.config)
+    app.run(host='0.0.0.0', port=HTTP_PORT, threaded=True)
     permanent_check()
-    app.run(host='0.0.0.0', port=5000)  # TODO: make port configurable?
