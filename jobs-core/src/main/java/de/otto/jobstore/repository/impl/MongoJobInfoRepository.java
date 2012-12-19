@@ -164,7 +164,7 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
             set.append(JobInfoProperty.ERROR_MESSAGE.val(), errorMessage);
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update, false, false, WriteConcern.SAFE);
         return result.getN() == 1;
     }
 
@@ -322,13 +322,19 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING.name())) {
             create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, false, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
+            final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
                 if (jobInfo.isTimedOut(currentDate)) {
-                    markRunningAsFinished(jobInfo.getName(), ResultState.TIMED_OUT, null);
-                    ++numberOfRemovedJobs;
+                    if (markRunningAsFinished(jobInfo.getName(), ResultState.TIMED_OUT, null)) {
+                        removedJobs.add(jobInfo.getName() + " - " + jobInfo.getId());
+                        ++numberOfRemovedJobs;
+                    }
                 }
             }
             addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+            if (!removedJobs.isEmpty()) {
+                addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "removedJobs", removedJobs.toString());
+            }
             markRunningAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
         }
         return numberOfRemovedJobs;
@@ -366,9 +372,9 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1));
         collection.ensureIndex(new BasicDBObject().
-                append(JobInfoProperty.RUNNING_STATE.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "runningState_creationTime", true);
+                append(JobInfoProperty.RUNNING_STATE.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "runningState_creationTime");
         collection.ensureIndex(new BasicDBObject().
-                append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "name_creationTime", true);
+                append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "name_creationTime");
         collection.ensureIndex(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
     }
