@@ -325,7 +325,7 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
     }
 
     @Test
-    public void testCleanupTimedoutJob() throws Exception {
+    public void testCleanupTimedOutJob() throws Exception {
         DBObject job = new BasicDBObject()
                 .append("_id", new ObjectId("50c99099e4b048a05ee9a024"))
                 .append("creationTime", new Date(new GregorianCalendar(2012, 11, 13, 8, 23, 53).getTimeInMillis()))
@@ -339,7 +339,8 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
         jobInfoRepository.save(new JobInfo(job));
         assertEquals(1, jobInfoRepository.count());
         assertEquals(1, jobInfoRepository.cleanupTimedOutJobs());
-        JobInfo timedoutJob = jobInfoRepository.findById("50c99099e4b048a05ee9a024");
-        assertEquals(ResultState.TIMED_OUT, timedoutJob.getResultState());
+        JobInfo timedOutJob = jobInfoRepository.findById("50c99099e4b048a05ee9a024");
+        assertEquals(ResultState.TIMED_OUT, timedOutJob.getResultState());
     }
+
 }

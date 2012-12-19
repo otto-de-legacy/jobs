@@ -322,13 +322,18 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING.name())) {
             create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, false, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
+            final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
                 if (jobInfo.isTimedOut(currentDate)) {
                     markRunningAsFinished(jobInfo.getName(), ResultState.TIMED_OUT, null);
+                    removedJobs.add(jobInfo.getName());
                     ++numberOfRemovedJobs;
                 }
             }
             addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+            if (!removedJobs.isEmpty()) {
+                addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "removedJobs", removedJobs.toString());
+            }
             markRunningAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
         }
         return numberOfRemovedJobs;
