@@ -326,8 +326,17 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
 
     @Test
     public void testCleanupTimedOutJob() throws Exception {
-        DBObject job = new BasicDBObject()
+        DBObject queuedJob = new BasicDBObject()
                 .append("_id", new ObjectId("50c99099e4b048a05ee9a024"))
+                .append("creationTime", new Date())
+                .append("forceExecution", false)
+                .append("lastModificationTime", new Date())
+                .append("maxExecutionTime", 300000L)
+                .append("name", "ProductRelationFeedImportJob")
+                .append("runningState", "QUEUED")
+                .append("thread", "productSystemScheduler-3");
+        DBObject runningJob = new BasicDBObject()
+                .append("_id", new ObjectId("60c99099e4b048a05ee9a024"))
                 .append("creationTime", new Date(new GregorianCalendar(2012, 11, 13, 8, 23, 53).getTimeInMillis()))
                 .append("forceExecution", false)
                 .append("lastModificationTime", new Date(new GregorianCalendar(2012, 11, 13, 8, 59, 0).getTimeInMillis()))
@@ -336,10 +345,11 @@ public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringC
                 .append("runningState", "RUNNING")
                 .append("startTime", new Date(new GregorianCalendar(2012, 11, 13, 8, 23, 53).getTimeInMillis()))
                 .append("thread", "productSystemScheduler-3");
-        jobInfoRepository.save(new JobInfo(job));
-        assertEquals(1, jobInfoRepository.count());
+        jobInfoRepository.save(new JobInfo(queuedJob));
+        jobInfoRepository.save(new JobInfo(runningJob));
+        assertEquals(2, jobInfoRepository.count());
         assertEquals(1, jobInfoRepository.cleanupTimedOutJobs());
-        JobInfo timedOutJob = jobInfoRepository.findById("50c99099e4b048a05ee9a024");
+        JobInfo timedOutJob = jobInfoRepository.findById("60c99099e4b048a05ee9a024");
         assertEquals(ResultState.TIMED_OUT, timedOutJob.getResultState());
     }
 
