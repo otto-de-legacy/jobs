@@ -15,7 +15,9 @@ final class SimpleJobLogger implements JobLogger {
 
     @Override
     public void addLoggingData(String log) {
-        jobInfoRepository.addLogLine(jobName, log);
+        if (log != null) {
+            jobInfoRepository.addLogLine(jobName, log);
+        }
     }
 
     @Override

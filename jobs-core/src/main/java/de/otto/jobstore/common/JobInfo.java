@@ -104,7 +104,7 @@ public final class JobInfo extends AbstractItem {
     }
 
     public void putAdditionalData(String key, String value) {
-        final DBObject additionalData ;
+        final DBObject additionalData;
         if (hasProperty(JobInfoProperty.ADDITIONAL_DATA)) {
             additionalData = getProperty(JobInfoProperty.ADDITIONAL_DATA);
         } else {
@@ -116,14 +116,16 @@ public final class JobInfo extends AbstractItem {
 
     public void appendLogLine(LogLine logLine) {
         // TODO: should we also only store the most recent MAX_LOGLINES lines?
-        final List<DBObject> logLines;
-        if (hasProperty(JobInfoProperty.LOG_LINES)) {
-            logLines = getProperty(JobInfoProperty.LOG_LINES);
-        } else {
-            logLines = new ArrayList<>();
-            addProperty(JobInfoProperty.LOG_LINES, logLines);
+        if (logLine != null) {
+            final List<DBObject> logLines;
+            if (hasProperty(JobInfoProperty.LOG_LINES)) {
+                logLines = getProperty(JobInfoProperty.LOG_LINES);
+            } else {
+                logLines = new ArrayList<>();
+                addProperty(JobInfoProperty.LOG_LINES, logLines);
+            }
+            logLines.add(logLine.toDbObject());
         }
-        logLines.add(logLine.toDbObject());
     }
 
     public boolean hasLogLines() {
@@ -133,7 +135,7 @@ public final class JobInfo extends AbstractItem {
 
     public List<LogLine> getLogLines() {
         final List<DBObject> logLines = getProperty(JobInfoProperty.LOG_LINES);
-        if (logLines == null) return Collections.EMPTY_LIST;
+        if (logLines == null) return Collections.emptyList();
 
         final List<LogLine> result = new ArrayList<>(Math.min(logLines.size(), MAX_LOGLINES));
         int endPos = logLines.size();
