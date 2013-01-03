@@ -1,6 +1,6 @@
 {
     "name": "FHIncrementalSearchUpdate",
     "parameters": {
-        "sanApiUrl": "http://san.develop-ci.lhotse.ov.otto.de:17395/san/api"
+        "sanApiUrl": "http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/search/searchSuggests/completeExportStream"
     }
 }
