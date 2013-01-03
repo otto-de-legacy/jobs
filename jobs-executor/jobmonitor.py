@@ -22,7 +22,6 @@ import re
 import time
 import threading
 import socket
-import getpass
 import logging
 
 from flask import Flask, url_for
@@ -46,7 +45,7 @@ HOSTNAME          = socket.gethostname()
 if 'jenkins' in HOSTNAME:
     JOB_USERNAME  = 'jenkins'
 else:
-    JOB_USERNAME  = getpass.getuser()  # TODO IMPROVE: make it part of the the job definition
+    JOB_USERNAME  = os.environ['USER']  # TODO IMPROVE: make it part of the the job definition
 
 # ~~ create web application
 app = Flask(__name__)
