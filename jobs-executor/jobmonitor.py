@@ -42,10 +42,13 @@ JOB_INSTANCES_DIR = '/tmp/instances' # IMPORTANT: must be readably by user <JOB_
 JOB_HOSTNAME      = 'localhost'
 HOSTNAME          = socket.gethostname()
 
+# TODO IMPROVE: make JOB_USERNAME and JOB_HOSTNAME part of the the job definition
 if 'jenkins' in HOSTNAME:
     JOB_USERNAME  = 'jenkins'
+elif 'fh' in HOSTNAME or 'search' in HOSTNAME:
+    JOB_USERNAME  = 'fred'   # TODO: only for the time being, should settings file should be deployed
 else:
-    JOB_USERNAME  = os.environ['USER']  # TODO IMPROVE: make it part of the the job definition
+    JOB_USERNAME  = os.environ['USER']
 
 # ~~ create web application
 app = Flask(__name__)
