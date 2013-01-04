@@ -5,7 +5,7 @@ import uuid
 class TestJobMonitorFunctions(unittest.TestCase):
 
     def test_shuffle(self):
-        jobmonitor.create_jobconf('4711', 'demojob', {'domain_name':'server1','key2':'var2'})
+        jobmonitor.create_jobconf('demojob', '4711', {'sample_file':'/var/log/syslog','key2':'var2'})
         self.assertEqual(9, 9)
 
     def test_unique_id(self):
