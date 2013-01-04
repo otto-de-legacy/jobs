@@ -1,7 +1,8 @@
-package de.otto.jobstore.service.impl;
+package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.JobLogger;
-import de.otto.jobstore.repository.api.JobInfoRepository;
+import de.otto.jobstore.repository.JobInfoRepository;
+
 
 final class SimpleJobLogger implements JobLogger {
 

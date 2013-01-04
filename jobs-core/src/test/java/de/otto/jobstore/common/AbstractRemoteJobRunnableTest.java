@@ -1,8 +1,7 @@
 package de.otto.jobstore.common;
 
 import de.otto.jobstore.common.properties.JobInfoProperty;
-import de.otto.jobstore.service.api.RemoteJobExecutorService;
-import de.otto.jobstore.service.exception.JobExecutionDisabledException;
+import de.otto.jobstore.service.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;

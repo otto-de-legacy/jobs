@@ -2,7 +2,7 @@ package de.otto.jobstore.common;
 
 
 import de.otto.jobstore.common.properties.JobInfoProperty;
-import de.otto.jobstore.service.api.RemoteJobExecutorService;
+import de.otto.jobstore.service.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 

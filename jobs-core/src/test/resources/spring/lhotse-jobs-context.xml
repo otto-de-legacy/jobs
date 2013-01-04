@@ -11,13 +11,13 @@
 
     <!-- Repository Definition -->
 
-    <bean class="de.otto.jobstore.repository.impl.MongoJobInfoRepository">
+    <bean class="de.otto.jobstore.repository.JobInfoRepository">
         <constructor-arg index="0" ref="mongo"/>
         <constructor-arg index="1" value="jobstore"/>
         <constructor-arg index="2" value="jobs"/>
     </bean>
 
-    <bean class="de.otto.jobstore.service.impl.RemoteJobExecutorServiceImpl">
+    <bean class="de.otto.jobstore.service.RemoteJobExecutorService">
         <constructor-arg index="0" value="http://localhost:5000/jobs/"/>
         <constructor-arg index="1" ref="httpClient"/>
     </bean>
