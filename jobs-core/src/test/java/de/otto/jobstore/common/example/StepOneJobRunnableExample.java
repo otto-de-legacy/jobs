@@ -1,6 +1,7 @@
 package de.otto.jobstore.common.example;
 
 import de.otto.jobstore.common.AbstractLocalJobRunnable;
+import de.otto.jobstore.common.JobExecutionContext;
 import de.otto.jobstore.common.JobLogger;
 import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.JobException;
@@ -36,10 +37,10 @@ public final class StepOneJobRunnableExample extends AbstractLocalJobRunnable {
 
     /**
      * A very lazy job which triggers job two if done
-     * @param jobLogger The job logger used to add additional information to a job
+     * @param executionContext The context in which this job is executed
      */
     @Override
-    public void execute(JobLogger jobLogger) throws JobException {
+    public void execute(JobExecutionContext executionContext) throws JobException {
         try {
             for (int i = 0; i < 10; i++) {
                 Thread.sleep(i * 1000);

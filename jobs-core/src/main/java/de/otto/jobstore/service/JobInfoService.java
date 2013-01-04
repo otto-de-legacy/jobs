@@ -77,7 +77,7 @@ public class JobInfoService {
      * @return The job with the given name and running state, or null
      */
     public JobInfo getByNameAndRunningState(String name, RunningState runningState) {
-        return jobInfoRepository.findByNameAndRunningState(name, runningState.name());
+        return jobInfoRepository.findByNameAndRunningState(name, runningState);
     }
 
     /**

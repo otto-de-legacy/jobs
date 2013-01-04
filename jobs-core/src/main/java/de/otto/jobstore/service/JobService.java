@@ -111,7 +111,6 @@ public class JobService {
      * running constraints it this job will be added to the queue. If a job is already queued an exception will be thrown.
      *
      * @param name The name of the job to execute
-     * {@link de.otto.jobstore.common.JobRunnable#isExecutionNecessary()} signals that no execution is necessary
      * @return The id of the executing or queued job
      * @throws JobNotRegisteredException Thrown if no job with the given name was registered with this JobService instance
      * @throws JobAlreadyQueuedException If a job with the given name is already queued for execution or another
@@ -123,7 +122,7 @@ public class JobService {
      */
     public String executeJob(final String name) throws JobNotRegisteredException, JobAlreadyQueuedException,
             JobAlreadyRunningException, JobExecutionNotNecessaryException, JobExecutionDisabledException {
-        return executeJob(name, false);
+        return executeJob(name, JobExecutionPriority.CHECK_PRECONDITIONS);
     }
 
     /**
@@ -131,8 +130,7 @@ public class JobService {
      * running constraints it this job will be added to the queue. If a job is already queued an exception will be thrown.
      *
      * @param name The name of the job to execute
-     * @param forceExecution If true the job will be executed even if the result from
-     * {@link de.otto.jobstore.common.JobRunnable#isExecutionNecessary()} signals that no execution is necessary
+     * @param executionPriority The priority with which the job is to be executed
      * @return The id of the executing or queued job
      * @throws JobNotRegisteredException Thrown if no job with the given name was registered with this JobService instance
      * @throws JobAlreadyQueuedException If a job with the given name is already queued for execution or another
@@ -142,28 +140,33 @@ public class JobService {
      * @throws JobExecutionNotNecessaryException If the execution of the job was not necessary
      * @throws JobExecutionDisabledException If job execution has been disabled
      */
-    public String executeJob(final String name, final boolean forceExecution) throws JobNotRegisteredException,
+    public String executeJob(final String name, final JobExecutionPriority executionPriority) throws JobNotRegisteredException,
             JobAlreadyQueuedException, JobAlreadyRunningException, JobExecutionNotNecessaryException,
             JobExecutionDisabledException {
         final JobRunnable runnable = jobs.get(checkJobName(name));
         final String id;
         if (!executionEnabled) {
             throw new JobExecutionDisabledException("Execution of jobs has been disabled");
-        } else if (jobInfoRepository.hasJob(name, RunningState.QUEUED.name())) {
-            throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
-        } else if (jobInfoRepository.hasJob(name, RunningState.RUNNING.name())) {
-            // TODO: bricht mit vorheriger JobInfoRepositorySemantik?
-            id = queueJob(runnable, forceExecution, "A job with name " + name + " is already running and queued for execution");
-            //throw new JobAlreadyRunningException("A job with name " + name + " is already running and queued for execution");
-        } else if (violatesRunningConstraints(name)) {
-            // TODO: executeJob semantisch ueberladen, verhaelt sich eher wie ein executeOrAlternativelyQueueJobSometimes
-            id = queueJob(runnable, forceExecution, "The job " + name + " violates running constraints and is already queued for execution");
-        } else if (forceExecution || runnable.isExecutionNecessary()) {
-            id = runJob(runnable, forceExecution, "A job with name " + name + " is already running");
-            LOGGER.debug("ltag=JobService.runJob.executingJob jobInfoName={}", name);
-            executeJob(runnable);
+        }
+        final JobInfo queuedJobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.QUEUED);
+        if (queuedJobInfo != null) {
+            if (queuedJobInfo.getExecutionPriority().compareTo(executionPriority) < 0) { //Priority of queued job is lower
+                //TODO Remove queued job
+                id = queueJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
+            } else { //Priority of queued job is equal of higher
+                throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
+            }
         } else {
-            throw new JobExecutionNotNecessaryException("Execution of job " + name + " was not necessary");
+            final JobInfo runningJobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING);
+            if (runningJobInfo == null) {
+                id = runJob(runnable, executionPriority, "A job with name " + name + " is already running");
+                LOGGER.debug("ltag=JobService.runJob.executingJob jobInfoName={}", name);
+                executeJob(runnable, executionPriority);
+            } else if (runningJobInfo.getExecutionPriority().compareTo(executionPriority) >= 0) { //Priority of running job is equal or higher
+                throw new JobExecutionNotNecessaryException("Execution of job " + name + " was not necessary");
+            } else { //Priority of running job is lower
+                id = queueJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
+            }
         }
         return id;
     }
@@ -187,7 +190,7 @@ public class JobService {
         if (executionEnabled) {
             for (Map.Entry<String, JobRunnable> job : jobs.entrySet()) {
                 if (job.getValue().isRemote()) {
-                    final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(job.getKey(), RunningState.RUNNING.name());
+                    final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(job.getKey(), RunningState.RUNNING);
                     if (runningJob != null) {
                         if (jobRequiresUpdate(runningJob.getLastModifiedTime(), System.currentTimeMillis(), job.getValue().getPollingInterval())) {
                             final RemoteJobStatus remoteJobStatus = remoteJobExecutorService.getStatus(
@@ -210,7 +213,7 @@ public class JobService {
         if (executionEnabled) {
             for (Map.Entry<String, JobRunnable> job : jobs.entrySet()) {
                 if (!job.getValue().isRemote()) {
-                    final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(job.getKey(), RunningState.RUNNING.name());
+                    final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(job.getKey(), RunningState.RUNNING);
                     if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
                         LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", job.getKey());
                         jobInfoRepository.markRunningAsFinished(job.getKey(), ResultState.FAILED, "shutdownJobs called from executing host");
@@ -264,50 +267,50 @@ public class JobService {
         }
     }
 
-    private void executeJob(JobRunnable runnable) {
-        Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(runnable, jobInfoRepository));
+    private void executeJob(JobRunnable runnable, JobExecutionPriority executionPriority) {
+        final JobLogger jobLogger = new SimpleJobLogger(runnable.getName(), jobInfoRepository);
+        final JobExecutionContext context = new JobExecutionContext(jobLogger, executionPriority);
+        Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(runnable, jobInfoRepository, context));
     }
 
     private void executeQueuedJob(final JobInfo jobInfo) {
         final String name = jobInfo.getName();
         final String id = jobInfo.getId();
         final JobRunnable runnable = jobs.get(name);
-        if (jobInfoRepository.hasJob(name, RunningState.RUNNING.name())) {
+        if (jobInfoRepository.hasJob(name, RunningState.RUNNING)) {
             LOGGER.info("ltag=JobService.executeQueuedJob.alreadyRunning jobInfoName={} jobInfoId={}", name, id);
         } else if (violatesRunningConstraints(name)) {
             LOGGER.info("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={} jobInfoId={}", name, id);
-        } else if (jobInfo.isForceExecution() || runnable.isExecutionNecessary()) {
-            activateQueuedJob(name, id, runnable);
-        } else if (jobInfoRepository.markAsFinishedById(jobInfo.getId(), ResultState.NOT_EXECUTED)) {
-            LOGGER.warn("ltag=JobService.executeQueuedJob.executionIsNotNecessary jobInfoName={} jobInfoId={}", name, id);
+        } else {
+            activateQueuedJob(name, id, jobInfo.getExecutionPriority(), runnable);
         }
     }
 
-    private String queueJob(JobRunnable runnable, boolean forceExecution, String exceptionMessage)
+    private String queueJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, String exceptionMessage)
             throws JobAlreadyQueuedException{
         final String id = jobInfoRepository.create(runnable.getName(), runnable.getMaxExecutionTime(),
-                RunningState.QUEUED, forceExecution, runnable.isRemote(), null);
+                RunningState.QUEUED, jobExecutionPriority, null);
         if (id == null) {
             throw new JobAlreadyQueuedException(exceptionMessage);
         }
         return id;
     }
 
-    private String runJob(JobRunnable runnable, boolean forceExecution, String exceptionMessage)
+    private String runJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, String exceptionMessage)
             throws JobAlreadyRunningException {
         final String id = jobInfoRepository.create(runnable.getName(), runnable.getMaxExecutionTime(),
-                RunningState.RUNNING, forceExecution, runnable.isRemote(), null);
+                RunningState.RUNNING, jobExecutionPriority, null);
         if (id == null) {
             throw new JobAlreadyRunningException(exceptionMessage);
         }
         return id;
     }
 
-    private void activateQueuedJob(String name, String id, JobRunnable runnable) {
+    private void activateQueuedJob(String name, String id, JobExecutionPriority executionPriority, JobRunnable runnable) {
         if (jobInfoRepository.activateQueuedJob(name)) {
             jobInfoRepository.updateHostThreadInformation(name);
             LOGGER.info("ltag=JobService.activateQueuedJob.activate jobInfoName={} jobInfoId={}", name, id);
-            executeJob(runnable);
+            executeJob(runnable, executionPriority);
         } else {
             LOGGER.warn("ltag=JobService.activateQueuedJob.jobIsNotQueuedAnyMore jobInfoName={} jobInfoId={}", name, id);
         }
@@ -325,7 +328,7 @@ public class JobService {
         for (Set<String> constraint : runningConstraints) {
             if (constraint.contains(name)) {
                 for (String constraintJobName : constraint) {
-                    if (jobInfoRepository.hasJob(constraintJobName, RunningState.RUNNING.name())) {
+                    if (jobInfoRepository.hasJob(constraintJobName, RunningState.RUNNING)) {
                         return true;
                     }
                 }

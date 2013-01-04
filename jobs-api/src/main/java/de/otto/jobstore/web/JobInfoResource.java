@@ -1,5 +1,6 @@
 package de.otto.jobstore.web;
 
+import de.otto.jobstore.common.JobExecutionPriority;
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.service.JobInfoService;
 import de.otto.jobstore.service.JobService;
@@ -88,7 +89,7 @@ public final class JobInfoResource {
 
     private Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo, boolean forceExecution)  {
         try {
-            final String jobId = jobService.executeJob(name, forceExecution);
+            final String jobId = jobService.executeJob(name, JobExecutionPriority.FORCE_EXECUTION);
             final JobInfo jobInfo = jobInfoService.getById(jobId);
             final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(jobInfo.getName()).path(jobId).build();
             return Response.created(uri).build();

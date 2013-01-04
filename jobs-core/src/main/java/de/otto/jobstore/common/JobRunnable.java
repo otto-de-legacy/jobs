@@ -48,10 +48,10 @@ public interface JobRunnable {
     /**
      * Executes the job.
      *
-     * @param jobLogger The job logger used to add additional information to a job
+     * @param context The context in which this job is executed
      * @throws de.otto.jobstore.service.exception.JobExecutionException Thrown if the execution of the job failed
      */
-    void execute(JobLogger jobLogger) throws JobException;
+    void execute(JobExecutionContext context) throws JobException;
 
     /**
      * This method is called once the job is executed successfully

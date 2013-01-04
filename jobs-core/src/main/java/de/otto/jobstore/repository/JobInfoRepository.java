@@ -68,15 +68,15 @@ public class JobInfoRepository {
      * @param name The name of the job
      * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
      * @param runningState The state with which the job is started
-     * @param forceExecution If a job should ignore preconditions defined on where or not it should run
+     * @param executionPriority The priority with which the job is to be executed
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     public String create(final String name, final long maxExecutionTime, final RunningState runningState,
-                         final boolean forceExecution, final boolean remote, final Map<String, String> additionalData) {
+                         final JobExecutionPriority executionPriority, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxExecutionTime, runningState, forceExecution, remote, additionalData);
+        return create(name, host, thread, maxExecutionTime, runningState, executionPriority, additionalData);
     }
 
     /**
@@ -87,15 +87,15 @@ public class JobInfoRepository {
      * @param thread The thread, which runs the job
      * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
      * @param runningState The state with which the job is started
-     * @param forceExecution If a job should ignore preconditions defined on where or not it should run
+     * @param executionPriority The priority with which the job is to be executed
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     public String create(final String name, final String host, final String thread, final long maxExecutionTime,
-                         final RunningState runningState, final boolean forceExecution, final boolean remote, final Map<String, String> additionalData) {
+                         final RunningState runningState, final JobExecutionPriority executionPriority, final Map<String, String> additionalData) {
         try {
             LOGGER.info("Create job={} in state={} ...", name, runningState);
-            final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, forceExecution, additionalData);
+            final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, executionPriority, additionalData);
             save(jobInfo, WriteConcern.SAFE);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
@@ -111,8 +111,8 @@ public class JobInfoRepository {
      * @param runningState The running state of the job
      * @return The running job or null if no job with the given name is currently running
      */
-    public JobInfo findByNameAndRunningState(final String name, final String runningState) {
-        final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, runningState));
+    public JobInfo findByNameAndRunningState(final String name, final RunningState runningState) {
+        final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, runningState.name()));
         return fromDbObject(jobInfo);
     }
 
@@ -124,7 +124,7 @@ public class JobInfoRepository {
      * @return true - A job with the given name is still running<br/>
      *          false - A job with the given name is not running
      */
-    public boolean hasJob(final String name, final String runningState) {
+    public boolean hasJob(final String name, final RunningState runningState) {
         return findByNameAndRunningState(name, runningState) != null;
     }
 
@@ -449,8 +449,8 @@ public class JobInfoRepository {
      * @param currentDate The current date
      */
     public void removeJobIfTimedOut(final String name, final Date currentDate) {
-        if (hasJob(name, RunningState.RUNNING.name())) {
-            final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING.name());
+        if (hasJob(name, RunningState.RUNNING)) {
+            final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING);
             if (job.isTimedOut(currentDate)) {
                 markRunningAsFinished(job.getName(), ResultState.TIMED_OUT, null);
             }
@@ -494,8 +494,8 @@ public class JobInfoRepository {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
-        if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING.name())) {
-            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, false, null);
+        if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
+            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
@@ -519,8 +519,8 @@ public class JobInfoRepository {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
-        if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING.name())) {
-            create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, false, false, null);
+        if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
+            create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
             numberOfRemovedJobs = cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, daysAfterWhichOldJobsAreDeleted)));
             addAdditionalData(JOB_NAME_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP);

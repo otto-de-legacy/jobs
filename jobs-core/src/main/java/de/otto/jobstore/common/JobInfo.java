@@ -22,10 +22,10 @@ public final class JobInfo extends AbstractItem {
     }
 
     public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state) {
-        this(name, host, thread, maxExecutionTime, state, false, null);
+        this(name, host, thread, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state, boolean forceExecution, Map<String, String> additionalData) {
+    public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
         final Date dt = new Date();
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
@@ -34,7 +34,7 @@ public final class JobInfo extends AbstractItem {
             addProperty(JobInfoProperty.START_TIME, dt);
         }
         addProperty(JobInfoProperty.CREATION_TIME, dt);
-        addProperty(JobInfoProperty.FORCE_EXECUTION, forceExecution);
+        addProperty(JobInfoProperty.EXECUTION_PRIORITY, executionPriority.name());
         addProperty(JobInfoProperty.RUNNING_STATE, state.name());
         setLastModifiedTime(dt);
         addProperty(JobInfoProperty.MAX_EXECUTION_TIME, maxExecutionTime);
@@ -72,9 +72,13 @@ public final class JobInfo extends AbstractItem {
         return new Date(getLastModifiedTime().getTime() + getMaxExecutionTime());
     }
 
-    public boolean isForceExecution() {
-        final Boolean forceExecution = getProperty(JobInfoProperty.FORCE_EXECUTION);
-        return forceExecution == null ? false : forceExecution;
+    public JobExecutionPriority getExecutionPriority() {
+        final String priority = getProperty(JobInfoProperty.EXECUTION_PRIORITY);
+        if (priority == null) {
+            return null;
+        } else {
+            return JobExecutionPriority.valueOf(priority);
+        }
     }
 
     public Date getCreationTime() {
