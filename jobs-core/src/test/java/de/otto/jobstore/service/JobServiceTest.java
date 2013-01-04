@@ -1,10 +1,10 @@
-package de.otto.jobstore.service.impl;
+package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
-import de.otto.jobstore.repository.api.JobInfoRepository;
-import de.otto.jobstore.service.api.JobService;
-import de.otto.jobstore.service.api.RemoteJobExecutorService;
+import de.otto.jobstore.repository.JobInfoRepository;
+import de.otto.jobstore.service.JobService;
+import de.otto.jobstore.service.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.*;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -15,7 +15,7 @@ import java.util.*;
 import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.AssertJUnit.*;
+import static org.testng.AssertJUnit.assertTrue;
 
 public class JobServiceTest {
 
@@ -30,7 +30,7 @@ public class JobServiceTest {
     public void setUp() throws Exception {
         jobInfoRepository = mock(JobInfoRepository.class);
         remoteJobExecutorService = mock(RemoteJobExecutorService.class);
-        jobService = new JobServiceImpl(jobInfoRepository, remoteJobExecutorService);
+        jobService = new JobService(jobInfoRepository, remoteJobExecutorService);
     }
 
     @Test
@@ -354,7 +354,7 @@ public class JobServiceTest {
 
     @Test(expectedExceptions = JobExecutionDisabledException.class)
     public void testJobExecutedDisabled() throws Exception {
-        JobServiceImpl jobServiceImpl = new JobServiceImpl(jobInfoRepository, remoteJobExecutorService);
+        JobService jobServiceImpl = new JobService(jobInfoRepository, remoteJobExecutorService);
         jobServiceImpl.setExecutionEnabled(false);
 
         jobServiceImpl.registerJob(createLocalJobRunnable(JOB_NAME_01));

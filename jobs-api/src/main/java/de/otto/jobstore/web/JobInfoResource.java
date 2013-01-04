@@ -1,8 +1,8 @@
 package de.otto.jobstore.web;
 
 import de.otto.jobstore.common.JobInfo;
-import de.otto.jobstore.service.api.JobInfoService;
-import de.otto.jobstore.service.api.JobService;
+import de.otto.jobstore.service.JobInfoService;
+import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.*;
 import de.otto.jobstore.web.representation.JobInfoRepresentation;
 import de.otto.jobstore.web.representation.JobNameRepresentation;

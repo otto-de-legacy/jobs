@@ -9,7 +9,7 @@ import java.io.Serializable;
 /**
  *  Abstract Class for Objects to be stored in MongoDB
  */
-public abstract class AbstractItem implements Item, Serializable {
+public abstract class AbstractItem implements Serializable {
 
     private final DBObject dbObject;
 
@@ -21,7 +21,6 @@ public abstract class AbstractItem implements Item, Serializable {
         this.dbObject = dbObject;
     }
 
-    @Override
     public final DBObject toDbObject() {
         return dbObject;
     }

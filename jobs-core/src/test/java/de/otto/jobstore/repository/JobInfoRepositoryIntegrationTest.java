@@ -1,4 +1,4 @@
-package de.otto.jobstore.repository.impl;
+package de.otto.jobstore.repository;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
@@ -17,14 +17,14 @@ import java.util.*;
 import static org.testng.AssertJUnit.*;
 
 @ContextConfiguration(locations = {"classpath:spring/lhotse-jobs-context.xml"})
-public class MongoJobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContextTests {
+public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContextTests {
 
     private static final String TESTVALUE_JOBNAME = "testjob";
     private static final String TESTVALUE_HOST    = "test";
     private static final String TESTVALUE_THREAD  = "thread";
 
     @Resource
-    private MongoJobInfoRepository jobInfoRepository;
+    private JobInfoRepository jobInfoRepository;
 
     @BeforeMethod
     public void setup() throws Exception {

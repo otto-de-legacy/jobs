@@ -4,7 +4,7 @@ import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
 /**
- * A job to be executed by a JobService {@link de.otto.jobstore.service.api.JobService}
+ * A job to be executed by a JobService {@link de.otto.jobstore.service.JobService}
  */
 public interface JobRunnable {
 

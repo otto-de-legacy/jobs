@@ -1,10 +1,10 @@
-package de.otto.jobstore.service.impl;
+package de.otto.jobstore.service;
 
 
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.ResultState;
-import de.otto.jobstore.repository.api.JobInfoRepository;
-import de.otto.jobstore.service.api.JobInfoService;
+import de.otto.jobstore.repository.JobInfoRepository;
+import de.otto.jobstore.service.JobInfoService;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -16,7 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.AssertJUnit.assertEquals;
 
-public class JobInfoServiceImplTest {
+public class JobInfoServiceTest {
 
     private JobInfoService jobInfoService;
     private JobInfoRepository jobInfoRepository;
@@ -24,7 +24,7 @@ public class JobInfoServiceImplTest {
     @BeforeMethod
     public void setUp() throws Exception {
         jobInfoRepository = mock(JobInfoRepository.class);
-        jobInfoService = new JobInfoServiceImpl(jobInfoRepository);
+        jobInfoService = new JobInfoService(jobInfoRepository);
     }
 
     @Test

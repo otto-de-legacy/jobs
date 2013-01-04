@@ -1,14 +1,14 @@
-package de.otto.jobstore.service.impl;
+package de.otto.jobstore.service;
 
 
 import de.otto.jobstore.common.JobRunnable;
-import de.otto.jobstore.repository.api.JobInfoRepository;
+import de.otto.jobstore.repository.JobInfoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 final class JobExecutionRunnable implements Runnable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JobServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobService.class);
 
     final JobRunnable jobRunnable;
     final JobInfoRepository jobInfoRepository;

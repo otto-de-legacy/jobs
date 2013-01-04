@@ -1,4 +1,4 @@
-package de.otto.jobstore.repository.impl;
+package de.otto.jobstore.repository;
 
 /**
  * Enumeration of MongoDB Query Operators
@@ -12,7 +12,6 @@ enum MongoOperator {
     LT("$lt"),
     LTE("$lte"),
     NE("$ne"),
-    NIN("$nin"),
     PUSH("$push"),
     SET("$set");
 

@@ -1,4 +1,4 @@
-package de.otto.jobstore.repository.impl;
+package de.otto.jobstore.repository;
 
 /**
  * Enumeration for MongoDB Sort Order

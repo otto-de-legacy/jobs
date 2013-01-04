@@ -1,10 +1,10 @@
-package de.otto.jobstore.service.impl;
+package de.otto.jobstore.service;
 
 import com.sun.jersey.api.client.UniformInterfaceException;
 import de.otto.jobstore.common.Parameter;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
-import de.otto.jobstore.service.api.RemoteJobExecutorService;
+import de.otto.jobstore.service.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 import de.otto.jobstore.service.exception.RemoteJobNotRunningException;
@@ -20,7 +20,7 @@ import static org.testng.AssertJUnit.*;
 
 @ContextConfiguration(locations = {"classpath:spring/lhotse-jobs-context.xml"})
 
-public class RemoteJobExecutorServiceImplTest extends AbstractTestNGSpringContextTests {
+public class RemoteJobExecutorServiceTest extends AbstractTestNGSpringContextTests {
 
     private static final String JOB_NAME = "demojob";
 

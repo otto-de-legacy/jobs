@@ -1,4 +1,4 @@
-package de.otto.jobstore.service.impl;
+package de.otto.jobstore.service;
 
 
 import com.sun.jersey.api.client.Client;
@@ -7,7 +7,6 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
-import de.otto.jobstore.service.api.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
@@ -19,18 +18,17 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.MediaType;
 import java.net.URI;
 
-public final class RemoteJobExecutorServiceImpl implements RemoteJobExecutorService {
+public class RemoteJobExecutorService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorService.class);
     private String jobExecutorUri;
     private Client client;
 
-    public RemoteJobExecutorServiceImpl(String jobExecutorUri, Client client) {
+    public RemoteJobExecutorService(String jobExecutorUri, Client client) {
         this.jobExecutorUri = jobExecutorUri;
         this.client = client;
     }
 
-    @Override
     public URI startJob(final RemoteJob job) throws JobException {
         try {
             final ClientResponse response = client.resource(jobExecutorUri + job.name + "/start").
@@ -48,7 +46,6 @@ public final class RemoteJobExecutorServiceImpl implements RemoteJobExecutorServ
         }
     }
 
-    @Override
     public void stopJob(URI jobUri) throws JobException {
         try {
             client.resource(jobUri + "/stop").post();
@@ -60,7 +57,6 @@ public final class RemoteJobExecutorServiceImpl implements RemoteJobExecutorServ
         }
     }
 
-    @Override
     public RemoteJobStatus getStatus(final URI jobUri) {
         try {
             final ClientResponse response = client.resource(jobUri.toString()).
@@ -75,7 +71,6 @@ public final class RemoteJobExecutorServiceImpl implements RemoteJobExecutorServ
         return null;
     }
 
-    @Override
     public boolean isAlive() {
         try {
             final ClientResponse response = client.resource(jobExecutorUri).get(ClientResponse.class);

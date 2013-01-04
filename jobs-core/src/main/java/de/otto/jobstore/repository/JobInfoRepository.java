@@ -1,10 +1,9 @@
-package de.otto.jobstore.repository.impl;
+package de.otto.jobstore.repository;
 
 
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
-import de.otto.jobstore.repository.api.JobInfoRepository;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,20 +12,26 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
 
-public final class MongoJobInfoRepository implements JobInfoRepository {
+/**
+ * A repository which stores information on jobs. For each distinct job name only one job can be running or queued.
+ *
+ * The method {@link #cleanupTimedOutJobs} needs to be called regularly to remove possible timed out jobs which would
+ * otherwise stop new jobs from being able to execute.
+ */
+public class JobInfoRepository {
 
     private static final String JOB_NAME_CLEANUP = "JobInfo_Cleanup";
     private static final String JOB_NAME_TIMED_OUT_CLEANUP = "JobInfo_TimedOut_Cleanup";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MongoJobInfoRepository.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobInfoRepository.class);
     private final DBCollection collection;
     private int daysAfterWhichOldJobsAreDeleted = 7;
 
-    public MongoJobInfoRepository(final Mongo mongo, final String dbName, final String collectionName) {
+    public JobInfoRepository(final Mongo mongo, final String dbName, final String collectionName) {
         this(mongo, dbName, collectionName, null, null);
     }
 
-    public MongoJobInfoRepository(final Mongo mongo, final String dbName, final String collectionName, final String username, final String password) {
+    public JobInfoRepository(final Mongo mongo, final String dbName, final String collectionName, final String username, final String password) {
         final DB db = mongo.getDB(dbName);
         if (username != null && !username.isEmpty()) {
             if (!db.isAuthenticated()) {
@@ -57,7 +62,16 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         this.daysAfterWhichOldJobsAreDeleted = days;
     }
 
-    @Override
+    /**
+     * Creates a new job with the given parameters. Host and thread executing the job are determined automatically.
+     *
+     * @param name The name of the job
+     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param runningState The state with which the job is started
+     * @param forceExecution If a job should ignore preconditions defined on where or not it should run
+     * @param additionalData Additional information to be stored with the job
+     * @return The id of the job if it could be created or null if a job with the same name and state already exists
+     */
     public String create(final String name, final long maxExecutionTime, final RunningState runningState,
                          final boolean forceExecution, final boolean remote, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
@@ -65,7 +79,18 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return create(name, host, thread, maxExecutionTime, runningState, forceExecution, remote, additionalData);
     }
 
-    @Override
+    /**
+     * Creates a new job with the given parameters
+     *
+     * @param name The name of the job
+     * @param host The host, on which the job is running
+     * @param thread The thread, which runs the job
+     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param runningState The state with which the job is started
+     * @param forceExecution If a job should ignore preconditions defined on where or not it should run
+     * @param additionalData Additional information to be stored with the job
+     * @return The id of the job if it could be created or null if a job with the same name and state already exists
+     */
     public String create(final String name, final String host, final String thread, final long maxExecutionTime,
                          final RunningState runningState, final boolean forceExecution, final boolean remote, final Map<String, String> additionalData) {
         try {
@@ -79,25 +104,50 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
-    @Override
+    /**
+     * Returns job with the given name and running state
+     *
+     * @param name The name of the job
+     * @param runningState The running state of the job
+     * @return The running job or null if no job with the given name is currently running
+     */
     public JobInfo findByNameAndRunningState(final String name, final String runningState) {
         final DBObject jobInfo = collection.findOne(createFindByNameAndRunningStateQuery(name, runningState));
         return fromDbObject(jobInfo);
     }
 
-    @Override
+    /**
+     * Checks if a job with the given name and state exists
+     *
+     * @param name The name of the job
+     * @param runningState The running state of the job
+     * @return true - A job with the given name is still running<br/>
+     *          false - A job with the given name is not running
+     */
     public boolean hasJob(final String name, final String runningState) {
         return findByNameAndRunningState(name, runningState) != null;
     }
 
-    @Override
+    /**
+     * Returns all queued jobs sorted ascending by start time
+     *
+     * @return The queued jobs
+     */
     public List<JobInfo> findQueuedJobsSortedAscByCreationTime() {
         final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name())).
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.ASC.val()));
         return getAll(cursor);
     }
 
-    @Override
+    /**
+     * Returns a list of jobs with the given name which have a creation timestamp which is in between the supplied
+     * dates. If the start and end parameter are null, the result list will contain all jobs with the supplied name.
+     *
+     * @param name The name of the jobs to return
+     * @param start The date on or after which the jobs were created
+     * @param end The date on or before which the jobs were created
+     * @return The list of jobs sorted by creationTime in descending order
+     */
     public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
         if (start != null) {
@@ -111,7 +161,14 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return getAll(cursor);
     }
 
-    @Override
+    /**
+     * Sets the status of the queued job with the given name to running. The lastModified date of the job is set
+     * to the current date.
+     *
+     * @param name The name of the job
+     * @return true - If the job with the given name was activated successfully<br/>
+     *          false - If no queued job with the current name could be found and thus could not activated
+     */
     public boolean activateQueuedJob(final String name) {
         Date dt = new Date();
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
@@ -123,12 +180,27 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return result.getN() == 1;
     }
 
-    @Override
+    /**
+     * Updates the host and thread information on the running job with the given name. Host and thread information
+     * are determined automatically.
+     *
+     * @param name The name of the job
+     * @return true - The data was successfully added to the job<br/>
+     *         false - No running job with the given name could be found
+     */
     public boolean updateHostThreadInformation(final String name) {
         return updateHostThreadInformation(name, InternetUtils.getHostName(), Thread.currentThread().getName());
     }
 
-    @Override
+    /**
+     * Updates the host and thread information on the running job with the given name
+     *
+     * @param name The name of the job
+     * @param host The host to set
+     * @param thread The thread to set
+     * @return true - The data was successfully added to the job<br/>
+     *         false - No running job with the given name could be found
+     */
     public boolean updateHostThreadInformation(final String name, final String host, final String thread) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.HOST.val(), host).append(JobInfoProperty.THREAD.val(), thread));
@@ -136,7 +208,13 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return result.getN() == 1;
     }
 
-    @Override
+    /**
+     * Marks a running job with the given id as finished.
+     *
+     * @param id The id of the job
+     * @return true - If the job was deleted successfully<br/>
+     *          false - If no queued job with the given name could be found
+     */
     public boolean markAsFinishedById(final String id, final ResultState resultState) {
         if (ObjectId.isValid(id)) {
             final Date dt = new Date();
@@ -152,7 +230,15 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
-    @Override
+    /**
+     * Marks a running job with the given name as finished.
+     *
+     * @param name The name of the job
+     * @param state The result state of the job
+     * @param errorMessage An optional error message
+     * @return true - The job was marked as requested<br/>
+     *          false - No running job with the given name could be found
+     */
     public boolean markRunningAsFinished(final String name, final ResultState state, final String errorMessage) {
         final Date dt = new Date();
         final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
@@ -168,7 +254,14 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return result.getN() == 1;
     }
 
-    @Override
+    /**
+     * Marks a running job with the given name as finished with an error and writes
+     * the stack trace of the exception to the error message property of the job.
+     *
+     * @param name The name of the job
+     * @return true - The job was marked as requested<br/>
+     *          false - No running job with the given name could be found
+     */
     public boolean markRunningAsFinishedWithException(final String name, final Throwable t) {
         final StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
@@ -176,6 +269,13 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
                 "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString());
     }
 
+    /**
+     * Marks the current queued job of the given name as not executed
+     *
+     * @param name The name of the job
+     * @return true - The job was marked as requestred<br/>
+     *          false - No queued job with the given name could be found
+     */
     public boolean markQueuedAsNotExecuted(final String name) {
         final Date dt = new Date();
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
@@ -188,12 +288,27 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return result.getN() == 1;
     }
 
-    @Override
+    /**
+     * Marks a job with the given name as finished successfully.
+     *
+     * @param name The name of the job
+     * @return true - The job was marked as requested<br/>
+     *          false - No running job with the given name could be found
+     */
     public boolean markRunningAsFinishedSuccessfully(final String name) {
         return markRunningAsFinished(name, ResultState.SUCCESSFUL, null);
     }
 
-    @Override
+    /**
+     * Adds additional data to a running job with the given name. If information with the given key already exists
+     * it is overwritten. The lastModified date of the job is set to the current date.
+     *
+     * @param name The name of the job
+     * @param key The key of the data to save
+     * @param value The information to save
+     * @return true - The data was successfully added to the job<br/>
+     *          false - No running job with the given name could be found
+     */
     public boolean addAdditionalData(final String name, final String key, final String value) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObjectBuilder().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
@@ -202,7 +317,12 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return result.getN() == 1;
     }
 
-    @Override
+    /**
+     * Find a job by its id
+     *
+     * @param id The id of the job
+     * @return The job with the given id or null if no corresponding job was found.
+     */
     public JobInfo findById(final String id) {
         if (ObjectId.isValid(id)) {
             final DBObject obj = collection.findOne(new BasicDBObject("_id", new ObjectId(id)));
@@ -212,7 +332,13 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
-    @Override
+    /**
+     * Returns all jobs with the given name.
+     *
+     * @param name The name of the jobs
+     * @param limit The maximum number of jobs to return
+     * @return All jobs with the given name sorted descending by last modified date
+     */
     public List<JobInfo> findByName(final String name, final Integer limit) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
         final DBCursor cursor = collection.find(query.get()).
@@ -224,7 +350,12 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
-    @Override
+    /**
+     * Returns the job with the given name and the most current last modified timestamp.
+     *
+     * @param name The name of the job
+     * @return The job with the given name and the most current timestamp or null if none could be found.
+     */
     public JobInfo findMostRecentByName(final String name) {
         final DBCursor cursor = collection.find(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), name)).
@@ -232,7 +363,14 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return getFirst(cursor);
     }
 
-    @Override
+    /**
+     * Returns the job with the given name and result state(s) as well as the most current last modified timestamp.
+     *
+     * @param name The name of the job
+     * @param resultStates The result states the job may have
+     * @return The job with the given name and result state as well as the most current timestamp or null
+     * if none could be found.
+     */
     public JobInfo findMostRecentByNameAndResultState(final String name, final Set<ResultState> resultStates) {
         DBObject query = createFindByNameAndResultStateQuery(name, resultStates);
         DBCursor cursor = collection.find(query).
@@ -240,7 +378,11 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return getFirst(cursor);
     }
 
-    @Override
+    /**
+     * Returns for all existing job names the job with the most current last modified timestamp regardless of its state.
+     *
+     * @return The jobs with distinct names and the most current last modified timestamp
+     */
     public List<JobInfo> findMostRecent() {
         final List<JobInfo> jobs = new ArrayList<>();
         for (String name : distinctJobNames()) {
@@ -252,13 +394,24 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return jobs;
     }
 
-    @Override
+    /**
+     * Returns the list of all distinct job names within this repository
+     *
+     * @return The list of distinct jobnames
+     */
     @SuppressWarnings("unchecked")
     public List<String> distinctJobNames() {
         return collection.distinct(JobInfoProperty.NAME.val());
     }
 
-    @Override
+    /**
+     * Adds a logging line to the logging data of the running job with the supplied name
+     *
+     * @param jobName The name of the job
+     * @param line The log line to add
+     * @return true - The data was successfully added to the job<br/>
+     *         false - No running job with the given name could be found
+     */
     public boolean addLogLine(final String jobName, final String line) {
         final Date dt = new Date();
         final LogLine logLine = new LogLine(line, dt);
@@ -269,7 +422,14 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return result.getN() == 1;
     }
 
-    @Override
+    /**
+     * Sets the log lines of the running job with the supplies name
+     *
+     * @param name The name of the job
+     * @param lines the log lines to add
+     * @return true - The data was successfully added to the job<br/>
+     *         false - No running job with the given name could be found
+     */
     public boolean setLogLines(final String name, final List<String> lines) {
         final Date dt = new Date();
         final List<DBObject> logLines = new ArrayList<>();
@@ -282,7 +442,12 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         return result.getN() == 1;
     }
 
-    @Override
+    /**
+     * Removed the running job (flags it as timed out) with the given name if it is timed out
+     *
+     * @param name The name of the job
+     * @param currentDate The current date
+     */
     public void removeJobIfTimedOut(final String name, final Date currentDate) {
         if (hasJob(name, RunningState.RUNNING.name())) {
             final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING.name());
@@ -292,7 +457,11 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
-    @Override
+    /**
+     * Clears all elements from the repository
+     *
+     * @param dropCollection Flag if the collection should be dropped
+     */
     public void clear(final boolean dropCollection) {
         LOGGER.info("Going to clear all entities on collection: {}", collection.getFullName());
         if (dropCollection) {
@@ -309,12 +478,18 @@ public final class MongoJobInfoRepository implements JobInfoRepository {
         }
     }
 
-    @Override
+    /**
+     * Counts the number of documents in the repository
+     *
+     * @return The number of documents in the repository
+     */
     public long count() {
         return collection.count();
     }
 
-    @Override
+    /**
+     * Flags all running jobs as timed out if the have not be updated within the max execution time
+     */
     public int cleanupTimedOutJobs() {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
