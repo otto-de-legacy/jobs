@@ -21,7 +21,7 @@ def disabled(f):
 class JobMonitorUnitTests(TestCase):
 
     def test_create_jobconf(self):
-        fullpath = jobmonitor.create_jobconf('demojob', '4711', {'domain_name':'server1','key2':'var2'})
+        fullpath = jobmonitor.create_jobconf('demojob', '4711', {'sample_file':'/var/log/syslog','key2':'var2'})
         self.assertTrue(len(fullpath) > 0)
 
     def test_job_id(self):
@@ -40,6 +40,12 @@ class JobMonitorIntegrationTests(TestCase):
 
     def setUp(self):
         jobmonitor.app.config['TESTING'] = True
+        # get rid of old job instance file
+        try:
+            os.remove(os.path.join(jobmonitor.app.config['JOB_INSTANCES_DIR'], 'demojob.conf'))
+        except OSError:
+            pass
+        # prepare HTTP client
         self.app = jobmonitor.app.test_client()
         print "starting test using: %s" % jobmonitor.app.config
         # if running job instance, kill it first

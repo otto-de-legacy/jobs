@@ -154,9 +154,9 @@ def start_job_instance(job_name):
     # ~~ check if already running
     job_active = False
     job_process_id = -1
-    job_filepath = get_job_instance_filepath(job_name)
-    if job_filepath:
+    if exists_job_instance(job_name):
         log.info("Found job instance, check if still running...")
+        job_filepath = get_job_instance_filepath(job_name)
         (job_active, job_process_id) = get_job_status(job_name, job_filepath)
 
     if job_active:
