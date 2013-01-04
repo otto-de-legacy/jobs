@@ -161,11 +161,13 @@ def start_job_instance(job_name):
         (job_active, job_process_id) = get_job_status(job_name, job_filepath)
 
     if job_active:
+        log.info('Job %s is still active, link to existing instance ...', job_name)
         job_id = 99999
         msg = { 'status': 'RUNNING', 'message': "job '%s' is still running with process id %d" % (job_name, job_process_id)}
         resp = Response(json.dumps(msg), status=303, mimetype='application/json')
         resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
     else:
+        log.info('Job %s is not active, going to start new instance ...', job_name)
         # ~~ extract Job parameters from JSON and create job config
         job_id = create_job_id()
         job_params = request.json['parameters'] if request.json['parameters'] else {}
