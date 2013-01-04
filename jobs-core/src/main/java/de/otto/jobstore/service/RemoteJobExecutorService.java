@@ -31,8 +31,9 @@ public class RemoteJobExecutorService {
 
     public URI startJob(final RemoteJob job) throws JobException {
         try {
-            final ClientResponse response = client.resource(jobExecutorUri + job.name + "/start").
-                    type(MediaType.APPLICATION_JSON).post(ClientResponse.class, job.toJsonObject());
+            final ClientResponse response = client.resource(jobExecutorUri + job.name + "/start")
+                    .type(MediaType.APPLICATION_JSON).header("Connection", "close")
+                    .post(ClientResponse.class, job.toJsonObject());
             if (response.getStatus() == 201) {
                 return createJobUri(response.getHeaders().getFirst("Link"));
             } else if (response.getStatus() == 303) {
@@ -48,7 +49,7 @@ public class RemoteJobExecutorService {
 
     public void stopJob(URI jobUri) throws JobException {
         try {
-            client.resource(jobUri + "/stop").post();
+            client.resource(jobUri + "/stop").header("Connection", "close").post();
         } catch (UniformInterfaceException e) {
             if (e.getResponse().getStatus() == 403) {
                 throw new RemoteJobNotRunningException("Remote job '" + jobUri.toString() + "' is not running");
@@ -60,7 +61,7 @@ public class RemoteJobExecutorService {
     public RemoteJobStatus getStatus(final URI jobUri) {
         try {
             final ClientResponse response = client.resource(jobUri.toString()).
-                    accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+                    accept(MediaType.APPLICATION_JSON).header("Connection", "close").get(ClientResponse.class);
             if (response.getStatus() == 200) {
                 return response.getEntity(RemoteJobStatus.class);
             }
@@ -73,7 +74,8 @@ public class RemoteJobExecutorService {
 
     public boolean isAlive() {
         try {
-            final ClientResponse response = client.resource(jobExecutorUri).get(ClientResponse.class);
+            final ClientResponse response = client.resource(jobExecutorUri).header("Connection", "close")
+                                                                           .get(ClientResponse.class);
             return (response.getStatus() == 200);
         } catch (UniformInterfaceException | ClientHandlerException e) {
             LOGGER.warn("Remote Job Executor is not available from: {}", jobExecutorUri, e);
