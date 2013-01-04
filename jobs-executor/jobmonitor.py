@@ -72,6 +72,7 @@ def api_root():
 
 
 @app.route('/jobs', methods = ['GET'])
+@app.route('/jobs/', methods = ['GET'])
 def get_available_jobs():
     """List all registered jobs known to the system."""
     available_jobs = get_job_template_names()
