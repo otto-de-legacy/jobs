@@ -71,6 +71,16 @@ public class RemoteJobExecutorService {
         return null;
     }
 
+    public boolean isAlive() {
+        try {
+            final ClientResponse response = client.resource(jobExecutorUri).get(ClientResponse.class);
+            return (response.getStatus() == 200);
+        } catch (UniformInterfaceException | ClientHandlerException e) {
+            LOGGER.warn("Remote Job Executor is not available from: {}", jobExecutorUri, e);
+        }
+        return false;
+    }
+
     private URI createJobUri(String path) {
         return URI.create(jobExecutorUri).resolve(path);
     }
