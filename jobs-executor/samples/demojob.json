@@ -3,6 +3,6 @@
     "name": "demojob",
     "parameters": {
     	"sample_file": "/var/log/syslog",
-        "domain_name": "server1" 
+        "unused_host": "server1"
     }
 }
