@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.4"
+__version__ = "0.8.5"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -83,6 +83,7 @@ def get_available_jobs():
 def create_job(job_name):
     """Register new job (template) in the job monitor."""
 
+    log.info('Going to register %s definition ...', job_name)
     # ~~ expect JSON as input
     definition = request.data
     if not definition:
@@ -148,6 +149,7 @@ def get_job_by_id(job_name, job_id):
 def start_job_instance(job_name):
     """Trigger new job on remote server with given name"""
 
+    log.info('Going to start new %s instance ...', job_name)
     # ~~ expect JSON as input
     if request.headers['Content-Type'] != 'application/json':
         return Response("Only 'application/json' currently supported as media type", status=415)
