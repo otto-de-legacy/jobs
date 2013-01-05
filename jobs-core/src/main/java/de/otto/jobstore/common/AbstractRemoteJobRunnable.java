@@ -1,6 +1,5 @@
 package de.otto.jobstore.common;
 
-
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.service.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.JobException;
@@ -13,8 +12,20 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
 
     private final RemoteJobExecutorService remoteJobExecutorService;
 
+    protected String id;
+
     protected AbstractRemoteJobRunnable(RemoteJobExecutorService remoteJobExecutorService) {
         this.remoteJobExecutorService = remoteJobExecutorService;
+    }
+
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(String id) {
+        this.id = id;
     }
 
     @Override
@@ -27,7 +38,7 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     @Override
     public void execute(JobLogger jobLogger) throws JobException {
         try {
-            final URI uri = remoteJobExecutorService.startJob(new RemoteJob(getName(), getParameters()));
+            final URI uri = remoteJobExecutorService.startJob(new RemoteJob(getName(), getId(), getParameters()));
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), uri.toString());
         } catch (RemoteJobAlreadyRunningException e) {
             jobLogger.insertOrUpdateAdditionalData("resumedAlreadyRunningJob", e.getJobUri().toString());

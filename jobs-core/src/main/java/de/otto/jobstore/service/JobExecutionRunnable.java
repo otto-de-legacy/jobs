@@ -1,6 +1,5 @@
 package de.otto.jobstore.service;
 
-
 import de.otto.jobstore.common.JobRunnable;
 import de.otto.jobstore.repository.JobInfoRepository;
 import org.slf4j.Logger;

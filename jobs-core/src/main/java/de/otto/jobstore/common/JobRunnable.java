@@ -8,6 +8,13 @@ import de.otto.jobstore.service.exception.JobExecutionException;
  */
 public interface JobRunnable {
 
+
+    /**
+     * The ID uniquely identifying this job instance.
+     */
+    String getId();
+    void setId(String id);
+
     /**
      * The name of the job
      *

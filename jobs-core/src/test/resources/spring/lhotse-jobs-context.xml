@@ -18,7 +18,8 @@
     </bean>
 
     <bean class="de.otto.jobstore.service.RemoteJobExecutorService">
-        <constructor-arg index="0" value="http://localhost:5000/jobs/"/>
+        <constructor-arg index="0" value="http://127.0.0.1:5000/jobs/"/>
+        <!-- constructor-arg index="0" value="http://fh02.develop-ci.lhotse.ov.otto.de:5000/jobs/"/ -->
         <constructor-arg index="1" ref="httpClient"/>
     </bean>
 
@@ -31,10 +32,10 @@
                             <bean class="org.apache.commons.httpclient.MultiThreadedHttpConnectionManager">
                                 <property name="params">
                                     <bean class="org.apache.commons.httpclient.params.HttpConnectionManagerParams">
-                                        <property name="defaultMaxConnectionsPerHost" value="100" />
-                                        <property name="maxTotalConnections" value="100" />
-                                        <property name="connectionTimeout" value="50000"/>
-                                        <property name="soTimeout" value="50000"/>
+                                        <property name="defaultMaxConnectionsPerHost" value="20" />
+                                        <property name="maxTotalConnections" value="20" />
+                                        <property name="connectionTimeout" value="15000"/>
+                                        <property name="soTimeout" value="15000"/>
                                     </bean>
                                 </property>
                             </bean>

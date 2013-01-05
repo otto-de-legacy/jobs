@@ -1,6 +1,5 @@
 package de.otto.jobstore.service;
 
-
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
@@ -30,29 +29,33 @@ public class RemoteJobExecutorService {
     }
 
     public URI startJob(final RemoteJob job) throws JobException {
+        final String startUrl = jobExecutorUri + job.name + "/start";
         try {
-            final ClientResponse response = client.resource(jobExecutorUri + job.name + "/start")
+            LOGGER.info("Going to start new job from {} ...", startUrl);
+            final ClientResponse response = client.resource(startUrl)
                     .type(MediaType.APPLICATION_JSON).header("Connection", "close")
                     .post(ClientResponse.class, job.toJsonObject());
             if (response.getStatus() == 201) {
                 return createJobUri(response.getHeaders().getFirst("Link"));
             } else if (response.getStatus() == 303) {
-                throw new RemoteJobAlreadyRunningException("Remote job is already running", createJobUri(response.getHeaders().getFirst("Link")));
+                throw new RemoteJobAlreadyRunningException("Remote job is already running, url=" + startUrl, createJobUri(response.getHeaders().getFirst("Link")));
             }
-            throw new JobExecutionException("Received unexpected status code " + response.getStatus() + " when trying to create remote job " + job.name);
+            throw new JobExecutionException("Unable to start remote job: url=" + startUrl + " rc=" + response.getStatus());
         } catch (JSONException e) {
-            throw new JobExecutionException("Could not create json object from remote job object", e);
+            throw new JobExecutionException("Could not create JSON object: " + job, e);
         } catch (UniformInterfaceException | ClientHandlerException  e) {
-            throw new JobExecutionException("Received unexpected exception when trying to create remote job " + job.name, e);
+            throw new JobExecutionException("Problem while starting new job: url=" + startUrl, e);
         }
     }
 
     public void stopJob(URI jobUri) throws JobException {
+        final String stopUrl = jobUri + "/stop";
         try {
-            client.resource(jobUri + "/stop").header("Connection", "close").post();
+            LOGGER.info("Going to stop job from {} ...", stopUrl);
+            client.resource(stopUrl).header("Connection", "close").post();
         } catch (UniformInterfaceException e) {
             if (e.getResponse().getStatus() == 403) {
-                throw new RemoteJobNotRunningException("Remote job '" + jobUri.toString() + "' is not running");
+                throw new RemoteJobNotRunningException("Remote job is not running: url=" + stopUrl);
             }
             throw e;
         }
@@ -82,6 +85,8 @@ public class RemoteJobExecutorService {
         }
         return false;
     }
+
+    // ~
 
     private URI createJobUri(String path) {
         return URI.create(jobExecutorUri).resolve(path);

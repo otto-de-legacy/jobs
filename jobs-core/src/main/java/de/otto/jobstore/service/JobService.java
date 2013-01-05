@@ -159,8 +159,9 @@ public class JobService {
             // TODO: executeJob semantisch ueberladen, verhaelt sich eher wie ein executeOrAlternativelyQueueJobSometimes
             id = queueJob(runnable, forceExecution, "The job " + name + " violates running constraints and is already queued for execution");
         } else if (forceExecution || runnable.isExecutionNecessary()) {
-            id = runJob(runnable, forceExecution, "A job with name " + name + " is already running");
-            LOGGER.debug("ltag=JobService.runJob.executingJob jobInfoName={}", name);
+            id = prepareJob(runnable, forceExecution, "A job with name " + name + " is already running");
+            runnable.setId(id);
+            LOGGER.debug("ltag=JobService.runJob.executeJob jobInfoName={} jobId={}", name, id);
             executeJob(runnable);
         } else {
             throw new JobExecutionNotNecessaryException("Execution of job " + name + " was not necessary");
@@ -293,10 +294,10 @@ public class JobService {
         return id;
     }
 
-    private String runJob(JobRunnable runnable, boolean forceExecution, String exceptionMessage)
-            throws JobAlreadyRunningException {
+    /** Returns the Job ID */
+    private String prepareJob(JobRunnable runnable, boolean forceExecution, String exceptionMessage) throws JobAlreadyRunningException {
         final String id = jobInfoRepository.create(runnable.getName(), runnable.getMaxExecutionTime(),
-                RunningState.RUNNING, forceExecution, runnable.isRemote(), null);
+                                                   RunningState.RUNNING, forceExecution, runnable.isRemote(), null);
         if (id == null) {
             throw new JobAlreadyRunningException(exceptionMessage);
         }

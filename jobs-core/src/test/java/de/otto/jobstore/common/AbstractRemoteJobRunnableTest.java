@@ -27,8 +27,8 @@ public class AbstractRemoteJobRunnableTest {
     @Test
     public void testExecutingJob() throws Exception {
         URI uri = URI.create("http://www.otto.de");
-        when(remoteJobExecutorService.startJob(new RemoteJob(jobName, parameters))).thenReturn(uri);
-        JobRunnable runnable = new RemoteJobRunnable(remoteJobExecutorService);
+        when(remoteJobExecutorService.startJob(new RemoteJob(jobName, "4811", parameters))).thenReturn(uri);
+        JobRunnable runnable = new RemoteJobRunnable(remoteJobExecutorService, "4811");
         MockJobLogger logger = new MockJobLogger();
         runnable.execute(logger);
 
@@ -38,9 +38,9 @@ public class AbstractRemoteJobRunnableTest {
     @Test
     public void testExecutingJobWhichIsAlreadyRunning() throws Exception {
         URI uri = URI.create("http://www.otto.de");
-        when(remoteJobExecutorService.startJob(new RemoteJob(jobName, parameters))).
+        when(remoteJobExecutorService.startJob(new RemoteJob(jobName, "4711", parameters))).
                 thenThrow(new RemoteJobAlreadyRunningException("", uri));
-        JobRunnable runnable = new RemoteJobRunnable(remoteJobExecutorService);
+        JobRunnable runnable = new RemoteJobRunnable(remoteJobExecutorService, "4711");
         MockJobLogger logger = new MockJobLogger();
         runnable.execute(logger);
 
@@ -50,8 +50,9 @@ public class AbstractRemoteJobRunnableTest {
 
     private class RemoteJobRunnable extends AbstractRemoteJobRunnable {
 
-        private RemoteJobRunnable(RemoteJobExecutorService remoteJobExecutorService) {
+        private RemoteJobRunnable(RemoteJobExecutorService remoteJobExecutorService, String id) {
             super(remoteJobExecutorService);
+            setId(id);
         }
 
         @Override

@@ -3,8 +3,6 @@ package de.otto.jobstore.service;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.repository.JobInfoRepository;
-import de.otto.jobstore.service.JobService;
-import de.otto.jobstore.service.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.*;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -183,7 +181,7 @@ public class JobServiceTest {
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
                 Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L)));
         when(jobInfoRepository.markAsFinishedById(anyString(), any(ResultState.class))).thenReturn(Boolean.TRUE);
-        jobService.registerJob(new LocalMockJobRunnable(JOB_NAME_01,1000, false));
+        jobService.registerJob(new LocalMockJobRunnable(JOB_NAME_01, 1000, false));
 
         jobService.executeQueuedJobs();
         verify(jobInfoRepository, times(1)).markAsFinishedById(anyString(), any(ResultState.class));
@@ -392,16 +390,10 @@ public class JobServiceTest {
     }
 
     /***
-     *
      *  HELPER
-     *
      */
     private JobRunnable createLocalJobRunnable(String name) {
         return new LocalMockJobRunnable(name, 0, true);
-    }
-
-    private JobRunnable createRemoteJobRunnable(String name) {
-        return new RemoteMockJobRunnable(name, 0, 0, true);
     }
 
     private class RemoteMockJobRunnable extends AbstractRemoteJobRunnable {
@@ -410,7 +402,6 @@ public class JobServiceTest {
         private long maxExecutionTime;
         private long pollingInterval;
         private boolean executionNecessary;
-        private volatile boolean executed = false;
 
         private RemoteMockJobRunnable(String name, long maxExecutionTime, long pollingInterval, boolean executionNecessary) {
             super(remoteJobExecutorService);
@@ -447,11 +438,6 @@ public class JobServiceTest {
 
         @Override
         public void execute(JobLogger jobLogger) throws JobExecutionException {
-            executed = true;
-        }
-
-        public boolean isExecuted() {
-            return executed;
         }
 
     }

@@ -1,6 +1,5 @@
 package de.otto.jobstore.common.example;
 
-
 import de.otto.jobstore.common.AbstractLocalJobRunnable;
 import de.otto.jobstore.common.JobLogger;
 import de.otto.jobstore.service.exception.JobExecutionException;
