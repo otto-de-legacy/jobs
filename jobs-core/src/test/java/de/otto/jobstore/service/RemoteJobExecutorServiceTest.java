@@ -24,7 +24,7 @@ public class RemoteJobExecutorServiceTest extends AbstractTestNGSpringContextTes
     @Resource
     private RemoteJobExecutorService remoteJobExecutorService;
 
-    @Test
+    @Test(enabled = false)
     public void testStartingDemoJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         assertNotNull(uri);
@@ -33,7 +33,7 @@ public class RemoteJobExecutorServiceTest extends AbstractTestNGSpringContextTes
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(expectedExceptions = RemoteJobAlreadyRunningException.class)
+    @Test(enabled = false, expectedExceptions = RemoteJobAlreadyRunningException.class)
     public void testStartingDemoJobWhichIsAlreadyRunning() throws Exception {
         URI uri = null;
         try {
@@ -51,19 +51,19 @@ public class RemoteJobExecutorServiceTest extends AbstractTestNGSpringContextTes
         }
     }
 
-    @Test(expectedExceptions = RemoteJobNotRunningException.class)
+    @Test(enabled = false, expectedExceptions = RemoteJobNotRunningException.class)
     public void testStoppingJobTwice() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         remoteJobExecutorService.stopJob(uri);
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(expectedExceptions = RemoteJobNotRunningException.class)
+    @Test(enabled = false, expectedExceptions = RemoteJobNotRunningException.class)
     public void testStoppingNotExistingJob() throws Exception {
         remoteJobExecutorService.stopJob(URI.create("http://localhost:5000/jobs/" + JOB_NAME + "/12345")); // TODO: configure URL
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testGettingStatusOfRunningJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         RemoteJobStatus status = remoteJobExecutorService.getStatus(uri);
@@ -74,7 +74,7 @@ public class RemoteJobExecutorServiceTest extends AbstractTestNGSpringContextTes
         //assertNull(status.result);
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testGettingStatusOfFinishedJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         remoteJobExecutorService.stopJob(uri);
