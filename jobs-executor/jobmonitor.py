@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.7"
+__version__ = "0.8.8"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -68,25 +68,32 @@ app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
 @app.route('/')
 def api_root():
     """Index page spitting out who we are."""
+
+    # TODO: link to most important resources
     return 'Job Monitor (v %s)' % __version__
 
+
+# ~~~~ Job Metadata API
 
 @app.route('/jobs', methods = ['GET'])
 @app.route('/jobs/', methods = ['GET'])
 def get_available_jobs():
     """List all registered jobs known to the system."""
+
     available_jobs = get_job_template_names()
     msg = { 'jobs': available_jobs }
+    # TODO: link each job to its status resource
     return Response(json.dumps(msg), status=200, mimetype='application/json')
+
 
 @app.route('/jobs/<job_name>', methods = ['POST'])
 def create_job(job_name):
     """Register new job (template) in the job monitor."""
 
-    log.info('Going to register %s definition ...', job_name)
     # ~~ expect JSON as input
     definition = request.data
     if not definition:
+        log.warn('No payload in body: unable to register %s definition ...', job_name)
         return Response("Require job definition as body", status=400)
     if request.headers['Content-Type'] != 'application/text':
         return Response("Only 'application/text' currently supported as media type", status=415)
@@ -102,57 +109,27 @@ def create_job(job_name):
     resp.headers['Link'] = url_for('get_current_job', job_name=job_name)
     return resp
 
+
 @app.route('/jobs/<job_name>', methods = ['DELETE'])
 def delete_job(job_name):
     """Unregister job and delete associated template."""
 
     if exists_job_template(job_name):
         remove_job_template(job_name)
-        resp = Response("", status=200, mimetype='application/json')
+        log.info("Removed job template for %s", job_name)
+        return Response("", status=200, mimetype='application/json')
     else:
         msg = {'message': "No job definition found for %s..." % job_name}
-        resp = Response(json.dumps(msg), status=404, mimetype='application/json')
-
-    return resp
-
-
-@app.route('/jobs/<job_name>', methods = ['GET'])
-def get_current_job(job_name):
-    if exists_job_instance(job_name):
-        job_filepath = get_job_instance_filepath(job_name)
-        log.info("Found job instance, check if still running...")
-        (job_active, job_process_id) = get_job_status(job_name, job_filepath)
-        # TODO: also care for exit code
-        return response_job_status(job_name, job_active, 99999, job_process_id)
-    else:
-        if exists_job_template(job_name):
-            msg = { 'message': "No job instance found for '%s'" % job_name }
-            return Response(json.dumps(msg), status=200, mimetype='application/json')
-        else:
-            msg = { 'message': "No job template exists for '%s'" % job_name }
-            return Response(json.dumps(msg), status=404, mimetype='application/json')
-
-
-@app.route('/jobs/<job_name>/<job_id>', methods = ['GET'])
-def get_job_by_id(job_name, job_id):
-    # check if job exists
-    if not exists_job_instance(job_name):
-        msg = { 'message': "No job instance found for '%s'" % job_name}
         return Response(json.dumps(msg), status=404, mimetype='application/json')
 
-    job_fullpath = get_job_instance_filepath(job_name)
-    (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
-    return response_job_status(job_name, job_active, job_id, job_process_id)
 
+# ~~~~ Job Instance control API
 
 @app.route('/jobs/<job_name>/start', methods = ['POST'])
 def start_job_instance(job_name):
     """Trigger new job on remote server with given name"""
 
-    if 'User-Agent' in request.headers:
-        user_agent = request.headers['User-Agent']
-    else:
-        user_agent = 'N/A'
+    user_agent = request.headers['User-Agent'] if 'User-Agent' in request.headers else 'N/A'
     log.info('Going to start new %s instance for user agent: %s ...', job_name, user_agent)
     # If Transfer-Encoding: chunked => Response status 400 will be returned, since WSGI does not support chunked encoding
     # ~~ expect JSON as input
@@ -178,8 +155,9 @@ def start_job_instance(job_name):
         # ~~ extract Job parameters from JSON and create job config
         job_id = create_job_id()
         job_params = request.json['parameters'] if request.json['parameters'] else {}
+        job_client_id = request.json['client_id'] if request.json['client_id'] else {}
 
-        log.info('preparing job %s with params: %s' % (job_name, job_params))
+        log.info('preparing job %s [%s] with params: %s' % (job_name, job_client_id, job_params))
         job_filepath = create_jobconf(job_name, job_id, job_params)
 
         # ~~ going to start of daemonized process
@@ -203,9 +181,44 @@ def start_job_instance(job_name):
     return resp
 
 
+@app.route('/jobs/<job_name>', methods = ['GET'])
+def get_current_job(job_name):
+    """Returns information about the currently running job instance."""
+
+    if exists_job_instance(job_name):
+        job_filepath = get_job_instance_filepath(job_name)
+        log.info("Found job instance, check if still running...")
+        (job_active, job_process_id) = get_job_status(job_name, job_filepath)
+        # TODO: also care for exit code
+        return response_job_status(job_name, job_active, 99999, job_process_id)
+    else:
+        if exists_job_template(job_name):
+            msg = { 'message': "No job instance found for '%s'" % job_name }
+            return Response(json.dumps(msg), status=200, mimetype='application/json')
+        else:
+            msg = { 'message': "No job template exists for '%s'" % job_name }
+            return Response(json.dumps(msg), status=404, mimetype='application/json')
+
+
+@app.route('/jobs/<job_name>/<job_id>', methods = ['GET'])
+def get_job_by_id(job_name, job_id):
+    """Returns information about the specified running job instance."""
+
+    # check if job exists
+    if not exists_job_instance(job_name):
+        msg = { 'message': "No job instance found for '%s'" % job_name}
+        return Response(json.dumps(msg), status=404, mimetype='application/json')
+
+    job_fullpath = get_job_instance_filepath(job_name)
+    (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
+    return response_job_status(job_name, job_active, job_id, job_process_id)
+
+
 @app.route('/jobs/<job_name>/stop', methods = ['POST'])
 @app.route('/jobs/<job_name>/<job_id>/stop', methods = ['POST'])  # DEPRECATED
 def stop_job_instance(job_name, job_id):
+    """Stops the given job instance from running."""
+
     # check if job exists
     if not exists_job_instance(job_name):
         return Response("No job instance found for '%s'" % job_name, status=404)
