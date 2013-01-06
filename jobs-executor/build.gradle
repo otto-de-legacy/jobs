@@ -1,8 +1,8 @@
 apply plugin: 'maven'
 
 group       = 'de.otto'
-version     = '0.8.8-SNAPSHOT'
-//version  = '0.8.8'
+version     = '0.8.9-SNAPSHOT'
+//version  = '0.8.9'
 
 description = 'Job Executor'
 
@@ -12,6 +12,7 @@ task customZip(type: Zip) {
     from ('.') {
         include 'README.txt'
         include 'jobmonitor*.py'
+        include 'lru.py'
         include 'auto_stub.py'
         include 'samples/*'
         include 'templates/*'

@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.8"
+__version__ = "0.8.9"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -29,6 +29,7 @@ from flask import json
 from flask import request, Response
 
 from fabric.api import run, settings
+from lru import LRUCacheDict
 
 
 # ~~ configuration: override by providing your own settings, see (2)
@@ -36,9 +37,10 @@ from fabric.api import run, settings
 DEBUG             = True
 HTTP_PORT         = 5000
 LOGFILE           = 'jobmonitor.log'
-TRANSCRIPT_DIR    = '/tmp'
-JOB_TEMPLATES_DIR = 'templates'
-JOB_INSTANCES_DIR = '/tmp/instances' # IMPORTANT: must be readable by user <JOB_USERNAME>
+TRANSCRIPT_DIR    = '/tmp'                   # dir for zdaemon log files (per job exactly one file)
+JOB_TEMPLATES_DIR = 'templates'              # by default relative to jobmonitor
+JOB_INSTANCES_DIR = '/tmp/jobexec/instances' # IMPORTANT: must be readable by user <JOB_USERNAME>
+JOB_LOG_DIR       = '/tmp/jobexec/log'       # log files for each single job instance
 JOB_HOSTNAME      = 'localhost'
 HOSTNAME          = socket.gethostname()
 
@@ -60,6 +62,8 @@ app.config.from_object(__name__)
 # (2) read in configuration file as specified by environment variable
 app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
 
+# (3) prepare mapping of unix process ids to timestamps (cache at max 4 hours)
+ps_map = LRUCacheDict(max_size=50, expiration=4*60*60)
 
 # ------------------------------------------------------
 # HTTP API
@@ -145,9 +149,12 @@ def start_job_instance(job_name):
         (job_active, job_process_id) = get_job_status(job_name, job_filepath)
 
     if job_active:
-        log.info('Job %s is still active, link to existing instance ...', job_name)
-        job_id = 99999
-        msg = { 'status': 'RUNNING', 'message': "job '%s' is still running with process id %d" % (job_name, job_process_id)}
+        try:
+            job_id = ps_map[job_process_id]
+        except KeyError:
+            job_id = "unknown"
+        log.info('Job %s is still active, link to latest running instance: %s ...' % (job_name, job_id))
+        msg = { 'status': 'RUNNING', 'message': "job '%s' [%s] is still running with process id %d" % (job_name, job_id, job_process_id)}
         resp = Response(json.dumps(msg), status=303, mimetype='application/json')
         resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
     else:
@@ -155,7 +162,7 @@ def start_job_instance(job_name):
         # ~~ extract Job parameters from JSON and create job config
         job_id = create_job_id()
         job_params = request.json['parameters'] if request.json['parameters'] else {}
-        job_client_id = request.json['client_id'] if request.json['client_id'] else {}
+        job_client_id = request.json['client_id'] if 'client_id' in request.json else {}
 
         log.info('preparing job %s [%s] with params: %s' % (job_name, job_client_id, job_params))
         job_filepath = create_jobconf(job_name, job_id, job_params)
@@ -170,6 +177,7 @@ def start_job_instance(job_name):
         # ~~ construct response
         if cmd_result.succeeded and "daemon process started" in cmd_result:
             job_process_id = extract_process_id(cmd_result)
+            ps_map[job_process_id] = job_id
             msg = { 'status': 'STARTED', 'message': "job '%s' started with process id=%d" % (job_name, job_process_id) }
             resp = Response(json.dumps(msg), status=201, mimetype='application/json')
             resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
@@ -190,7 +198,11 @@ def get_current_job(job_name):
         log.info("Found job instance, check if still running...")
         (job_active, job_process_id) = get_job_status(job_name, job_filepath)
         # TODO: also care for exit code
-        return response_job_status(job_name, job_active, 99999, job_process_id)
+        try:
+            job_id = ps_map[job_process_id]
+        except KeyError:
+            job_id = "unknown"
+        return response_job_status(job_name, job_active, job_id, job_process_id)
     else:
         if exists_job_template(job_name):
             msg = { 'message': "No job instance found for '%s'" % job_name }
@@ -247,6 +259,7 @@ def stop_job_instance(job_name, job_id):
 def response_job_status(job_name, job_active, job_id, job_process_id):
     log_lines = get_last_lines(get_job_instance_logpath(job_name, job_id), 100)
     if job_active:
+        # TODO: Link to job status page in addition to only presenting job_id
         msg = { 'status': 'RUNNING', 'job_id': "%s" % job_id, 'log_lines': log_lines,
                 'message': "job '%s' is running with process id %d" % (job_name, job_process_id)}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
@@ -327,9 +340,6 @@ def create_job_id():
     """Generate ID which can be used to uniquely refer to a job instance"""
     return time.strftime("%Y-%m-%d_%H%M%S")
 
-# def get_job_instance(job_name, job_id):
-#    return "%s_%s" % (job_name, job_id)
-
 def get_job_instance_filename(job_name):
     return "%s.conf" % job_name
 
@@ -337,7 +347,7 @@ def get_job_instance_logname(job_name, job_id):
     return "%s_%s.log" % (job_name, job_id)
 
 def get_job_instance_logpath(job_name, job_id):
-    return os.path.join(app.config['TRANSCRIPT_DIR'], get_job_instance_logname(job_name, job_id))
+    return os.path.join(app.config['JOB_LOG_DIR'], get_job_instance_logname(job_name, job_id))
 
 def get_job_instance_filepath(job_name):
     abs_instances_dir = os.path.abspath(app.config['JOB_INSTANCES_DIR'])
@@ -346,6 +356,8 @@ def get_job_instance_filepath(job_name):
 def ensure_job_instance_directory():
     if not os.path.exists(app.config['JOB_INSTANCES_DIR']):
         os.makedirs(app.config['JOB_INSTANCES_DIR'])
+    if not os.path.exists(app.config['JOB_LOG_DIR']):
+        os.makedirs(app.config['JOB_LOG_DIR'])
 
 def exists_job_instance(job_name):
     return os.path.exists(get_job_instance_filepath(job_name))
@@ -379,7 +391,7 @@ def remove_old_files(dir, days):
             os.remove(os.path.join(dir, filename))
 
 def permanent_check():
-    remove_old_files(app.config['JOB_INSTANCES_DIR'], 3) # days
+    remove_old_files(app.config['JOB_LOG_DIR'], 3) # days
     # execute every ... minutes
     threading.Timer(15 * 60, permanent_check).start()
 
