@@ -4,6 +4,8 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
@@ -23,9 +25,14 @@ public class RemoteJobExecutorService {
     private String jobExecutorUri;
     private Client client;
 
-    public RemoteJobExecutorService(String jobExecutorUri, Client client) {
+    public RemoteJobExecutorService(String jobExecutorUri) {
         this.jobExecutorUri = jobExecutorUri;
-        this.client = client;
+
+        // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
+        //    see: https://github.com/mitsuhiko/flask/issues/367
+        ClientConfig cc = new DefaultClientConfig();
+        cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
+        this.client = Client.create(cc);
     }
 
     public URI startJob(final RemoteJob job) throws JobException {
@@ -33,7 +40,7 @@ public class RemoteJobExecutorService {
         try {
             LOGGER.info("Going to start new job from {} ...", startUrl);
             final ClientResponse response = client.resource(startUrl)
-                    .type(MediaType.APPLICATION_JSON).header("Connection", "close")
+                    .type(MediaType.APPLICATION_JSON).header("Connection", "close").header("User-Agent", "RemoteJobExecutorService")
                     .post(ClientResponse.class, job.toJsonObject());
             if (response.getStatus() == 201) {
                 return createJobUri(response.getHeaders().getFirst("Link"));

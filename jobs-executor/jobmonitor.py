@@ -149,7 +149,8 @@ def get_job_by_id(job_name, job_id):
 def start_job_instance(job_name):
     """Trigger new job on remote server with given name"""
 
-    log.info('Going to start new %s instance ...', job_name)
+    log.info('Going to start new %s instance for user agent: %s ...', job_name, request.headers['User-Agent'])
+    # If Transfer-Encoding: chunked => Response status 400 will be returned, since WSGI does not support chunked encoding
     # ~~ expect JSON as input
     if request.headers['Content-Type'] != 'application/json':
         return Response("Only 'application/json' currently supported as media type", status=415)
