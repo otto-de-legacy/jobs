@@ -294,7 +294,8 @@ def save_job_template(job_name, data):
 def make_multiline_conf(line):
     """A bit of a hack: make sure the zdaemon definition is split on multiple lines."""
     trans1 = re.sub(r'<(/?\w+)>', r'\n<\1>\n', line)
-    return re.sub(r'(transcript )', r'\n\1', trans1)
+    trans2 = re.sub(r'(backoff-limit )', r'\n\1', trans1)
+    return re.sub(r'(transcript )', r'\n\1', trans2)
 
 def remove_job_template(job_name):
     fullpath = get_job_template_filepath(job_name)
