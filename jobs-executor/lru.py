@@ -1,6 +1,12 @@
-from collections import OrderedDict
+
+try:
+    # Python 2.7+
+    from collections import OrderedDict
+except:
+    # Python 2.6
+    from ordereddict import OrderedDict
+
 from time import time
-from itertools import islice
 
 def lru_cache_function(max_size=1024, expiration=15*60):
     """
