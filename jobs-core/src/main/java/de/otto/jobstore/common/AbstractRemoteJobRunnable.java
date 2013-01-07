@@ -13,7 +13,7 @@ import java.util.List;
 public abstract class AbstractRemoteJobRunnable implements JobRunnable {
 
     private final RemoteJobExecutorService remoteJobExecutorService;
-    protected Logger log = LoggerFactory.getLogger(this.getName());
+    protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     protected String id;
 
