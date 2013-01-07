@@ -1,0 +1,39 @@
+
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Going to start new FHFullSearchUpdate instance for user agent: RemoteJobExecutorService ...
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Job FHFullSearchUpdate is not active, going to start new instance ...
+[2013-01-07 02:00:00] [jobmonitor] [INFO] preparing job FHFullSearchUpdate [50ea1e10e4b0fe4bdbeaa04c] with params: {u'productSystemAbsUrl': u'http://product.develop-ci.lhotse.ov.otto.de:17395/product/api/products/', u'sanApiUrl': u'http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/'}
+[2013-01-07 02:00:00] [jobmonitor] [INFO] trying to start job FHFullSearchUpdate ...
+[2013-01-07 02:00:00] [paramiko.transport] [INFO] Secsh channel 357 opened.
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Going to start new FHIncrementalSearchUpdate instance for user agent: RemoteJobExecutorService ...
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Found job instance, check if still running...
+[2013-01-07 02:00:00] [paramiko.transport] [INFO] Secsh channel 358 opened.
+
+[localhost] run: zdaemon -C /tmp/jobexec/instances/FHFullSearchUpdate.conf start
+[localhost] run: zdaemon -C /tmp/jobexec/instances/FHIncrementalSearchUpdate.conf status
+[localhost] out: WARNING! zdrun is managing a different program!
+[localhost] out: our program   = ['/home/fred/san-artifacts/scripts/fullUpdateScript.sh', 'http://product.develop-ci.lhotse.ov.otto.de:17395/product/api/products/', 'http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/']
+[localhost] out: daemon's args = ['/home/fred/san-artifacts/scripts/incrementalUpdateScript.sh', 'http://product.develop-ci.lhotse.ov.otto.de:17395/product/api/products/', 'http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/', '2013-01-06T01:56:12.625+01:00']
+[localhost] out: daemon process already running; pid=23854
+[localhost] out:
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Started FHFullSearchUpdate [return code: 0]
+[2013-01-07 02:00:00] [werkzeug] [INFO] 10.185.16.154 - - [07/Jan/2013 02:00:00] "POST /jobs/FHFullSearchUpdate/start HTTP/1.1" 500 -
+
+
+
+
+========
+
+[2013-01-04 14:40:00] [jobmonitor] [INFO] Found job instance, check if still running...
+[2013-01-04 14:40:00] [paramiko.transport] [INFO] Secsh channel 4 opened.
+
+[localhost] run: zdaemon -C /tmp/instances/FHIncrementalSearchUpdate.conf status
+[localhost] out: daemon manager not running
+[localhost] out:
+
+Warning: run() received nonzero return code 3 while executing 'zdaemon -C /tmp/instances/FHIncrementalSearchUpdate.conf status'!
+
+[2013-01-04 14:40:00] [jobmonitor] [WARNING] Problem while checking job status: daemon manager not running
+[2013-01-04 14:40:00] [werkzeug] [INFO] 10.185.16.154 - - [04/Jan/2013 14:40:00] "POST /jobs/FHIncrementalSearchUpdate/start HTTP/1.1" 400 -
+
+======
+
