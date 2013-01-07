@@ -216,14 +216,26 @@ def get_current_job(job_name):
 def get_job_by_id(job_name, job_id):
     """Returns information about the specified running job instance."""
 
-    # check if job exists
+    # check if there exists at least a job instance
     if not exists_job_instance(job_name):
         msg = { 'message': "No job instance found for '%s'" % job_name}
         return Response(json.dumps(msg), status=404, mimetype='application/json')
 
+    # find job by ID (and show log)
+    found_process_id = None
+    for a_process_id in ps_map.keys():
+        if ps_map[a_process_id] == job_id:
+            found_process_id = a_process_id
+            break
+
+    # check if currently running job is same to one requested
     job_fullpath = get_job_instance_filepath(job_name)
     (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
-    return response_job_status(job_name, job_active, job_id, job_process_id)
+
+    if job_process_id == found_process_id:
+        return response_job_status(job_name, job_active, job_id, job_process_id)
+    else:
+        return response_job_status(job_name, False, job_id, found_process_id)
 
 
 @app.route('/jobs/<job_name>/stop', methods = ['POST'])
@@ -261,11 +273,11 @@ def response_job_status(job_name, job_active, job_id, job_process_id):
     if job_active:
         # TODO: Link to job status page in addition to only presenting job_id
         msg = { 'status': 'RUNNING', 'job_id': "%s" % job_id, 'log_lines': log_lines,
-                'message': "job '%s' is running with process id %d" % (job_name, job_process_id)}
+                'message': "job '%s' is running with process id %s" % (job_name, job_process_id)}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
     else:
         msg = { 'status': 'FINISHED', 'log_lines': log_lines,
-                'result':{'ok': True, 'message': "job '%s' is not running any more" % job_name }}
+                'result':{'ok': True, 'message': "job '%s' is not running any more, process_id %s" % (job_name, job_process_id) }}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
 
 def get_job_status(job_name, job_filepath):

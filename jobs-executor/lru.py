@@ -97,6 +97,9 @@ class LRUCacheDict(object):
         """
         return self.__values.has_key(key)
 
+    def keys(self):
+        return self.__values.keys()
+
     def __setitem__(self, key, value):
         t = int(time())
         self.__delete__(key)
@@ -134,6 +137,7 @@ class LRUCacheDict(object):
             for k in self.__access_times.iterkeys():
                 self.__delete__(k)
                 break
+
 
 class LRUCachedFunction(object):
     """
