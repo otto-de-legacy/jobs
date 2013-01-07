@@ -64,7 +64,7 @@ public class JobServiceTest {
         constraint.add(JOB_NAME_01); constraint.add(JOB_NAME_02);
         jobService.addRunningConstraint(constraint);
 
-        Set<String> jobNames = jobService.listJobNames();
+        Collection<String> jobNames = jobService.listJobNames();
         assertEquals(2, jobNames.size());
         Set<Set<String>> runningConstraints = jobService.listRunningConstraints();
         assertEquals(1, runningConstraints.size());

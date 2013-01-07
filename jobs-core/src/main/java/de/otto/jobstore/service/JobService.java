@@ -9,10 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PreDestroy;
 import java.net.URI;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executors;
@@ -38,7 +35,6 @@ public class JobService {
      * Creates a JobService Object.
      *
      * @param jobInfoRepository The jobInfo Repository to store the jobs in
-     * @param remoteJobExecutorService
      */
     public JobService(final JobInfoRepository jobInfoRepository, RemoteJobExecutorService remoteJobExecutorService) {
         this.jobInfoRepository = jobInfoRepository;
@@ -231,17 +227,15 @@ public class JobService {
 
     /**
      * Returns the Names of all registered jobs
-     *
-     * @return The set of names registered with the JobService instance
      */
-    public Set<String> listJobNames() {
-        return Collections.unmodifiableSet(jobs.keySet());
+    public Collection<String> listJobNames() {
+        List<String> jobNames = new ArrayList<String>(jobs.keySet());
+        Collections.sort(jobNames);
+        return Collections.unmodifiableList(jobNames);
     }
 
     /**
      * Returns the Set of all constraints
-     *
-     * @return The set of constraints registered with the JobService instance
      */
     public Set<Set<String>> listRunningConstraints() {
         return Collections.unmodifiableSet(runningConstraints);
