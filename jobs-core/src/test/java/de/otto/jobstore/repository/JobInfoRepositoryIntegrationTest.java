@@ -192,9 +192,8 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testUpdateHostAndThreadInformation() throws Exception {
-        assertFalse(jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME));
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, false, false, null);
-        assertTrue(jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME));
+        jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME);
         JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING.name());
         assertEquals(Thread.currentThread().getName(), jobInfo.getThread());
         assertEquals(InternetUtils.getHostName(), jobInfo.getHost());
