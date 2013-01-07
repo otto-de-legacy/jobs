@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.11"
+__version__ = "0.8.12"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -318,10 +318,11 @@ def save_job_template(job_name, data):
     file.write(make_multiline_conf(data))
 
 def make_multiline_conf(line):
-    """A bit of a hack: make sure the zdaemon definition is split on multiple lines."""
-    trans1 = re.sub(r'<(/?\w+)>', r'\n<\1>\n', line)
-    trans2 = re.sub(r'(backoff-limit )', r'\n\1', trans1)
-    return re.sub(r'(transcript )', r'\n\1', trans2)
+    """Dirty hack: make sure the zdaemon definition is split from one to multiple lines."""
+    trans = re.sub(r'<(/?\w+)>',        r'\n<\1>\n', line)
+    trans = re.sub(r'(backoff-limit )', r'\n\1', trans)
+    trans = re.sub(r'(socket-name )',   r'\n\1', trans)
+    return  re.sub(r'(transcript )',    r'\n\1', trans)
 
 def remove_job_template(job_name):
     fullpath = get_job_template_filepath(job_name)
@@ -358,6 +359,7 @@ def ensure_job_instance_directory():
         os.makedirs(app.config['JOB_INSTANCES_DIR'])
     if not os.path.exists(app.config['JOB_LOG_DIR']):
         os.makedirs(app.config['JOB_LOG_DIR'])
+        os.chmod(app.config['JOB_LOG_DIR'], 00775)  # make it group writable
 
 def exists_job_instance(job_name):
     return os.path.exists(get_job_instance_filepath(job_name))
