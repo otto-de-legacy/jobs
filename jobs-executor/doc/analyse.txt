@@ -1,0 +1,22 @@
+Show the zdaemon start/stop/status commands which were triggered:
+
+    grep -B 2 "run: zdaemon" /tmp/jobexec.log
+
+- - - - - - - - - - - - - -
+
+[localhost] run: zdaemon -C /tmp/jobexec/instances/FHIncrementalSearchUpdate.conf start
+[2013-01-07 15:24:00] [paramiko.transport] [INFO] Secsh channel 170 opened.
+
+[localhost] run: zdaemon -C /tmp/jobexec/instances/FHIncrementalSearchUpdate.conf status
+[2013-01-07 15:24:36] [paramiko.transport] [INFO] Secsh channel 171 opened.
+
+[localhost] run: zdaemon -C /tmp/jobexec/instances/FHSearchSuggestUpdate.conf status
+[2013-01-07 15:24:39] [paramiko.transport] [INFO] Secsh channel 172 opened.
+
+[localhost] run: zdaemon -C /tmp/jobexec/instances/FHSearchSuggestUpdate.conf status
+
+- - - - - - - - - - - - - -
+
+grep 2013-01-07 /tmp/zdaemon-FHSearchSuggestUpdate.log | grep exit | wc -l
+
+
