@@ -2,7 +2,7 @@ package de.otto.jobstore.web.representation;
 
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.LogLine;
-import de.otto.jobstore.common.ResultState;
+import de.otto.jobstore.common.ResultCode;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -34,7 +34,7 @@ public final class JobInfoRepresentation {
 
     private String runningState;
 
-    private ResultState resultState;
+    private ResultCode resultState;
 
     private Long maxExecutionTime;
 
@@ -47,7 +47,7 @@ public final class JobInfoRepresentation {
     public JobInfoRepresentation() {}
 
     private JobInfoRepresentation(String id, String name, String host, String thread, Date creationTime, Date startTime, Date finishTime,
-                                  String errorMessage, String runningState, ResultState resultState, Long maxExecutionTime,
+                                  String errorMessage, String runningState, ResultCode resultState, Long maxExecutionTime,
                                   Date lastModifiedTime, Map<String, String> additionalData, List<LogLineRepresentation> logLines) {
         this.id = id;
         this.name = name;
@@ -101,7 +101,7 @@ public final class JobInfoRepresentation {
         return runningState;
     }
 
-    public ResultState getResultState() {
+    public ResultCode getResultState() {
         return resultState;
     }
 

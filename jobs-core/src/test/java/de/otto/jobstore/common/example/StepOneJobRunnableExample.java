@@ -30,10 +30,10 @@ public final class StepOneJobRunnableExample extends AbstractLocalJobRunnable {
      * @param executionContext The context in which this job is executed
      */
     @Override
-    public ExecutionResult execute(JobExecutionContext executionContext) throws JobException {
+    public JobExecutionResult execute(JobExecutionContext executionContext) throws JobException {
         if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())
                 || jobService.listJobNames().contains(StepTwoJobRunnableExample.STEP_TWO_JOB)) {
-            return new ExecutionResult(RunningState.FINISHED, ResultState.NOT_EXECUTED);
+            return new JobExecutionResult(RunningState.FINISHED, ResultCode.NOT_EXECUTED);
         }
         try {
             for (int i = 0; i < 10; i++) {
@@ -43,6 +43,6 @@ public final class StepOneJobRunnableExample extends AbstractLocalJobRunnable {
             throw new JobExecutionException("Interrupted: " + e.getMessage());
         }
         jobService.executeJob(StepTwoJobRunnableExample.STEP_TWO_JOB);
-        return new ExecutionResult(RunningState.FINISHED, ResultState.SUCCESSFUL);
+        return new JobExecutionResult(RunningState.FINISHED, ResultCode.SUCCESSFUL);
     }
 }

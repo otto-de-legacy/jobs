@@ -215,7 +215,7 @@ public class JobInfoRepository {
      * @return true - If the job was deleted successfully<br/>
      *          false - If no queued job with the given name could be found
      */
-    public boolean markAsFinishedById(final String id, final ResultState resultState) {
+    public boolean markAsFinishedById(final String id, final ResultCode resultState) {
         if (ObjectId.isValid(id)) {
             final Date dt = new Date();
             final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
@@ -234,18 +234,18 @@ public class JobInfoRepository {
      * Marks a running job with the given name as finished.
      *
      * @param name The name of the job
-     * @param state The result state of the job
+     * @param resultCode The result state of the job
      * @param errorMessage An optional error message
      * @return true - The job was marked as requested<br/>
      *          false - No running job with the given name could be found
      */
-    public boolean markRunningAsFinished(final String name, final ResultState state, final String errorMessage) {
+    public boolean markRunningAsFinished(final String name, final ResultCode resultCode, final String errorMessage) {
         final Date dt = new Date();
         final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
                 append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
                 append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
                 append(JobInfoProperty.FINISH_TIME.val(), dt).
-                append(JobInfoProperty.RESULT_STATE.val(), state.name());
+                append(JobInfoProperty.RESULT_STATE.val(), resultCode.name());
         if (errorMessage != null) {
             set.append(JobInfoProperty.ERROR_MESSAGE.val(), errorMessage);
         }
@@ -265,7 +265,7 @@ public class JobInfoRepository {
     public boolean markRunningAsFinishedWithException(final String name, final Throwable t) {
         final StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
-        return markRunningAsFinished(name, ResultState.FAILED,
+        return markRunningAsFinished(name, ResultCode.FAILED,
                 "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString());
     }
 
@@ -279,7 +279,7 @@ public class JobInfoRepository {
     public boolean markQueuedAsNotExecuted(final String name) {
         final Date dt = new Date();
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
-                new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), ResultState.NOT_EXECUTED.name()).
+                new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), ResultCode.NOT_EXECUTED.name()).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
                         append(JobInfoProperty.FINISH_TIME.val(), dt).
                         append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()));
@@ -296,7 +296,7 @@ public class JobInfoRepository {
      *          false - No running job with the given name could be found
      */
     public boolean markRunningAsFinishedSuccessfully(final String name) {
-        return markRunningAsFinished(name, ResultState.SUCCESSFUL, null);
+        return markRunningAsFinished(name, ResultCode.SUCCESSFUL, null);
     }
 
     /**
@@ -371,7 +371,7 @@ public class JobInfoRepository {
      * @return The job with the given name and result state as well as the most current timestamp or null
      * if none could be found.
      */
-    public JobInfo findMostRecentByNameAndResultState(final String name, final Set<ResultState> resultStates) {
+    public JobInfo findMostRecentByNameAndResultState(final String name, final Set<ResultCode> resultStates) {
         DBObject query = createFindByNameAndResultStateQuery(name, resultStates);
         DBCursor cursor = collection.find(query).
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val())).limit(1);
@@ -452,7 +452,7 @@ public class JobInfoRepository {
         if (hasJob(name, RunningState.RUNNING)) {
             final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING);
             if (job.isTimedOut(currentDate)) {
-                markRunningAsFinished(job.getName(), ResultState.TIMED_OUT, null);
+                markRunningAsFinished(job.getName(), ResultCode.TIMED_OUT, null);
             }
         }
     }
@@ -506,7 +506,7 @@ public class JobInfoRepository {
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
                 if (jobInfo.isTimedOut(currentDate)) {
-                    if (markRunningAsFinished(jobInfo.getName(), ResultState.TIMED_OUT, null)) {
+                    if (markRunningAsFinished(jobInfo.getName(), ResultCode.TIMED_OUT, null)) {
                         removedJobs.add(jobInfo.getName() + " - " + jobInfo.getId());
                         ++numberOfRemovedJobs;
                     }
@@ -587,9 +587,9 @@ public class JobInfoRepository {
                 append(JobInfoProperty.RUNNING_STATE.val(), state);
     }
 
-    private DBObject createFindByNameAndResultStateQuery(final String name, final Set<ResultState> states) {
+    private DBObject createFindByNameAndResultStateQuery(final String name, final Set<ResultCode> states) {
         final List<String> resultStates = new ArrayList<>();
-        for (ResultState state : states) {
+        for (ResultCode state : states) {
             resultStates.add(state.name());
         }
         return new BasicDBObject().append(JobInfoProperty.NAME.val(), name).

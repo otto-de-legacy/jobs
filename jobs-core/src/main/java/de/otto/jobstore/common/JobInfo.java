@@ -162,12 +162,12 @@ public final class JobInfo extends AbstractItem {
         return getProperty(JobInfoProperty.RUNNING_STATE);
     }
 
-    public ResultState getResultState() {
+    public ResultCode getResultState() {
         final String resultState = getProperty(JobInfoProperty.RESULT_STATE);
         if (resultState == null) {
             return null;
         } else {
-            return ResultState.valueOf(resultState);
+            return ResultCode.valueOf(resultState);
         }
     }
 

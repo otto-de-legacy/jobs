@@ -42,6 +42,6 @@ public interface JobRunnable {
      * @param context The context in which this job is executed
      * @throws de.otto.jobstore.service.exception.JobExecutionException Thrown if the execution of the job failed
      */
-    ExecutionResult execute(JobExecutionContext context) throws JobException;
+    JobExecutionResult execute(JobExecutionContext context) throws JobException;
 
 }

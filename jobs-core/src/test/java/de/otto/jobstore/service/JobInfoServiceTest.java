@@ -2,7 +2,7 @@ package de.otto.jobstore.service;
 
 
 import de.otto.jobstore.common.JobInfo;
-import de.otto.jobstore.common.ResultState;
+import de.otto.jobstore.common.ResultCode;
 import de.otto.jobstore.repository.JobInfoRepository;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -29,7 +29,7 @@ public class JobInfoServiceTest {
     @Test
     public void testGetMostRecentExecuted() throws Exception {
         when(jobInfoRepository.findMostRecentByNameAndResultState("test",
-                EnumSet.complementOf(EnumSet.of(ResultState.NOT_EXECUTED)))).thenReturn(new JobInfo("test", "host", "thread", 1234L));
+                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)))).thenReturn(new JobInfo("test", "host", "thread", 1234L));
 
         JobInfo jobInfo = jobInfoService.getMostRecentExecuted("test");
         assertEquals("test", jobInfo.getName());
@@ -39,7 +39,7 @@ public class JobInfoServiceTest {
     @Test
     public void testGetMostRecentSuccessful() throws Exception {
         when(jobInfoRepository.findMostRecentByNameAndResultState("test",
-               EnumSet.of(ResultState.SUCCESSFUL))).thenReturn(new JobInfo("test", "host", "thread", 1234L));
+               EnumSet.of(ResultCode.SUCCESSFUL))).thenReturn(new JobInfo("test", "host", "thread", 1234L));
 
         JobInfo jobInfo = jobInfoService.getMostRecentSuccessful("test");
         assertEquals("test", jobInfo.getName());
@@ -50,9 +50,9 @@ public class JobInfoServiceTest {
     public void testGetMostRecentExecutedList() throws Exception {
         when(jobInfoRepository.distinctJobNames()).thenReturn(Arrays.asList("test", "test2"));
         when(jobInfoRepository.findMostRecentByNameAndResultState("test",
-                EnumSet.complementOf(EnumSet.of(ResultState.NOT_EXECUTED)))).thenReturn(new JobInfo("test", "host", "thread", 1234L));
+                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)))).thenReturn(new JobInfo("test", "host", "thread", 1234L));
         when(jobInfoRepository.findMostRecentByNameAndResultState("test2",
-                EnumSet.complementOf(EnumSet.of(ResultState.NOT_EXECUTED)))).thenReturn(null);
+                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)))).thenReturn(null);
 
         List<JobInfo> jobInfoList = jobInfoService.getMostRecentExecuted();
         assertEquals(1, jobInfoList.size());

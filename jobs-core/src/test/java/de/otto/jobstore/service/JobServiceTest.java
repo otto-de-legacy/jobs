@@ -83,7 +83,7 @@ public class JobServiceTest {
 
         jobService.registerJob(createLocalJobRunnable(JOB_NAME_01));
         jobService.shutdownJobs();
-        verify(jobInfoRepository).markRunningAsFinished(JOB_NAME_01, ResultState.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository).markRunningAsFinished(JOB_NAME_01, ResultCode.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -92,7 +92,7 @@ public class JobServiceTest {
 
         jobService.registerJob(createLocalJobRunnable(JOB_NAME_01));
         jobService.shutdownJobs();
-        verify(jobInfoRepository, never()).markRunningAsFinished(JOB_NAME_01, ResultState.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markRunningAsFinished(JOB_NAME_01, ResultCode.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -101,8 +101,8 @@ public class JobServiceTest {
         jobService.registerJob(createLocalJobRunnable(JOB_NAME_02));
         jobService.shutdownJobs();
 
-        verify(jobInfoRepository, never()).markRunningAsFinished("jobName", ResultState.FAILED, "shutdownJobs called from executing host");
-        verify(jobInfoRepository, never()).markRunningAsFinished("jobName2", ResultState.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markRunningAsFinished("jobName", ResultCode.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markRunningAsFinished("jobName2", ResultCode.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -157,7 +157,7 @@ public class JobServiceTest {
             }
 
             @Override
-            public ExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+            public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
                 throw new JobExecutionException("problem while executing");
             }
         };
@@ -175,11 +175,11 @@ public class JobServiceTest {
     public void testExecuteQueuedJobsNoExecutionNecessary() throws Exception {
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
                 Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L)));
-        when(jobInfoRepository.markAsFinishedById(anyString(), any(ResultState.class))).thenReturn(Boolean.TRUE);
+        when(jobInfoRepository.markAsFinishedById(anyString(), any(ResultCode.class))).thenReturn(Boolean.TRUE);
         jobService.registerJob(new LocalMockJobRunnable(JOB_NAME_01,1000, false));
 
         jobService.executeQueuedJobs();
-        verify(jobInfoRepository, times(1)).markAsFinishedById(anyString(), any(ResultState.class));
+        verify(jobInfoRepository, times(1)).markAsFinishedById(anyString(), any(ResultCode.class));
     }
 
     @Test
@@ -196,7 +196,7 @@ public class JobServiceTest {
         jobService.executeQueuedJobs();
 
         verify(jobInfoRepository, times(0)).activateQueuedJob(anyString());
-        verify(jobInfoRepository, times(0)).markAsFinishedById(anyString(), any(ResultState.class));
+        verify(jobInfoRepository, times(0)).markAsFinishedById(anyString(), any(ResultCode.class));
     }
 
     @Test
@@ -209,7 +209,7 @@ public class JobServiceTest {
         jobService.executeQueuedJobs();
 
         verify(jobInfoRepository, times(0)).activateQueuedJob(anyString());
-        verify(jobInfoRepository, times(0)).markAsFinishedById(anyString(), any(ResultState.class));
+        verify(jobInfoRepository, times(0)).markAsFinishedById(anyString(), any(ResultCode.class));
     }
 
     @Test(expectedExceptions = JobAlreadyQueuedException.class)
@@ -317,7 +317,7 @@ public class JobServiceTest {
             }
 
             @Override
-            public ExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+            public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
                 throw new JobExecutionException("problem while executing");
             }
         };
@@ -429,9 +429,9 @@ public class JobServiceTest {
         }
 
         @Override
-        public ExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+        public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
             executed = true;
-            return new ExecutionResult(RunningState.FINISHED, ResultState.SUCCESSFUL);
+            return new JobExecutionResult(RunningState.FINISHED, ResultCode.SUCCESSFUL);
         }
 
         public boolean isExecuted() {
@@ -465,9 +465,9 @@ public class JobServiceTest {
         }
 
         @Override
-        public ExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+        public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
             executed = true;
-            return new ExecutionResult(RunningState.FINISHED, ResultState.SUCCESSFUL);
+            return new JobExecutionResult(RunningState.FINISHED, ResultCode.SUCCESSFUL);
         }
 
         public boolean isExecuted() {

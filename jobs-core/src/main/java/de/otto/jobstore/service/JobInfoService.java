@@ -1,7 +1,7 @@
 package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.JobInfo;
-import de.otto.jobstore.common.ResultState;
+import de.otto.jobstore.common.ResultCode;
 import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.repository.JobInfoRepository;
 
@@ -30,7 +30,7 @@ public class JobInfoService {
      */
     public JobInfo getMostRecentExecuted(String name) {
         return jobInfoRepository.findMostRecentByNameAndResultState(name,
-                EnumSet.complementOf(EnumSet.of(ResultState.NOT_EXECUTED)));
+                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)));
     }
 
     /**
@@ -40,7 +40,7 @@ public class JobInfoService {
      * @return The most recent successfully executed job
      */
     public JobInfo getMostRecentSuccessful(String name) {
-        return jobInfoRepository.findMostRecentByNameAndResultState(name, EnumSet.of(ResultState.SUCCESSFUL));
+        return jobInfoRepository.findMostRecentByNameAndResultState(name, EnumSet.of(ResultCode.SUCCESSFUL));
     }
 
     /**

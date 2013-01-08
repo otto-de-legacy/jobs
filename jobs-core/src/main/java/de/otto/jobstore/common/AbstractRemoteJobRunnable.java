@@ -25,7 +25,7 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     protected abstract List<Parameter> getParameters();
 
     @Override
-    public ExecutionResult execute(JobExecutionContext context) throws JobException {
+    public JobExecutionResult execute(JobExecutionContext context) throws JobException {
         final JobLogger jobLogger = context.getJobLogger();
         try {
             final URI uri = remoteJobExecutorService.startJob(new RemoteJob(getName(), getParameters()));
@@ -34,7 +34,7 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
             jobLogger.insertOrUpdateAdditionalData("resumedAlreadyRunningJob", e.getJobUri().toString());
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), e.getJobUri().toString());
         }
-        return new ExecutionResult(RunningState.RUNNING);
+        return new JobExecutionResult(RunningState.RUNNING);
     }
 
 }

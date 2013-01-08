@@ -33,10 +33,10 @@ public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
      *                               and would thus cause a division by zero error
      */
     @Override
-    public ExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+    public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
         if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())
                 || new GregorianCalendar().get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
-            return new ExecutionResult(RunningState.FINISHED, ResultState.NOT_EXECUTED);
+            return new JobExecutionResult(RunningState.FINISHED, ResultCode.NOT_EXECUTED);
         }
         Random r = new Random();
         for (int i = 0; i < 100; i++) {
@@ -47,7 +47,7 @@ public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
                 executionContext.getJobLogger().addLoggingData("Computed the number: " + i / randomNumber);
             }
         }
-        return new ExecutionResult(RunningState.FINISHED, ResultState.SUCCESSFUL);
+        return new JobExecutionResult(RunningState.FINISHED, ResultCode.SUCCESSFUL);
     }
 
 }

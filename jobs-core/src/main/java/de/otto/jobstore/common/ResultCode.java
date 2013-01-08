@@ -1,9 +1,9 @@
 package de.otto.jobstore.common;
 
 /**
- * The State a Job can have once it is finished
+ * The Result code of a Job once it is finished
  */
-public enum ResultState {
+public enum ResultCode {
 
     SUCCESSFUL,
     FAILED,

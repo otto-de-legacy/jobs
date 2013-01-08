@@ -216,7 +216,7 @@ public class JobService {
                     final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(job.getKey(), RunningState.RUNNING);
                     if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
                         LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", job.getKey());
-                        jobInfoRepository.markRunningAsFinished(job.getKey(), ResultState.FAILED, "shutdownJobs called from executing host");
+                        jobInfoRepository.markRunningAsFinished(job.getKey(), ResultCode.FAILED, "shutdownJobs called from executing host");
                     }
                 }
             }
@@ -262,7 +262,7 @@ public class JobService {
                 jobInfoRepository.markRunningAsFinishedSuccessfully(jobInfo.getName());
             } else {
                 jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(result.exitCode));
-                jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultState.FAILED, result.message);
+                jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultCode.FAILED, result.message);
             }
         }
     }
