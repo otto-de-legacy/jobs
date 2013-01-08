@@ -97,7 +97,7 @@ public class JobInfoRepository {
         try {
             LOGGER.info("Create job={} in state={} ...", name, runningState);
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, forceExecution, additionalData);
-            jobInfo.setParameters(parameters);
+            // TODO: jobInfo.setParameters(parameters);
             save(jobInfo, WriteConcern.SAFE);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
