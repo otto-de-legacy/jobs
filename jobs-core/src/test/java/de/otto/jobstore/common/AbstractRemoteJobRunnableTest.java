@@ -94,6 +94,11 @@ public class AbstractRemoteJobRunnableTest {
         }
 
         @Override
+        public List<String> getLoggingData() {
+            return logs;
+        }
+
+        @Override
         public void insertOrUpdateAdditionalData(String key, String value) {
             additionalData.put(key, value);
         }
