@@ -1,3 +1,8 @@
+Anstossen eines neuen Jobs:
+
+    curl -i -k -u lhotse:lh0tse -X POST https://prelive-cluster.lhotse.ov.otto.de/san/api/jobs/SearchSuggestUpdate
+
+
 Show the zdaemon start/stop/status commands which were triggered:
 
     grep -B 2 "run: zdaemon" /tmp/jobexec.log
