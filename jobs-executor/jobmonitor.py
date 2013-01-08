@@ -142,7 +142,7 @@ def start_job_instance(job_name):
 
     # ~~ check if already running
     job_active = False
-    job_process_id = -1
+    job_process_id = None
     if exists_job_instance(job_name):
         log.info("Found job instance, check if still running...")
         job_filepath = get_job_instance_filepath(job_name)
@@ -175,10 +175,10 @@ def start_job_instance(job_name):
             log.info('Started %s [return code: %d]' % (job_name, cmd_result.return_code))
 
         # ~~ construct response
-        if cmd_result.succeeded and "daemon process started" in cmd_result:
-            job_process_id = extract_process_id(cmd_result)
+        job_process_id = extract_process_id(cmd_result)
+        if cmd_result.succeeded and "daemon process started" in cmd_result and job_process_id:
             ps_map[job_process_id] = job_id
-            msg = { 'status': 'STARTED', 'message': "job '%s' started with process id=%d" % (job_name, job_process_id) }
+            msg = { 'status': 'STARTED', 'message': "job '%s' started with process id=%s" % (job_name, job_process_id) }
             resp = Response(json.dumps(msg), status=201, mimetype='application/json')
             resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
         else:
@@ -282,7 +282,7 @@ def response_job_status(job_name, job_active, job_id, job_process_id):
 
 def get_job_status(job_name, job_filepath):
     job_active = False
-    job_process_id = -1
+    job_process_id = None
     with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
         cmd_result = run("zdaemon -C %s status" % job_filepath)
         if cmd_result.return_code > 0:
@@ -382,7 +382,7 @@ def extract_process_id(cmd_string):
     if matcher:
         return int(matcher.group(1))
     else:
-        return -1
+        return None
 
 def get_last_lines(filepath, nr_lines):
     """Return the last nr_lines from file (as given by filepath)."""

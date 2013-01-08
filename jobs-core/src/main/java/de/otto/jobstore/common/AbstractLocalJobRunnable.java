@@ -27,6 +27,9 @@ public abstract class AbstractLocalJobRunnable implements JobRunnable {
     }
 
     @Override
-    public void executeOnSuccess() throws JobException {}
+    public void executeOnStart(JobLogger jobLogger) throws JobException {}
+
+    @Override
+    public void executeOnSuccess(JobLogger jobLogger) throws JobException {}
 
 }

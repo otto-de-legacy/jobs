@@ -1,13 +1,11 @@
 package de.otto.jobstore.common;
 
 import de.otto.jobstore.service.exception.JobException;
-import de.otto.jobstore.service.exception.JobExecutionException;
 
 /**
  * A job to be executed by a JobService {@link de.otto.jobstore.service.JobService}
  */
 public interface JobRunnable {
-
 
     /**
      * The ID uniquely identifying this job instance.
@@ -61,8 +59,13 @@ public interface JobRunnable {
     void execute(JobLogger jobLogger) throws JobException;
 
     /**
-     * This method is called once the job is executed successfully
+     * This method is called right before the job is executed.
      */
-    public void executeOnSuccess() throws JobException;
+    public void executeOnStart(JobLogger jobLogger) throws JobException;
+
+    /**
+     * This method is called once the job is executed successfully.
+     */
+    public void executeOnSuccess(JobLogger jobLogger) throws JobException;
 
 }
