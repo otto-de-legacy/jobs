@@ -30,14 +30,6 @@ public interface JobRunnable {
     long getPollingInterval();
 
     /**
-     * Determines if the execution of a job is necessary or not.
-     *
-     * @return true - If execution is necessary<br/>
-     *      false - If execution is not necessary
-     */
-    boolean isExecutionNecessary();
-
-    /**
      * Flag if the job is executed locally or remotely
      *
      * @return true - The job is executed remotely</br>

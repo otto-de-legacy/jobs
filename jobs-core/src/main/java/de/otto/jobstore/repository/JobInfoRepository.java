@@ -478,6 +478,12 @@ public class JobInfoRepository {
         }
     }
 
+    public void remove(final String id) {
+        if (ObjectId.isValid(id)) {
+            collection.remove(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), WriteConcern.SAFE);
+        }
+    }
+
     /**
      * Counts the number of documents in the repository
      *

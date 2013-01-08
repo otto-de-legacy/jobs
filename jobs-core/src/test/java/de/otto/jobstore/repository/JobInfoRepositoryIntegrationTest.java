@@ -353,4 +353,12 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         assertEquals(ResultState.TIMED_OUT, timedOutJob.getResultState());
     }
 
+    @Test
+    public void testRemoveJob() throws Exception {
+        JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
+        jobInfoRepository.save(jobInfo);
+        assertNotNull(jobInfoRepository.findById(jobInfo.getId()));
+        jobInfoRepository.remove(jobInfo.getId());
+        assertNull(jobInfoRepository.findById(jobInfo.getId()));
+    }
 }

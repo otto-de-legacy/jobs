@@ -75,11 +75,6 @@ public class AbstractRemoteJobRunnableTest {
         public long getPollingInterval() {
             return 0;
         }
-
-        @Override
-        public boolean isExecutionNecessary() {
-            return false;
-        }
     }
 
 

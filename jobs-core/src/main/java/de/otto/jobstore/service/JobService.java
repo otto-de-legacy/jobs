@@ -150,10 +150,10 @@ public class JobService {
         }
         final JobInfo queuedJobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.QUEUED);
         if (queuedJobInfo != null) {
-            if (queuedJobInfo.getExecutionPriority().compareTo(executionPriority) < 0) { //Priority of queued job is lower
-                //TODO Remove queued job
+            if (queuedJobInfo.getExecutionPriority().isLowerThan(executionPriority)) {
+                jobInfoRepository.remove(queuedJobInfo.getId());
                 id = queueJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
-            } else { //Priority of queued job is equal of higher
+            } else {
                 throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
             }
         } else {
@@ -162,9 +162,9 @@ public class JobService {
                 id = runJob(runnable, executionPriority, "A job with name " + name + " is already running");
                 LOGGER.debug("ltag=JobService.runJob.executingJob jobInfoName={}", name);
                 executeJob(runnable, executionPriority);
-            } else if (runningJobInfo.getExecutionPriority().compareTo(executionPriority) >= 0) { //Priority of running job is equal or higher
+            } else if (runningJobInfo.getExecutionPriority().isEqualOrHigherThan(executionPriority)) {
                 throw new JobExecutionNotNecessaryException("Execution of job " + name + " was not necessary");
-            } else { //Priority of running job is lower
+            } else {
                 id = queueJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
             }
         }

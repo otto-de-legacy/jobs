@@ -2,6 +2,7 @@ package de.otto.jobstore.common.example;
 
 import de.otto.jobstore.common.AbstractLocalJobRunnable;
 import de.otto.jobstore.common.JobExecutionContext;
+import de.otto.jobstore.common.JobExecutionPriority;
 import de.otto.jobstore.common.JobLogger;
 import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.JobException;
@@ -28,26 +29,24 @@ public final class StepOneJobRunnableExample extends AbstractLocalJobRunnable {
     }
 
     /**
-     * Only execute job one if job two is registered in the job service
-     */
-    @Override
-    public boolean isExecutionNecessary() {
-        return jobService.listJobNames().contains(StepTwoJobRunnableExample.STEP_TWO_JOB);
-    }
-
-    /**
      * A very lazy job which triggers job two if done
      * @param executionContext The context in which this job is executed
      */
     @Override
     public void execute(JobExecutionContext executionContext) throws JobException {
-        try {
-            for (int i = 0; i < 10; i++) {
-                Thread.sleep(i * 1000);
-            }
-        } catch (InterruptedException e) {
-            throw new JobExecutionException("Interrupted: " + e.getMessage());
+        boolean run = true;
+        if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())) {
+            run = jobService.listJobNames().contains(StepTwoJobRunnableExample.STEP_TWO_JOB);
         }
-        jobService.executeJob(StepTwoJobRunnableExample.STEP_TWO_JOB);
+        if (run) {
+            try {
+                for (int i = 0; i < 10; i++) {
+                    Thread.sleep(i * 1000);
+                }
+            } catch (InterruptedException e) {
+                throw new JobExecutionException("Interrupted: " + e.getMessage());
+            }
+            jobService.executeJob(StepTwoJobRunnableExample.STEP_TWO_JOB);
+        }
     }
 }

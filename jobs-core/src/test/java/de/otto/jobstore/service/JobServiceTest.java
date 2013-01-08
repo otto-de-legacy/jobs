@@ -157,11 +157,6 @@ public class JobServiceTest {
             }
 
             @Override
-            public boolean isExecutionNecessary() {
-                return true;
-            }
-
-            @Override
             public void execute(JobExecutionContext executionContext) throws JobExecutionException {
                 throw new JobExecutionException("problem while executing");
             }
@@ -322,11 +317,6 @@ public class JobServiceTest {
             }
 
             @Override
-            public boolean isExecutionNecessary() {
-                return true;
-            }
-
-            @Override
             public void execute(JobExecutionContext executionContext) throws JobExecutionException {
                 throw new JobExecutionException("problem while executing");
             }
@@ -434,11 +424,6 @@ public class JobServiceTest {
         }
 
         @Override
-        public boolean isExecutionNecessary() {
-            return executionNecessary;
-        }
-
-        @Override
         protected List<Parameter> getParameters() {
             return Collections.emptyList();
         }
@@ -476,11 +461,6 @@ public class JobServiceTest {
         @Override
         public long getMaxExecutionTime() {
             return maxExecutionTime;
-        }
-
-        @Override
-        public boolean isExecutionNecessary() {
-            return executionNecessary;
         }
 
         @Override

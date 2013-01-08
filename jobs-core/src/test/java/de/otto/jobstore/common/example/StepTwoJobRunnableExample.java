@@ -22,14 +22,6 @@ public final class StepTwoJobRunnableExample extends AbstractLocalJobRunnable {
     }
 
     /**
-     * No precondition for this job
-     */
-    @Override
-    public boolean isExecutionNecessary() {
-        return true;
-    }
-
-    /**
      * Job always finishes with an error
      * @param executionContext The context in which this job is executed
      */
