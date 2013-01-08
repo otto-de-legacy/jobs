@@ -18,7 +18,4 @@ public abstract class AbstractLocalJobRunnable implements JobRunnable {
         return false;
     }
 
-    @Override
-    public void executeOnSuccess() throws JobException {}
-
 }

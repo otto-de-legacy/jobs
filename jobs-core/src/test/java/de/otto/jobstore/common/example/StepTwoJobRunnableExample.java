@@ -1,6 +1,7 @@
 package de.otto.jobstore.common.example;
 
 import de.otto.jobstore.common.AbstractLocalJobRunnable;
+import de.otto.jobstore.common.ExecutionResult;
 import de.otto.jobstore.common.JobExecutionContext;
 import de.otto.jobstore.common.JobLogger;
 import de.otto.jobstore.service.exception.JobExecutionException;
@@ -26,7 +27,7 @@ public final class StepTwoJobRunnableExample extends AbstractLocalJobRunnable {
      * @param executionContext The context in which this job is executed
      */
     @Override
-    public void execute(JobExecutionContext executionContext) throws JobExecutionException {
+    public ExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
         throw new JobExecutionException("I do not want to work");
     }
 

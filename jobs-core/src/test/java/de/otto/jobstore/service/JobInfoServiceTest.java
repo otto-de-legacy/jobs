@@ -4,7 +4,6 @@ package de.otto.jobstore.service;
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.ResultState;
 import de.otto.jobstore.repository.JobInfoRepository;
-import de.otto.jobstore.service.JobInfoService;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 

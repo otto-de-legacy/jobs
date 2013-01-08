@@ -1,7 +1,6 @@
 package de.otto.jobstore.common;
 
 import de.otto.jobstore.service.exception.JobException;
-import de.otto.jobstore.service.exception.JobExecutionException;
 
 /**
  * A job to be executed by a JobService {@link de.otto.jobstore.service.JobService}
@@ -43,11 +42,6 @@ public interface JobRunnable {
      * @param context The context in which this job is executed
      * @throws de.otto.jobstore.service.exception.JobExecutionException Thrown if the execution of the job failed
      */
-    void execute(JobExecutionContext context) throws JobException;
-
-    /**
-     * This method is called once the job is executed successfully
-     */
-    public void executeOnSuccess() throws JobException;
+    ExecutionResult execute(JobExecutionContext context) throws JobException;
 
 }

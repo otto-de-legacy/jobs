@@ -1,8 +1,10 @@
 package de.otto.jobstore.service;
 
 
+import de.otto.jobstore.common.ExecutionResult;
 import de.otto.jobstore.common.JobExecutionContext;
 import de.otto.jobstore.common.JobRunnable;
+import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.repository.JobInfoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,9 +27,11 @@ final class JobExecutionRunnable implements Runnable {
     public void run() {
         try {
             LOGGER.info("ltag=JobService.JobExecutionRunnable.run jobInfoName={}", jobRunnable.getName());
-            jobRunnable.execute(executionContext);
-            jobInfoRepository.markRunningAsFinishedSuccessfully(jobRunnable.getName());
-            jobRunnable.executeOnSuccess();
+            final ExecutionResult result = jobRunnable.execute(executionContext);
+            if (RunningState.FINISHED.equals(result.getRunningState())) {
+                //TODO: Mark finished depending on result
+                jobInfoRepository.markRunningAsFinishedSuccessfully(jobRunnable.getName());
+            }
         } catch (Exception e) {
             LOGGER.error("Job: " + jobRunnable.getName()+" finished with exception: "+e.getMessage(),e);
             jobInfoRepository.markRunningAsFinishedWithException(jobRunnable.getName(), e);

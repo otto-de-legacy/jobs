@@ -1,10 +1,7 @@
 package de.otto.jobstore.common.example;
 
 
-import de.otto.jobstore.common.AbstractLocalJobRunnable;
-import de.otto.jobstore.common.JobExecutionContext;
-import de.otto.jobstore.common.JobExecutionPriority;
-import de.otto.jobstore.common.JobLogger;
+import de.otto.jobstore.common.*;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
 import java.util.Calendar;
@@ -36,22 +33,21 @@ public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
      *                               and would thus cause a division by zero error
      */
     @Override
-    public void execute(JobExecutionContext executionContext) throws JobExecutionException {
-        boolean run = true;
-        if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())) {
-            run = new GregorianCalendar().get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY;
+    public ExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+        if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())
+                || new GregorianCalendar().get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
+            return new ExecutionResult(RunningState.FINISHED, ResultState.NOT_EXECUTED);
         }
-        if (run) {
-            Random r = new Random();
-            for (int i = 0; i < 100; i++) {
-                final int randomNumber = r.nextInt();
-                if (randomNumber == 0) {
-                    throw new IllegalArgumentException("Division by Zero");
-                } else {
-                    executionContext.getJobLogger().addLoggingData("Computed the number: " + i / randomNumber);
-                }
+        Random r = new Random();
+        for (int i = 0; i < 100; i++) {
+            final int randomNumber = r.nextInt();
+            if (randomNumber == 0) {
+                throw new IllegalArgumentException("Division by Zero");
+            } else {
+                executionContext.getJobLogger().addLoggingData("Computed the number: " + i / randomNumber);
             }
         }
+        return new ExecutionResult(RunningState.FINISHED, ResultState.SUCCESSFUL);
     }
 
 }
