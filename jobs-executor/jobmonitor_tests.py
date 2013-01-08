@@ -34,7 +34,7 @@ class JobMonitorUnitTests(TestCase):
 
     def test_extract_invalid_process_id(self):
         pid = jobmonitor.extract_process_id("pid=A711")
-        self.assertEqual(pid, -1)
+        self.assertEqual(pid, None)
 
 class JobMonitorIntegrationTests(TestCase):
 
