@@ -3,15 +3,16 @@ package de.otto.jobstore.common;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
-import java.util.List;
+import java.io.Serializable;
+import java.util.Collection;
 
-public final class RemoteJob {
+public final class RemoteJob implements Serializable {
 
     public String name;
     public String client_id;
-    public List<Parameter> parameters;
+    public Collection<Parameter> parameters;
 
-    public RemoteJob(String name, String client_id, List<Parameter> parameters) {
+    public RemoteJob(String name, String client_id, Collection<Parameter> parameters) {
         this.name = name;
         this.client_id = client_id;
         this.parameters = parameters;

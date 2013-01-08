@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.List;
 
 public abstract class AbstractRemoteJobRunnable implements JobRunnable {
 
@@ -35,8 +34,6 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     public final boolean isRemote() {
         return true;
     }
-
-    protected abstract List<Parameter> getParameters();
 
     @Override
     public void execute(JobLogger jobLogger) throws JobException {

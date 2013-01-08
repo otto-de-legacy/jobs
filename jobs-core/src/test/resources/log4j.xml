@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" debug="false">
+
+	<!--
+	    Default Appender schreibt alle Messages nach StdOut
+    -->
+	<appender class="org.apache.log4j.ConsoleAppender" name="stdout">
+	    <param  name="Target" value="System.out"/>
+	    <layout class="org.apache.log4j.PatternLayout">
+	        <param name="ConversionPattern" value="%d [%t] %-5p %c - %m%n"/>
+	    </layout>
+	</appender>
+
+
+	<!-- OTTO JobStore -->
+
+	<logger name="de.otto.jobstore">
+	    <level value="INFO"/>
+	</logger>
+
+
+	<!-- Thirdparty Libs -->
+
+	<logger name="com.sun.jersey">
+		<level value="INFO"/>
+	</logger>
+
+	<logger name="org.hibernate.validator">
+	    <level value="WARN"/>
+	</logger>
+
+	<logger name="org.springframework">
+	    <level value="WARN"/>
+	</logger>
+	<logger name="org.springframework.web">
+	    <level value="INFO"/>
+	</logger>
+	<logger name="org.springframework.web.servlet.DispatcherServlet">
+	    <level value="INFO"/>
+	</logger>
+	<logger name="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping">
+	    <level value="INFO"/>
+	</logger>
+	<logger name="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
+	    <level value="INFO"/>
+	</logger>
+	<logger name="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
+	    <level value="INFO"/>
+	</logger>
+	<logger name="org.springframework.web.servlet.resource.ResourceHttpRequestHandler">
+	    <level value="INFO"/>
+	</logger>
+	<logger name="org.springframework.web.servlet.view.freemarker">
+	    <level value="INFO"/>
+	</logger>
+
+
+    <!--
+        Der Root Logger schickt alles (bis auf perf4j) nach StdOut
+    -->
+    <root>
+        <level value="INFO"/>
+        <appender-ref ref="stdout" />
+    </root>
+
+</log4j:configuration>

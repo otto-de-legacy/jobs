@@ -1,9 +1,11 @@
 package de.otto.jobstore.common;
 
-public final class Parameter {
+import java.io.Serializable;
 
-    public String key;
-    public String value;
+public final class Parameter implements Serializable {
+
+    public final String key;
+    public final String value;
 
     public Parameter(String key, String value) {
         this.key = key;

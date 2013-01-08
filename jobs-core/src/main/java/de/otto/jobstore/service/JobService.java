@@ -281,7 +281,7 @@ public class JobService {
     private String queueJob(JobRunnable runnable, boolean forceExecution, String exceptionMessage)
             throws JobAlreadyQueuedException{
         final String id = jobInfoRepository.create(runnable.getName(), runnable.getMaxExecutionTime(),
-                RunningState.QUEUED, forceExecution, runnable.isRemote(), null);
+                RunningState.QUEUED, forceExecution, runnable.isRemote(), runnable.getParameters(), null);
         if (id == null) {
             throw new JobAlreadyQueuedException(exceptionMessage);
         }
@@ -291,7 +291,8 @@ public class JobService {
     /** Returns the Job ID */
     private String prepareJob(JobRunnable runnable, boolean forceExecution, String exceptionMessage) throws JobAlreadyRunningException {
         final String id = jobInfoRepository.create(runnable.getName(), runnable.getMaxExecutionTime(),
-                                                   RunningState.RUNNING, forceExecution, runnable.isRemote(), null);
+                                                   RunningState.RUNNING, forceExecution, runnable.isRemote(),
+                                                   runnable.getParameters(), null);
         if (id == null) {
             throw new JobAlreadyRunningException(exceptionMessage);
         }

@@ -6,7 +6,6 @@ import de.otto.jobstore.common.properties.JobInfoProperty;
 
 import java.util.*;
 
-
 public final class JobInfo extends AbstractItem {
 
     private static final long serialVersionUID = 2454224303569320787L;
@@ -62,6 +61,14 @@ public final class JobInfo extends AbstractItem {
 
     public String getThread() {
         return getProperty(JobInfoProperty.THREAD);
+    }
+
+    public Collection<Parameter> getParameters() {
+        return getProperty(JobInfoProperty.PARAMETERS);
+    }
+
+    public void setParameters(Collection<Parameter> parameters) {
+        addProperty(JobInfoProperty.PARAMETERS, parameters);
     }
 
     public Long getMaxExecutionTime() {

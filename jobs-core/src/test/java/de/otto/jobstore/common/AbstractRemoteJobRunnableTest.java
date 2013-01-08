@@ -56,7 +56,7 @@ public class AbstractRemoteJobRunnableTest {
         }
 
         @Override
-        protected List<Parameter> getParameters() {
+        public List<Parameter> getParameters() {
             return parameters;
         }
 

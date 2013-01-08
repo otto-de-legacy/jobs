@@ -2,23 +2,33 @@ package de.otto.jobstore.common.example;
 
 import de.otto.jobstore.common.AbstractLocalJobRunnable;
 import de.otto.jobstore.common.JobLogger;
+import de.otto.jobstore.common.Parameter;
 import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
+
+import java.util.Collection;
+import java.util.Collections;
 
 public final class StepOneJobRunnableExample extends AbstractLocalJobRunnable {
 
     private final JobService jobService;
 
+    public StepOneJobRunnableExample(JobService jobService) {
+        this.jobService = jobService;
+    }
+
     /**
      * @return name of the simple job, might differ from Classname
      */
+    @Override
     public String getName() {
         return "STEP_ONE_JOB";
     }
 
-    public StepOneJobRunnableExample(JobService jobService) {
-        this.jobService = jobService;
+    @Override
+    public Collection<Parameter> getParameters() {
+        return Collections.emptyList();
     }
 
     @Override
