@@ -4,18 +4,6 @@ import de.otto.jobstore.service.exception.JobException;
 
 public abstract class AbstractLocalJobRunnable implements JobRunnable {
 
-    protected String id;
-
-    @Override
-    public String getId() {
-        return id;
-    }
-
-    @Override
-    public void setId(String id) {
-        this.id = id;
-    }
-
     @Override
     public final long getPollingInterval() {
         throw new UnsupportedOperationException();
@@ -27,9 +15,9 @@ public abstract class AbstractLocalJobRunnable implements JobRunnable {
     }
 
     @Override
-    public void executeOnStart(JobLogger jobLogger) throws JobException {}
+    public void beforeExecution(JobExecutionContext context) throws JobException {}
 
     @Override
-    public void executeOnSuccess(JobLogger jobLogger) throws JobException {}
+    public void afterExecution(JobExecutionContext context) throws JobException {}
 
 }

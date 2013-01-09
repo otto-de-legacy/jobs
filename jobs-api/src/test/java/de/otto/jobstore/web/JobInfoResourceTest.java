@@ -84,7 +84,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExecuteJobWhichIsNotRegistered() throws Exception {
-        when(jobService.executeJob("foo", JobExecutionPriority.IGNORE_PRECONDITIONS)).thenThrow(new JobNotRegisteredException(""));
+        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenThrow(new JobNotRegisteredException(""));
         //when(jobService.executeJob("foo", false)).thenThrow(new JobNotRegisteredException(""));
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
@@ -93,8 +93,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExecuteJobWhichIsAlreadyQueued() throws Exception {
-        when(jobService.executeJob("foo", JobExecutionPriority.IGNORE_PRECONDITIONS)).thenThrow(new JobAlreadyQueuedException(""));
-        when(jobService.executeJob("foo", JobExecutionPriority.CHECK_PRECONDITIONS)).thenThrow(new JobAlreadyQueuedException(""));
+        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenThrow(new JobAlreadyQueuedException(""));
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
         assertEquals(409, response.getStatus());
@@ -102,7 +101,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExecuteJobWhichIsAlreadyRunning() throws Exception {
-        when(jobService.executeJob("foo", JobExecutionPriority.IGNORE_PRECONDITIONS)).thenThrow(new JobAlreadyRunningException(""));
+        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenThrow(new JobAlreadyRunningException(""));
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
         assertEquals(409, response.getStatus());
@@ -110,7 +109,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExecuteJob() throws Exception {
-        when(jobService.executeJob("foo", JobExecutionPriority.IGNORE_PRECONDITIONS)).thenReturn("1234");
+        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenReturn("1234");
         when(jobInfoService.getById("1234")).thenReturn(JOB_INFO);
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);

@@ -4,6 +4,7 @@ package de.otto.jobstore.repository;
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
+import de.otto.jobstore.service.exception.JobException;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -218,13 +219,13 @@ public class JobInfoRepository {
     /**
      * Marks a running job with the given name as finished.
      *
-     * @param name The name of the job
+     * @param query The query of to find object to update
      * @param resultCode The result state of the job
      * @param errorMessage An optional error message
      * @return true - The job was marked as requested<br/>
      *          false - No running job with the given name could be found
      */
-    public boolean markRunningAsFinished(final String name, final ResultCode resultCode, final String errorMessage) {
+    private boolean markRunningAsFinished(final DBObject query, final ResultCode resultCode, final String errorMessage) {
         final Date dt = new Date();
         final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
                 append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
@@ -235,8 +236,42 @@ public class JobInfoRepository {
             set.append(JobInfoProperty.ERROR_MESSAGE.val(), errorMessage);
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update, false, false, WriteConcern.SAFE);
+        final WriteResult result = collection.update(query, update, false, false, WriteConcern.SAFE);
         return result.getN() == 1;
+    }
+
+    /**
+     * Marks a running job with the given name as finished.
+     *
+     *
+     * @param id The id of the job
+     * @param resultCode The result state of the job
+     * @param t An exception
+     * @return true - The job was marked as requested<br/>
+     *          false - No running job with the given name could be found
+     */
+    public boolean markAsFinishedById(final String id, final ResultCode resultCode, final Throwable t) {
+        if (ObjectId.isValid(id)) {
+            final StringWriter sw = new StringWriter();
+            t.printStackTrace(new PrintWriter(sw));
+            return markRunningAsFinished(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)),
+                resultCode, "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString());
+        }
+        return false;
+    }
+
+    /**
+     * Marks a running job with the given name as finished.
+     *
+     * @param name The name of the job
+     * @param resultCode The result state of the job
+     * @param errorMessage An optional error message
+     * @return true - The job was marked as requested<br/>
+     *          false - No running job with the given name could be found
+     */
+    public boolean markRunningAsFinished(final String name, final ResultCode resultCode, final String errorMessage) {
+        return markRunningAsFinished(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()),
+                resultCode, errorMessage);
     }
 
     /**

@@ -146,7 +146,7 @@ public class JobService {
         }
         final JobInfo queuedJobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.QUEUED);
         if (queuedJobInfo != null) {
-            if (queuedJobInfo.getExecutionPriority().isLowerThan(executionPriority)) {
+            if (queuedJobInfo.getExecutionPriority().hasLowerPriority(executionPriority)) {
                 jobInfoRepository.remove(queuedJobInfo.getId());
                 id = queueJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
             } else {
@@ -155,13 +155,14 @@ public class JobService {
         } else {
             final JobInfo runningJobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING);
             if (runningJobInfo == null) {
-                id = runJob(runnable, executionPriority, "A job with name " + name + " is already running");
-                LOGGER.debug("ltag=JobService.runJob.executingJob jobInfoName={}", name);
-                executeJob(runnable, executionPriority);
-            } else if (runningJobInfo.getExecutionPriority().isEqualOrHigherThan(executionPriority)) {
-                throw new JobExecutionNotNecessaryException("Execution of job " + name + " was not necessary");
-            } else {
+                //TODO: Create Job in queued state and change its state once we actually start running
+                id = createJob(runnable, executionPriority, "A job with name " + name + " is already running");
+                LOGGER.debug("ltag=JobService.createJob.executingJob jobInfoName={}", name);
+                executeJob(id, runnable, executionPriority);
+            } else if (runningJobInfo.getExecutionPriority().hasLowerPriority(executionPriority)) {
                 id = queueJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
+            } else {
+                throw new JobExecutionNotNecessaryException("Execution of job " + name + " was not necessary");
             }
         }
         return id;
@@ -192,7 +193,7 @@ public class JobService {
                             final RemoteJobStatus remoteJobStatus = remoteJobExecutorService.getStatus(
                                     URI.create(runningJob.getAdditionalData().get(JobInfoProperty.REMOTE_JOB_URI.val())));
                             if (remoteJobStatus != null) {
-                                updateJobStatus(runningJob, remoteJobStatus);
+                                updateJobStatus(runningJob, remoteJobStatus, job.getValue());
                             }
                         }
                     }
@@ -247,13 +248,23 @@ public class JobService {
         return new Date(currentTime - pollingInterval).after(lastModificationTime);
     }
 
-    private void updateJobStatus(JobInfo jobInfo, RemoteJobStatus remoteJobStatus) {
+    private void updateJobStatus(JobInfo jobInfo, RemoteJobStatus remoteJobStatus, JobRunnable jobRunnable) {
         if (remoteJobStatus.status == RemoteJobStatus.Status.RUNNING) {
             jobInfoRepository.setLogLines(jobInfo.getName(), remoteJobStatus.logLines);
         } else if (remoteJobStatus.status == RemoteJobStatus.Status.FINISHED) {
+            final JobLogger logger = new SimpleJobLogger(jobRunnable.getName(), jobInfoRepository);
+            final JobExecutionContext context = new JobExecutionContext(jobInfo.getId(), logger, jobInfo.getExecutionPriority());
+            context.setRunningState(RunningState.FINISHED);
             final RemoteJobResult result = remoteJobStatus.result;
             if (result.ok) {
-                jobInfoRepository.markRunningAsFinishedSuccessfully(jobInfo.getName());
+                context.setResultCode(ResultCode.SUCCESSFUL);
+                try {
+                    jobRunnable.afterExecution(context);
+                    jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), context.getResultCode(), result.message);
+                } catch (Exception e) {
+                    LOGGER.error("Job: " + jobRunnable.getName()+" failed: "+e.getMessage(),e);
+                    jobInfoRepository.markRunningAsFinishedWithException(jobRunnable.getName(), e);
+                }
             } else {
                 jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(result.exitCode));
                 jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultCode.FAILED, result.message);
@@ -261,9 +272,9 @@ public class JobService {
         }
     }
 
-    private void executeJob(JobRunnable runnable, JobExecutionPriority executionPriority) {
+    private void executeJob(String id, JobRunnable runnable, JobExecutionPriority executionPriority) {
         final JobLogger jobLogger = new SimpleJobLogger(runnable.getName(), jobInfoRepository);
-        final JobExecutionContext context = new JobExecutionContext(jobLogger, executionPriority);
+        final JobExecutionContext context = new JobExecutionContext(id, jobLogger, executionPriority);
         Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(runnable, jobInfoRepository, context));
     }
 
@@ -290,7 +301,7 @@ public class JobService {
         return id;
     }
 
-    private String runJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, String exceptionMessage)
+    private String createJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, String exceptionMessage)
             throws JobAlreadyRunningException {
         final String id = jobInfoRepository.create(runnable.getName(), runnable.getMaxExecutionTime(),
                 RunningState.RUNNING, jobExecutionPriority, runnable.getParameters(), null);
@@ -304,7 +315,7 @@ public class JobService {
         if (jobInfoRepository.activateQueuedJob(name)) {
             jobInfoRepository.updateHostThreadInformation(name);
             LOGGER.info("ltag=JobService.activateQueuedJob.activate jobInfoName={} jobInfoId={}", name, id);
-            executeJob(runnable, executionPriority);
+            executeJob(id, runnable, executionPriority);
         } else {
             LOGGER.warn("ltag=JobService.activateQueuedJob.jobIsNotQueuedAnyMore jobInfoName={} jobInfoId={}", name, id);
         }

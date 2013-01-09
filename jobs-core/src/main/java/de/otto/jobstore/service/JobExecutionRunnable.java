@@ -2,6 +2,7 @@ package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.repository.JobInfoRepository;
+import de.otto.jobstore.service.exception.JobException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,31 +12,29 @@ final class JobExecutionRunnable implements Runnable {
 
     final JobRunnable jobRunnable;
     final JobInfoRepository jobInfoRepository;
-    final JobExecutionContext executionContext;
+    final JobExecutionContext context;
 
     JobExecutionRunnable(JobRunnable jobRunnable, JobInfoRepository jobInfoRepository, JobExecutionContext context) {
         this.jobRunnable = jobRunnable;
         this.jobInfoRepository = jobInfoRepository;
-        this.executionContext = context;
+        this.context = context;
     }
 
     @Override
     public void run() {
         try {
-            LOGGER.info("ltag=JobService.JobExecutionRunnable.run jobInfoName={}", jobRunnable.getName());
-            final JobExecutionResult result = jobRunnable.execute(executionContext);
-            if (RunningState.FINISHED.equals(result.getRunningState())) {
-                jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), result.getResultCode(), null);
-                if (result.getResultCode() == ResultCode.SUCCESSFUL) {
-                    jobRunnable.executeOnSuccess(executionContext.getJobLogger());
-                }
+            LOGGER.info("ltag=JobService.JobExecutionRunnable.run start jobName={}", jobRunnable.getName());
+            jobRunnable.beforeExecution(context);
+            jobRunnable.execute(context);
+            // Check because an asynchronous job may still be running
+            if (context.getRunningState() == RunningState.FINISHED) {
+                LOGGER.info("ltag=JobService.JobExecutionRunnable.run finished jobName={}", jobRunnable.getName());
+                jobRunnable.afterExecution(context);
+                jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), context.getResultCode(), context.getResultMessage());
             }
         } catch (Exception e) {
-            LOGGER.error("Job: " + jobRunnable.getName()+" finished with exception: "+e.getMessage(),e);
+            LOGGER.error("ltag=JobService.JobExecutionRunnable.run jobName=" + jobRunnable.getName()+" failed: "+e.getMessage(),e);
             jobInfoRepository.markRunningAsFinishedWithException(jobRunnable.getName(), e);
-        } catch (Error e) {
-            jobInfoRepository.markRunningAsFinishedWithException(jobRunnable.getName(), e);
-            throw e;
         }
     }
 

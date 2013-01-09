@@ -162,7 +162,7 @@ public class JobServiceTest {
             }
 
             @Override
-            public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+            public void execute(JobExecutionContext executionContext) throws JobExecutionException {
                 throw new JobExecutionException("problem while executing");
             }
         };
@@ -278,7 +278,7 @@ public class JobServiceTest {
             }
 
             @Override
-            public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+            public void execute(JobExecutionContext executionContext) throws JobExecutionException {
                 throw new JobExecutionException("problem while executing");
             }
         };
@@ -381,8 +381,8 @@ public class JobServiceTest {
         }
 
         @Override
-        public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
-            return new JobExecutionResult(RunningState.FINISHED, ResultCode.SUCCESSFUL);
+        public void execute(JobExecutionContext executionContext) throws JobExecutionException {
+            executionContext.setResultCode(ResultCode.SUCCESSFUL);
         }
 
     }
@@ -415,9 +415,10 @@ public class JobServiceTest {
         }
 
         @Override
-        public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+        public void execute(JobExecutionContext executionContext) throws JobExecutionException {
             executed = true;
-            return new JobExecutionResult(RunningState.FINISHED, ResultCode.SUCCESSFUL);
+            executionContext.setRunningState(RunningState.FINISHED);
+            executionContext.setResultCode(ResultCode.SUCCESSFUL);
         }
 
         public boolean isExecuted() {

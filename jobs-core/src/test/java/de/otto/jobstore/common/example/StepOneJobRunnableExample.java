@@ -1,6 +1,9 @@
 package de.otto.jobstore.common.example;
 
-import de.otto.jobstore.common.*;
+import de.otto.jobstore.common.AbstractLocalJobRunnable;
+import de.otto.jobstore.common.JobExecutionContext;
+import de.otto.jobstore.common.JobExecutionPriority;
+import de.otto.jobstore.common.ResultCode;
 import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
@@ -38,10 +41,10 @@ public final class StepOneJobRunnableExample extends AbstractLocalJobRunnable {
      * @param executionContext The context in which this job is executed
      */
     @Override
-    public JobExecutionResult execute(JobExecutionContext executionContext) throws JobException {
+    public void execute(JobExecutionContext executionContext) throws JobException {
         if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())
                 || jobService.listJobNames().contains(StepTwoJobRunnableExample.STEP_TWO_JOB)) {
-            return new JobExecutionResult(RunningState.FINISHED, ResultCode.NOT_EXECUTED);
+            executionContext.setResultCode(ResultCode.NOT_EXECUTED);
         }
         try {
             for (int i = 0; i < 10; i++) {
@@ -51,6 +54,7 @@ public final class StepOneJobRunnableExample extends AbstractLocalJobRunnable {
             throw new JobExecutionException("Interrupted: " + e.getMessage());
         }
         jobService.executeJob(StepTwoJobRunnableExample.STEP_TWO_JOB);
-        return new JobExecutionResult(RunningState.FINISHED, ResultCode.SUCCESSFUL);
+        executionContext.setResultCode(ResultCode.SUCCESSFUL);
     }
+
 }

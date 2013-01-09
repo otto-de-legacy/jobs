@@ -1,9 +1,15 @@
 package de.otto.jobstore.common.example;
 
-import de.otto.jobstore.common.*;
+import de.otto.jobstore.common.AbstractLocalJobRunnable;
+import de.otto.jobstore.common.JobExecutionContext;
+import de.otto.jobstore.common.JobExecutionPriority;
+import de.otto.jobstore.common.ResultCode;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
-import java.util.*;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.Map;
+import java.util.Random;
 
 public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
 
@@ -36,10 +42,10 @@ public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
      *                               and would thus cause a division by zero error
      */
     @Override
-    public JobExecutionResult execute(JobExecutionContext executionContext) throws JobExecutionException {
+    public void execute(JobExecutionContext executionContext) throws JobExecutionException {
         if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())
                 || new GregorianCalendar().get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
-            return new JobExecutionResult(RunningState.FINISHED, ResultCode.NOT_EXECUTED);
+            executionContext.setResultCode(ResultCode.NOT_EXECUTED);
         }
         Random r = new Random();
         for (int i = 0; i < 100; i++) {
@@ -50,7 +56,7 @@ public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
                 executionContext.getJobLogger().addLoggingData("Computed the number: " + i / randomNumber);
             }
         }
-        return new JobExecutionResult(RunningState.FINISHED, ResultCode.SUCCESSFUL);
+        executionContext.setResultCode(ResultCode.SUCCESSFUL);
     }
 
 }

@@ -10,12 +10,6 @@ import java.util.Map;
 public interface JobRunnable {
 
     /**
-     * The ID uniquely identifying this job instance.
-     */
-    String getId();
-    void setId(String id);
-
-    /**
      * The name of the job
      */
     String getName();
@@ -49,16 +43,16 @@ public interface JobRunnable {
      * @param context The context in which this job is executed
      * @throws de.otto.jobstore.service.exception.JobExecutionException Thrown if the execution of the job failed
      */
-    JobExecutionResult execute(JobExecutionContext context) throws JobException;
+    void execute(JobExecutionContext context) throws JobException;
 
     /**
      * This method is called right before the job is executed.
      */
-    void executeOnStart(JobLogger jobLogger) throws JobException;
+    void beforeExecution(JobExecutionContext context) throws JobException;
 
     /**
-     * This method is called once the job is executed successfully.
+     * This method is called after the job is executed successfully.
      */
-    void executeOnSuccess(JobLogger jobLogger) throws JobException;
+    void afterExecution(JobExecutionContext context) throws JobException;
 
 }
