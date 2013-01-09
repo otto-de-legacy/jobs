@@ -14,6 +14,7 @@ public final class JobExecutionContext {
         this.id = id;
         this.jobLogger = jobLogger;
         this.executionPriority = executionPriority;
+        this.runningState = RunningState.QUEUED;
     }
 
     public JobLogger getJobLogger() {
@@ -51,4 +52,5 @@ public final class JobExecutionContext {
     public void setResultMessage(String resultMessage) {
         this.resultMessage = resultMessage;
     }
+
 }

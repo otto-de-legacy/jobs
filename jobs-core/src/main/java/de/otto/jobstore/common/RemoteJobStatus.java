@@ -14,12 +14,15 @@ public final class RemoteJobStatus {
     public Status status;
     public List<String> logLines;
     public RemoteJobResult result;
+    public String finishTime;
 
     public RemoteJobStatus() {}
 
-    public RemoteJobStatus(Status status, List<String> logLines, RemoteJobResult result) {
+    public RemoteJobStatus(Status status, List<String> logLines, RemoteJobResult result, String finishTime) {
         this.status = status;
         this.logLines = logLines;
         this.result = result;
+        this.finishTime = finishTime;
     }
+
 }

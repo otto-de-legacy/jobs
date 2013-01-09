@@ -356,7 +356,7 @@ public class JobServiceTest {
                 thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
-                new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines, null));
+                new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines, null, null));
         jobService.pollRemoteJobs();
         verify(jobInfoRepository, times(1)).setLogLines(JOB_NAME_01, logLines);
     }
@@ -370,7 +370,7 @@ public class JobServiceTest {
                 thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
-                new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(false, 1, "foo")));
+                new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(false, 1, "foo"), null));
 
         jobService.pollRemoteJobs();
         verify(jobInfoRepository, times(1)).markRunningAsFinished(JOB_NAME_01, ResultCode.FAILED, "foo");
@@ -386,7 +386,7 @@ public class JobServiceTest {
                 thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
-                new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo")));
+                new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo"), null));
 
         jobService.pollRemoteJobs();
         verify(jobInfoRepository, times(1)).markRunningAsFinished(JOB_NAME_01, ResultCode.SUCCESSFUL, "foo");
@@ -404,7 +404,7 @@ public class JobServiceTest {
                 thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
-                new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo")));
+                new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo"), null));
 
         jobService.pollRemoteJobs();
         verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(),any(Throwable.class));

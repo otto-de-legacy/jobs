@@ -26,7 +26,12 @@ final class JobExecutionRunnable implements Runnable {
         try {
             LOGGER.info("ltag=JobService.JobExecutionRunnable.run start jobName={}", jobRunnable.getName());
             jobRunnable.beforeExecution(context);
-            jobRunnable.execute(context);
+            // if the job decides in its precondition check to skip the running state might already be finished
+            // pick up queued or already marked as running jobs
+            if (context.getRunningState() != RunningState.FINISHED) {
+                context.setRunningState(RunningState.RUNNING);
+                jobRunnable.execute(context);
+            }
             // Check because an asynchronous job may still be running
             if (context.getRunningState() == RunningState.FINISHED) {
                 LOGGER.info("ltag=JobService.JobExecutionRunnable.run finished jobName={}", jobRunnable.getName());
