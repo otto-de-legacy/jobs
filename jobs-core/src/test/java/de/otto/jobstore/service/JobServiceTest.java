@@ -361,6 +361,56 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(1)).setLogLines(JOB_NAME_01, logLines);
     }
 
+    @Test
+    public void testPollRemoteJobsJobIsFinishedNotSuccessfully() throws Exception {
+        jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, 0, 0));
+        JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
+        job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
+                thenReturn(job);
+        List<String> logLines = Arrays.asList("test", "test1");
+        when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
+                new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(false, 1, "foo")));
+
+        jobService.pollRemoteJobs();
+        verify(jobInfoRepository, times(1)).markRunningAsFinished(JOB_NAME_01, ResultCode.FAILED, "foo");
+    }
+
+    @Test
+    public void testPollRemoteJobsJobIsFinishedSuccessfully() throws Exception {
+        RemoteMockJobRunnable runnable = new RemoteMockJobRunnable(JOB_NAME_01, 0, 0);
+        jobService.registerJob(runnable);
+        JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
+        job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
+                thenReturn(job);
+        List<String> logLines = Arrays.asList("test", "test1");
+        when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
+                new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo")));
+
+        jobService.pollRemoteJobs();
+        verify(jobInfoRepository, times(1)).markRunningAsFinished(JOB_NAME_01, ResultCode.SUCCESSFUL, "foo");
+        assertEquals(ResultCode.SUCCESSFUL, runnable.afterSuccessContext.getResultCode());
+    }
+
+    @Test
+    public void testPollRemoteJobsJobIsFinishedSuccessfullyAfterExecutionException() throws Exception {
+        RemoteMockJobRunnable runnable = new RemoteMockJobRunnable(JOB_NAME_01, 0, 0);
+        runnable.throwExceptionInAfterExecution = true;
+        jobService.registerJob(runnable);
+        JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
+        job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
+                thenReturn(job);
+        List<String> logLines = Arrays.asList("test", "test1");
+        when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
+                new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo")));
+
+        jobService.pollRemoteJobs();
+        verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(),any(Throwable.class));
+        assertEquals(ResultCode.SUCCESSFUL, runnable.afterSuccessContext.getResultCode());
+    }
+
     /***
      *  HELPER
      */
@@ -373,6 +423,8 @@ public class JobServiceTest {
         private String name;
         private long maxExecutionTime;
         private long pollingInterval;
+        public JobExecutionContext afterSuccessContext = null;
+        public boolean throwExceptionInAfterExecution = false;
 
         private RemoteMockJobRunnable(String name, long maxExecutionTime, long pollingInterval) {
             super(remoteJobExecutorService);
@@ -402,8 +454,11 @@ public class JobServiceTest {
         }
 
         @Override
-        public void execute(JobExecutionContext executionContext) throws JobExecutionException {
-            executionContext.setResultCode(ResultCode.SUCCESSFUL);
+        public void afterExecution(JobExecutionContext context) throws JobException {
+            afterSuccessContext = context;
+            if (throwExceptionInAfterExecution) {
+                throw new JobExecutionException("bar");
+            }
         }
 
     }
@@ -449,7 +504,7 @@ public class JobServiceTest {
     }
 
     private JobInfo createJobInfo(String name, JobExecutionPriority executionPriority, RunningState runningState) {
-        return new JobInfo(name, "test", "test", 1000L, runningState);
+        return new JobInfo(name, "test", "test", 1000L, runningState, executionPriority, null);
     }
 
 }
