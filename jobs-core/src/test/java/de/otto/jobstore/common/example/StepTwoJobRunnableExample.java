@@ -2,11 +2,9 @@ package de.otto.jobstore.common.example;
 
 import de.otto.jobstore.common.AbstractLocalJobRunnable;
 import de.otto.jobstore.common.JobLogger;
-import de.otto.jobstore.common.Parameter;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
-import java.util.Collection;
-import java.util.Collections;
+import java.util.Map;
 
 public final class StepTwoJobRunnableExample extends AbstractLocalJobRunnable {
 
@@ -21,8 +19,8 @@ public final class StepTwoJobRunnableExample extends AbstractLocalJobRunnable {
     }
 
     @Override
-    public Collection<Parameter> getParameters() {
-        return Collections.emptyList();
+    public Map<String, String> getParameters() {
+        return null;
     }
 
     @Override

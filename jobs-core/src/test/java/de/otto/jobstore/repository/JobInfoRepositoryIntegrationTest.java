@@ -34,8 +34,15 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testCreate() throws Exception {
         assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING.name()));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING, false, false, null, null);
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("foo", "bar");
+        params.put("hugo", "moep");
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING, false, false, params, null);
         assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING.name()));
+        JobInfo createdJob = jobInfoRepository.findById(id);
+        assertNotNull("Created job with id " + id + ", cannot be found", createdJob);
+        assertNotNull("Created job has no parameters set", createdJob.getParameters());
+        assertEquals(2, createdJob.getParameters().size());
     }
 
     @Test

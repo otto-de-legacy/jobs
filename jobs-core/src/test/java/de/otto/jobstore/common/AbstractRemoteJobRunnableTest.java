@@ -7,7 +7,10 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -16,12 +19,13 @@ import static org.testng.AssertJUnit.assertEquals;
 public class AbstractRemoteJobRunnableTest {
 
     private RemoteJobExecutorService remoteJobExecutorService;
-    private List<Parameter> parameters = Arrays.asList(new Parameter("key", "value"));
+    private Map<String, String> parameters = new HashMap<String, String>();
     private String jobName = "testJob";
 
     @BeforeMethod
     public void setUp() throws Exception {
         remoteJobExecutorService = mock(RemoteJobExecutorService.class);
+        parameters.put("key", "value");
     }
 
     @Test
@@ -56,7 +60,7 @@ public class AbstractRemoteJobRunnableTest {
         }
 
         @Override
-        public List<Parameter> getParameters() {
+        public Map<String, String> getParameters() {
             return parameters;
         }
 

@@ -4,15 +4,15 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
 import java.io.Serializable;
-import java.util.Collection;
+import java.util.Map;
 
 public final class RemoteJob implements Serializable {
 
     public String name;
     public String client_id;
-    public Collection<Parameter> parameters;
+    public Map<String, String> parameters;
 
-    public RemoteJob(String name, String client_id, Collection<Parameter> parameters) {
+    public RemoteJob(String name, String client_id, Map<String, String> parameters) {
         this.name = name;
         this.client_id = client_id;
         this.parameters = parameters;
@@ -23,8 +23,8 @@ public final class RemoteJob implements Serializable {
         obj.put("name", name);
         obj.put("client_id", client_id);
         final JSONObject params = new JSONObject();
-        for (Parameter parameter : parameters) {
-            params.put(parameter.key, parameter.value);
+        for (String paramName : parameters.keySet()) {
+            params.put(paramName, parameters.get(paramName));
         }
         obj.put("parameters", params);
         return obj;

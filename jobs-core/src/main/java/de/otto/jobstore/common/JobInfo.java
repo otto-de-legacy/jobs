@@ -63,11 +63,11 @@ public final class JobInfo extends AbstractItem {
         return getProperty(JobInfoProperty.THREAD);
     }
 
-    public Collection<Parameter> getParameters() {
+    public Map<String, String> getParameters() {
         return getProperty(JobInfoProperty.PARAMETERS);
     }
 
-    public void setParameters(Collection<Parameter> parameters) {
+    public void setParameters(Map<String, String> parameters) {
         addProperty(JobInfoProperty.PARAMETERS, parameters);
     }
 

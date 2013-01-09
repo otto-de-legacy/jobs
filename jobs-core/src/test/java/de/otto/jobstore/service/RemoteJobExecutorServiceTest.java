@@ -1,6 +1,5 @@
 package de.otto.jobstore.service;
 
-import de.otto.jobstore.common.Parameter;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
@@ -12,7 +11,8 @@ import org.testng.annotations.Test;
 
 import javax.annotation.Resource;
 import java.net.URI;
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.testng.AssertJUnit.*;
 
@@ -87,7 +87,9 @@ public class RemoteJobExecutorServiceTest extends AbstractTestNGSpringContextTes
     }
 
     private RemoteJob createRemoteJob() {
-        return new RemoteJob(JOB_NAME, "2311", Arrays.asList(new Parameter("sample_file", "/var/log/mongodb.log")));
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("sample_file", "/var/log/mongodb.log");
+        return new RemoteJob(JOB_NAME, "2311", params);
     }
 
 }

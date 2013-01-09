@@ -2,7 +2,7 @@ package de.otto.jobstore.common;
 
 import de.otto.jobstore.service.exception.JobException;
 
-import java.util.Collection;
+import java.util.Map;
 
 /**
  * A job to be executed by a JobService {@link de.otto.jobstore.service.JobService}
@@ -23,7 +23,7 @@ public interface JobRunnable {
     /**
      * Returns the parameters being used to execute the job.
      */
-    Collection<Parameter> getParameters();
+    Map<String, String> getParameters();
 
     /**
      * The time after which a job is considered to be timed out (in milliseconds).
