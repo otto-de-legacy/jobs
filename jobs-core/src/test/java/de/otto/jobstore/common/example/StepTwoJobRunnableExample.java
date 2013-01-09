@@ -5,6 +5,8 @@ import de.otto.jobstore.common.JobExecutionResult;
 import de.otto.jobstore.common.JobExecutionContext;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
+import java.util.Map;
+
 public final class StepTwoJobRunnableExample extends AbstractLocalJobRunnable {
 
     public static final String STEP_TWO_JOB = "STEP_TWO_JOB";
@@ -12,8 +14,14 @@ public final class StepTwoJobRunnableExample extends AbstractLocalJobRunnable {
     /**
      * @return name of the simple job, might differ from Classname
      */
+    @Override
     public String getName() {
         return STEP_TWO_JOB;
+    }
+
+    @Override
+    public Map<String, String> getParameters() {
+        return null;
     }
 
     @Override

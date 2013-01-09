@@ -1,8 +1,7 @@
 package de.otto.jobstore.common.properties;
 
-
 /**
- * Properties of JobInfo
+ * Key names used to refer to properties in JobInfo.
  *
  * {@link de.otto.jobstore.common.JobInfo}
  */
@@ -15,6 +14,7 @@ public enum JobInfoProperty implements ItemProperty {
     CREATION_TIME("creationTime"),
     START_TIME("startTime"),
     FINISH_TIME("finishTime"),
+    PARAMETERS("parameters"),
     @Deprecated
     FORCE_EXECUTION("forceExecution"),
     EXECUTION_PRIORITY("executionPriority"),

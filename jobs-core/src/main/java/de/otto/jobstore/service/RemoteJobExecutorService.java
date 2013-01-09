@@ -1,10 +1,11 @@
 package de.otto.jobstore.service;
 
-
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
@@ -24,34 +25,44 @@ public class RemoteJobExecutorService {
     private String jobExecutorUri;
     private Client client;
 
-    public RemoteJobExecutorService(String jobExecutorUri, Client client) {
+    public RemoteJobExecutorService(String jobExecutorUri) {
         this.jobExecutorUri = jobExecutorUri;
-        this.client = client;
+
+        // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
+        //    see: https://github.com/mitsuhiko/flask/issues/367
+        ClientConfig cc = new DefaultClientConfig();
+        cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
+        this.client = Client.create(cc);
     }
 
     public URI startJob(final RemoteJob job) throws JobException {
+        final String startUrl = jobExecutorUri + job.name + "/start";
         try {
-            final ClientResponse response = client.resource(jobExecutorUri + job.name + "/start").
-                    type(MediaType.APPLICATION_JSON).post(ClientResponse.class, job.toJsonObject());
+            LOGGER.info("Going to start new job from {} ...", startUrl);
+            final ClientResponse response = client.resource(startUrl)
+                    .type(MediaType.APPLICATION_JSON).header("Connection", "close").header("User-Agent", "RemoteJobExecutorService")
+                    .post(ClientResponse.class, job.toJsonObject());
             if (response.getStatus() == 201) {
                 return createJobUri(response.getHeaders().getFirst("Link"));
             } else if (response.getStatus() == 303) {
-                throw new RemoteJobAlreadyRunningException("Remote job is already running", createJobUri(response.getHeaders().getFirst("Link")));
+                throw new RemoteJobAlreadyRunningException("Remote job is already running, url=" + startUrl, createJobUri(response.getHeaders().getFirst("Link")));
             }
-            throw new JobExecutionException("Received unexpected status code " + response.getStatus() + " when trying to create remote job " + job.name);
+            throw new JobExecutionException("Unable to start remote job: url=" + startUrl + " rc=" + response.getStatus());
         } catch (JSONException e) {
-            throw new JobExecutionException("Could not create json object from remote job object", e);
+            throw new JobExecutionException("Could not create JSON object: " + job, e);
         } catch (UniformInterfaceException | ClientHandlerException  e) {
-            throw new JobExecutionException("Received unexpected exception when trying to create remote job " + job.name, e);
+            throw new JobExecutionException("Problem while starting new job: url=" + startUrl, e);
         }
     }
 
     public void stopJob(URI jobUri) throws JobException {
+        final String stopUrl = jobUri + "/stop";
         try {
-            client.resource(jobUri + "/stop").post();
+            LOGGER.info("Going to stop job from {} ...", stopUrl);
+            client.resource(stopUrl).header("Connection", "close").post();
         } catch (UniformInterfaceException e) {
             if (e.getResponse().getStatus() == 403) {
-                throw new RemoteJobNotRunningException("Remote job '" + jobUri.toString() + "' is not running");
+                throw new RemoteJobNotRunningException("Remote job is not running: url=" + stopUrl);
             }
             throw e;
         }
@@ -60,7 +71,7 @@ public class RemoteJobExecutorService {
     public RemoteJobStatus getStatus(final URI jobUri) {
         try {
             final ClientResponse response = client.resource(jobUri.toString()).
-                    accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+                    accept(MediaType.APPLICATION_JSON).header("Connection", "close").get(ClientResponse.class);
             if (response.getStatus() == 200) {
                 return response.getEntity(RemoteJobStatus.class);
             }
@@ -73,13 +84,16 @@ public class RemoteJobExecutorService {
 
     public boolean isAlive() {
         try {
-            final ClientResponse response = client.resource(jobExecutorUri).get(ClientResponse.class);
+            final ClientResponse response = client.resource(jobExecutorUri).header("Connection", "close")
+                                                                           .get(ClientResponse.class);
             return (response.getStatus() == 200);
         } catch (UniformInterfaceException | ClientHandlerException e) {
             LOGGER.warn("Remote Job Executor is not available from: {}", jobExecutorUri, e);
         }
         return false;
     }
+
+    // ~
 
     private URI createJobUri(String path) {
         return URI.create(jobExecutorUri).resolve(path);

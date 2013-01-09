@@ -1,20 +1,23 @@
 package de.otto.jobstore.common.example;
 
-
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.Random;
+import java.util.*;
 
 public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
 
     /**
      * @return name of the simple job, might differ from Classname
      */
+    @Override
     public String getName() {
         return "SimpleJobRunnableExampleToBeUsed";
+    }
+
+    @Override
+    public Map<String, String> getParameters() {
+        return null;
     }
 
     /**

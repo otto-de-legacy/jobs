@@ -2,8 +2,9 @@ apply from: 'gradle/libraries.gradle'
 
 allprojects {
     apply plugin: 'idea'
-    version = '0.7-SNAPSHOT'
-    //version = '0.7'
+    version = '0.7.12-SNAPSHOT'
+    //version = '0.7.12'
+    group = 'de.otto'
 }
 
 subprojects {

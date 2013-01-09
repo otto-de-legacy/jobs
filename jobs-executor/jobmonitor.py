@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.2"
+__version__ = "0.8.13"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -29,6 +29,7 @@ from flask import json
 from flask import request, Response
 
 from fabric.api import run, settings
+from lru import LRUCacheDict
 
 
 # ~~ configuration: override by providing your own settings, see (2)
@@ -36,9 +37,10 @@ from fabric.api import run, settings
 DEBUG             = True
 HTTP_PORT         = 5000
 LOGFILE           = 'jobmonitor.log'
-TRANSCRIPT_DIR    = '/tmp'
-JOB_TEMPLATES_DIR = 'templates'
-JOB_INSTANCES_DIR = '/tmp/instances' # IMPORTANT: must be readable by user <JOB_USERNAME>
+TRANSCRIPT_DIR    = '/tmp'                   # dir for zdaemon log files (per job exactly one file)
+JOB_TEMPLATES_DIR = 'templates'              # by default relative to jobmonitor
+JOB_INSTANCES_DIR = '/tmp/jobexec/instances' # IMPORTANT: must be readable by user <JOB_USERNAME>
+JOB_LOG_DIR       = '/tmp/jobexec/log'       # log files for each single job instance
 JOB_HOSTNAME      = 'localhost'
 HOSTNAME          = socket.gethostname()
 
@@ -60,6 +62,8 @@ app.config.from_object(__name__)
 # (2) read in configuration file as specified by environment variable
 app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
 
+# (3) prepare mapping of unix process ids to timestamps (cache at max 4 hours)
+ps_map = LRUCacheDict(max_size=50, expiration=4*60*60)
 
 # ------------------------------------------------------
 # HTTP API
@@ -68,15 +72,23 @@ app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
 @app.route('/')
 def api_root():
     """Index page spitting out who we are."""
+
+    # TODO: link to most important resources
     return 'Job Monitor (v %s)' % __version__
 
 
+# ~~~~ Job Metadata API
+
 @app.route('/jobs', methods = ['GET'])
+@app.route('/jobs/', methods = ['GET'])
 def get_available_jobs():
     """List all registered jobs known to the system."""
+
     available_jobs = get_job_template_names()
     msg = { 'jobs': available_jobs }
+    # TODO: link each job to its status resource
     return Response(json.dumps(msg), status=200, mimetype='application/json')
+
 
 @app.route('/jobs/<job_name>', methods = ['POST'])
 def create_job(job_name):
@@ -85,6 +97,7 @@ def create_job(job_name):
     # ~~ expect JSON as input
     definition = request.data
     if not definition:
+        log.warn('No payload in body: unable to register %s definition ...', job_name)
         return Response("Require job definition as body", status=400)
     if request.headers['Content-Type'] != 'application/text':
         return Response("Only 'application/text' currently supported as media type", status=415)
@@ -100,28 +113,96 @@ def create_job(job_name):
     resp.headers['Link'] = url_for('get_current_job', job_name=job_name)
     return resp
 
+
 @app.route('/jobs/<job_name>', methods = ['DELETE'])
 def delete_job(job_name):
     """Unregister job and delete associated template."""
 
     if exists_job_template(job_name):
         remove_job_template(job_name)
-        resp = Response("", status=200, mimetype='application/json')
+        log.info("Removed job template for %s", job_name)
+        return Response("", status=200, mimetype='application/json')
     else:
         msg = {'message': "No job definition found for %s..." % job_name}
-        resp = Response(json.dumps(msg), status=404, mimetype='application/json')
+        return Response(json.dumps(msg), status=404, mimetype='application/json')
+
+
+# ~~~~ Job Instance control API
+
+@app.route('/jobs/<job_name>/start', methods = ['POST'])
+def start_job_instance(job_name):
+    """Trigger new job on remote server with given name"""
+
+    user_agent = request.headers['User-Agent'] if 'User-Agent' in request.headers else 'N/A'
+    log.info('Going to start new %s instance for user agent: %s ...', job_name, user_agent)
+    # If Transfer-Encoding: chunked => Response status 400 will be returned, since WSGI does not support chunked encoding
+    # ~~ expect JSON as input
+    if request.headers['Content-Type'] != 'application/json':
+        return Response("Only 'application/json' currently supported as media type", status=415)
+
+    # ~~ check if already running
+    job_active = False
+    job_process_id = None
+    if exists_job_instance(job_name):
+        log.info("Found job instance, check if still running...")
+        job_filepath = get_job_instance_filepath(job_name)
+        (job_active, job_process_id) = get_job_status(job_name, job_filepath)
+
+    if job_active:
+        try:
+            job_id = ps_map[job_process_id]
+        except KeyError:
+            job_id = "unknown"
+        log.info('Job %s is still active, link to latest running instance: %s ...' % (job_name, job_id))
+        msg = { 'status': 'RUNNING', 'message': "job '%s' [%s] is still running with process id %d" % (job_name, job_id, job_process_id)}
+        resp = Response(json.dumps(msg), status=303, mimetype='application/json')
+        resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
+    else:
+        log.info('Job %s is not active, going to start new instance ...', job_name)
+        # ~~ extract Job parameters from JSON and create job config
+        job_id = create_job_id()
+        job_params = request.json['parameters'] if request.json['parameters'] else {}
+        job_client_id = request.json['client_id'] if 'client_id' in request.json else {}
+
+        log.info('preparing job %s [%s] with params: %s' % (job_name, job_client_id, job_params))
+        job_filepath = create_jobconf(job_name, job_id, job_params)
+
+        # ~~ going to start of daemonized process
+        log.info('trying to start job %s ...' % job_name)
+        # TODO in cluster environment: for hostname in env.hosts
+        with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
+            cmd_result = run("zdaemon -C %s start" % job_filepath)
+            log.info('Started %s [return code: %d]' % (job_name, cmd_result.return_code))
+
+        # ~~ construct response
+        job_process_id = extract_process_id(cmd_result)
+        if cmd_result.succeeded and "daemon process started" in cmd_result and job_process_id:
+            ps_map[job_process_id] = job_id
+            msg = { 'status': 'STARTED', 'message': "job '%s' started with process id=%s" % (job_name, job_process_id) }
+            resp = Response(json.dumps(msg), status=201, mimetype='application/json')
+            resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
+        else:
+            msg = { 'status': 'FINISHED', 'result': {'ok': False, 'message': '%s' % cmd_result,
+                                                     'exit_code': cmd_result.return_code }}
+            resp = Response(json.dumps(msg), status=500, mimetype='application/json')
 
     return resp
 
 
 @app.route('/jobs/<job_name>', methods = ['GET'])
 def get_current_job(job_name):
+    """Returns information about the currently running job instance."""
+
     if exists_job_instance(job_name):
         job_filepath = get_job_instance_filepath(job_name)
         log.info("Found job instance, check if still running...")
         (job_active, job_process_id) = get_job_status(job_name, job_filepath)
         # TODO: also care for exit code
-        return response_job_status(job_name, job_active, 99999, job_process_id)
+        try:
+            job_id = ps_map[job_process_id]
+        except KeyError:
+            job_id = "unknown"
+        return response_job_status(job_name, job_active, job_id, job_process_id)
     else:
         if exists_job_template(job_name):
             msg = { 'message': "No job instance found for '%s'" % job_name }
@@ -133,69 +214,35 @@ def get_current_job(job_name):
 
 @app.route('/jobs/<job_name>/<job_id>', methods = ['GET'])
 def get_job_by_id(job_name, job_id):
-    # check if job exists
+    """Returns information about the specified running job instance."""
+
+    # check if there exists at least a job instance
     if not exists_job_instance(job_name):
         msg = { 'message': "No job instance found for '%s'" % job_name}
         return Response(json.dumps(msg), status=404, mimetype='application/json')
 
+    # find job by ID (and show log)
+    found_process_id = None
+    for a_process_id in ps_map.keys():
+        if ps_map[a_process_id] == job_id:
+            found_process_id = a_process_id
+            break
+
+    # check if currently running job is same to one requested
     job_fullpath = get_job_instance_filepath(job_name)
     (job_active, job_process_id) = get_job_status(job_name, job_fullpath)
-    return response_job_status(job_name, job_active, job_id, job_process_id)
 
-
-@app.route('/jobs/<job_name>/start', methods = ['POST'])
-def start_job_instance(job_name):
-    """Trigger new job on remote server with given name"""
-
-    # ~~ expect JSON as input
-    if request.headers['Content-Type'] != 'application/json':
-        return Response("Only 'application/json' currently supported as media type", status=415)
-
-    # ~~ check if already running
-    job_active = False
-    job_process_id = -1
-    if exists_job_instance(job_name):
-        log.info("Found job instance, check if still running...")
-        job_filepath = get_job_instance_filepath(job_name)
-        (job_active, job_process_id) = get_job_status(job_name, job_filepath)
-
-    if job_active:
-        job_id = 99999
-        msg = { 'status': 'RUNNING', 'message': "job '%s' is still running with process id %d" % (job_name, job_process_id)}
-        resp = Response(json.dumps(msg), status=303, mimetype='application/json')
-        resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
+    if job_process_id == found_process_id:
+        return response_job_status(job_name, job_active, job_id, job_process_id)
     else:
-        # ~~ extract Job parameters from JSON and create job config
-        job_id = create_job_id()
-        job_params = request.json['parameters'] if request.json['parameters'] else {}
-
-        log.info('preparing job %s with params: %s' % (job_name, job_params))
-        job_filepath = create_jobconf(job_name, job_id, job_params)
-
-        # ~~ going to start of daemonized process
-        log.info('trying to start job %s ...' % job_name)
-        # TODO in cluster environment: for hostname in env.hosts
-        with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
-            cmd_result = run("zdaemon -C %s start" % job_filepath)
-            log.info('Started %s [return code: %d]' % (job_name, cmd_result.return_code))
-
-        # ~~ construct response
-        if cmd_result.succeeded and "daemon process started" in cmd_result:
-            job_process_id = extract_process_id(cmd_result)
-            msg = { 'status': 'STARTED', 'message': "job '%s' started with process id=%d" % (job_name, job_process_id) }
-            resp = Response(json.dumps(msg), status=201, mimetype='application/json')
-            resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
-        else:
-            msg = { 'status': 'FINISHED', 'result': {'ok': False, 'message': '%s' % cmd_result,
-                                                     'exit_code': cmd_result.return_code }}
-            resp = Response(json.dumps(msg), status=500, mimetype='application/json')
-
-    return resp
+        return response_job_status(job_name, False, job_id, found_process_id)
 
 
 @app.route('/jobs/<job_name>/stop', methods = ['POST'])
 @app.route('/jobs/<job_name>/<job_id>/stop', methods = ['POST'])  # DEPRECATED
 def stop_job_instance(job_name, job_id):
+    """Stops the given job instance from running."""
+
     # check if job exists
     if not exists_job_instance(job_name):
         return Response("No job instance found for '%s'" % job_name, status=404)
@@ -224,17 +271,18 @@ def stop_job_instance(job_name, job_id):
 def response_job_status(job_name, job_active, job_id, job_process_id):
     log_lines = get_last_lines(get_job_instance_logpath(job_name, job_id), 100)
     if job_active:
+        # TODO: Link to job status page in addition to only presenting job_id
         msg = { 'status': 'RUNNING', 'job_id': "%s" % job_id, 'log_lines': log_lines,
-                'message': "job '%s' is running with process id %d" % (job_name, job_process_id)}
+                'message': "job '%s' is running with process id %s" % (job_name, job_process_id)}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
     else:
         msg = { 'status': 'FINISHED', 'log_lines': log_lines,
-                'result':{'ok': True, 'message': "job '%s' is not running any more" % job_name }}
+                'result':{'ok': True, 'message': "job '%s' is not running any more, process_id %s" % (job_name, job_process_id) }}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
 
 def get_job_status(job_name, job_filepath):
     job_active = False
-    job_process_id = -1
+    job_process_id = None
     with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
         cmd_result = run("zdaemon -C %s status" % job_filepath)
         if cmd_result.return_code > 0:
@@ -282,9 +330,11 @@ def save_job_template(job_name, data):
     file.write(make_multiline_conf(data))
 
 def make_multiline_conf(line):
-    """A bit of a hack: make sure the zdaemon definition is split on multiple lines."""
-    trans1 = re.sub(r'<(/?\w+)>', r'\n<\1>\n', line)
-    return re.sub(r'(transcript )', r'\n\1', trans1)
+    """Dirty hack: make sure the zdaemon definition is split from one to multiple lines."""
+    trans = re.sub(r'<(/?\w+)>',        r'\n<\1>\n', line)
+    trans = re.sub(r'(backoff-limit )', r'\n\1', trans)
+    trans = re.sub(r'(socket-name )',   r'\n\1', trans)
+    return  re.sub(r'(transcript )',    r'\n\1', trans)
 
 def remove_job_template(job_name):
     fullpath = get_job_template_filepath(job_name)
@@ -303,9 +353,6 @@ def create_job_id():
     """Generate ID which can be used to uniquely refer to a job instance"""
     return time.strftime("%Y-%m-%d_%H%M%S")
 
-# def get_job_instance(job_name, job_id):
-#    return "%s_%s" % (job_name, job_id)
-
 def get_job_instance_filename(job_name):
     return "%s.conf" % job_name
 
@@ -313,7 +360,7 @@ def get_job_instance_logname(job_name, job_id):
     return "%s_%s.log" % (job_name, job_id)
 
 def get_job_instance_logpath(job_name, job_id):
-    return os.path.join(app.config['TRANSCRIPT_DIR'], get_job_instance_logname(job_name, job_id))
+    return os.path.join(app.config['JOB_LOG_DIR'], get_job_instance_logname(job_name, job_id))
 
 def get_job_instance_filepath(job_name):
     abs_instances_dir = os.path.abspath(app.config['JOB_INSTANCES_DIR'])
@@ -322,6 +369,9 @@ def get_job_instance_filepath(job_name):
 def ensure_job_instance_directory():
     if not os.path.exists(app.config['JOB_INSTANCES_DIR']):
         os.makedirs(app.config['JOB_INSTANCES_DIR'])
+    if not os.path.exists(app.config['JOB_LOG_DIR']):
+        os.makedirs(app.config['JOB_LOG_DIR'])
+        os.chmod(app.config['JOB_LOG_DIR'], 00775)  # make it group writable
 
 def exists_job_instance(job_name):
     return os.path.exists(get_job_instance_filepath(job_name))
@@ -332,7 +382,7 @@ def extract_process_id(cmd_string):
     if matcher:
         return int(matcher.group(1))
     else:
-        return -1
+        return None
 
 def get_last_lines(filepath, nr_lines):
     """Return the last nr_lines from file (as given by filepath)."""
@@ -355,7 +405,7 @@ def remove_old_files(dir, days):
             os.remove(os.path.join(dir, filename))
 
 def permanent_check():
-    remove_old_files(app.config['JOB_INSTANCES_DIR'], 3) # days
+    remove_old_files(app.config['JOB_LOG_DIR'], 3) # days
     # execute every ... minutes
     threading.Timer(15 * 60, permanent_check).start()
 

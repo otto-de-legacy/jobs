@@ -73,10 +73,10 @@ public class JobInfoRepository {
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     public String create(final String name, final long maxExecutionTime, final RunningState runningState,
-                         final JobExecutionPriority executionPriority, final Map<String, String> additionalData) {
+                         final JobExecutionPriority executionPriority, final Map<String, String> parameters, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxExecutionTime, runningState, executionPriority, additionalData);
+        return create(name, host, thread, maxExecutionTime, runningState, executionPriority, parameters, additionalData);
     }
 
     /**
@@ -92,10 +92,12 @@ public class JobInfoRepository {
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     public String create(final String name, final String host, final String thread, final long maxExecutionTime,
-                         final RunningState runningState, final JobExecutionPriority executionPriority, final Map<String, String> additionalData) {
+                         final RunningState runningState, final JobExecutionPriority executionPriority, 
+                         final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
             LOGGER.info("Create job={} in state={} ...", name, runningState);
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, executionPriority, additionalData);
+            jobInfo.setParameters(parameters);
             save(jobInfo, WriteConcern.SAFE);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
@@ -176,58 +178,41 @@ public class JobInfoRepository {
                         append(JobInfoProperty.START_TIME.val(), dt).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
         LOGGER.info("Activate queued job={} ...", name);
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED.name()), update);
-        return result.getN() == 1;
+        try{
+            final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED.name()), update, false, false, WriteConcern.SAFE);
+            return result.getN() == 1;
+        }catch(MongoException.DuplicateKey e){
+            return false;
+        }
     }
 
     /**
      * Updates the host and thread information on the running job with the given name. Host and thread information
      * are determined automatically.
+     * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
+     * jobname ist not checked
+     *
      *
      * @param name The name of the job
-     * @return true - The data was successfully added to the job<br/>
-     *         false - No running job with the given name could be found
      */
-    public boolean updateHostThreadInformation(final String name) {
-        return updateHostThreadInformation(name, InternetUtils.getHostName(), Thread.currentThread().getName());
+    public void updateHostThreadInformation(final String name) {
+        updateHostThreadInformation(name, InternetUtils.getHostName(), Thread.currentThread().getName());
     }
 
     /**
      * Updates the host and thread information on the running job with the given name
+     * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
+     * jobname ist not checked
+     *
      *
      * @param name The name of the job
      * @param host The host to set
      * @param thread The thread to set
-     * @return true - The data was successfully added to the job<br/>
-     *         false - No running job with the given name could be found
      */
-    public boolean updateHostThreadInformation(final String name, final String host, final String thread) {
+    public void updateHostThreadInformation(final String name, final String host, final String thread) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.HOST.val(), host).append(JobInfoProperty.THREAD.val(), thread));
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
-        return result.getN() == 1;
-    }
-
-    /**
-     * Marks a running job with the given id as finished.
-     *
-     * @param id The id of the job
-     * @return true - If the job was deleted successfully<br/>
-     *          false - If no queued job with the given name could be found
-     */
-    public boolean markAsFinishedById(final String id, final ResultCode resultState) {
-        if (ObjectId.isValid(id)) {
-            final Date dt = new Date();
-            final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
-                    new BasicDBObject().append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
-                            append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
-                            append(JobInfoProperty.FINISH_TIME.val(), dt).
-                            append(JobInfoProperty.RESULT_STATE.val(), resultState.name()));
-            final WriteResult result = collection.update(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), update);
-            return result.getN() == 1;
-        } else {
-            return false;
-        }
+        collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
     }
 
     /**
@@ -284,7 +269,7 @@ public class JobInfoRepository {
                         append(JobInfoProperty.FINISH_TIME.val(), dt).
                         append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()));
         final WriteResult result = collection.update(new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
-                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name()), update);
+                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name()), update, false, false, WriteConcern.SAFE);
         return result.getN() == 1;
     }
 
@@ -303,18 +288,18 @@ public class JobInfoRepository {
      * Adds additional data to a running job with the given name. If information with the given key already exists
      * it is overwritten. The lastModified date of the job is set to the current date.
      *
+     * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
+     * jobname ist not checked
+     *
      * @param name The name of the job
      * @param key The key of the data to save
      * @param value The information to save
-     * @return true - The data was successfully added to the job<br/>
-     *          false - No running job with the given name could be found
      */
-    public boolean addAdditionalData(final String name, final String key, final String value) {
+    public void addAdditionalData(final String name, final String key, final String value) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObjectBuilder().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
                         append(JobInfoProperty.ADDITIONAL_DATA.val() + "." + key, value).get());
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
-        return result.getN() == 1;
+        collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
     }
 
     /**
@@ -406,20 +391,19 @@ public class JobInfoRepository {
 
     /**
      * Adds a logging line to the logging data of the running job with the supplied name
+     * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
+     * jobname ist not checked
      *
      * @param jobName The name of the job
      * @param line The log line to add
-     * @return true - The data was successfully added to the job<br/>
-     *         false - No running job with the given name could be found
      */
-    public boolean addLogLine(final String jobName, final String line) {
+    public void addLogLine(final String jobName, final String line) {
         final Date dt = new Date();
         final LogLine logLine = new LogLine(line, dt);
         final DBObject update = new BasicDBObject().
                 append(MongoOperator.PUSH.op(), new BasicDBObject(JobInfoProperty.LOG_LINES.val(), logLine.toDbObject())).
                 append(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(jobName, RunningState.RUNNING.name()), update);
-        return result.getN() == 1;
+        collection.update(createFindByNameAndRunningStateQuery(jobName, RunningState.RUNNING.name()), update);
     }
 
     /**
@@ -438,7 +422,7 @@ public class JobInfoRepository {
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).append(JobInfoProperty.LOG_LINES.val(), logLines));
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
+        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update, false, false, WriteConcern.SAFE);
         return result.getN() == 1;
     }
 
@@ -501,7 +485,7 @@ public class JobInfoRepository {
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
-            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, Collections.EMPTY_MAP, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
@@ -526,7 +510,7 @@ public class JobInfoRepository {
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
-            create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+            create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, Collections.EMPTY_MAP, null);
             numberOfRemovedJobs = cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, daysAfterWhichOldJobsAreDeleted)));
             addAdditionalData(JOB_NAME_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP);
@@ -545,7 +529,7 @@ public class JobInfoRepository {
     protected int cleanup(Date clearJobsBefore) {
         final WriteResult result = collection.remove(new BasicDBObject().
                 append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
-                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())));
+                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())), WriteConcern.SAFE);
         return result.getN();
     }
 

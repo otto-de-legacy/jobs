@@ -34,23 +34,30 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testCreate() throws Exception {
         assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("foo", "bar");
+        params.put("hugo", "moep");
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, params, null);
         assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING));
+        JobInfo createdJob = jobInfoRepository.findById(id);
+        assertNotNull("Created job with id " + id + ", cannot be found", createdJob);
+        assertNotNull("Created job has no parameters set", createdJob.getParameters());
+        assertEquals(2, createdJob.getParameters().size());
     }
 
     @Test
     public void testCreatingRunningJobWhichAlreadyExists() throws Exception {
-        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null));
-        assertNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null));
+        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null));
+        assertNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null));
     }
 
     @Test
     public void testQueuedJobNotQueuedAnyMore() throws Exception {
-        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null));
+        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null, null));
         assertTrue(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
         assertFalse(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
 
-        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null));
+        assertNotNull(jobInfoRepository.create(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null, null));
         //Would violate Index as running job already exists
         assertFalse(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
     }
@@ -58,7 +65,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testHasRunningJob() throws InterruptedException {
         assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         Thread.sleep(200);
         assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING));
         jobInfoRepository.addAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
@@ -69,7 +76,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testHasQueuedJob() throws InterruptedException {
         assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.QUEUED));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         Thread.sleep(200);
         assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.QUEUED));
         jobInfoRepository.addAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
@@ -79,7 +86,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testClear() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 300, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 300, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         jobInfoRepository.clear(true);
         assertEquals(0L, jobInfoRepository.count());
     }
@@ -87,7 +94,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testMarkAsFinished() throws Exception {
         assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getFinishTime());
         jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultCode.SUCCESSFUL, null);
         assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME, null).get(0).getFinishTime());
@@ -96,7 +103,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testCleanupTimedOutJobs() throws InterruptedException {
         for(int i=0; i < 100; i++) {
-            jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+            jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         }
         assertEquals(100, jobInfoRepository.count());
         jobInfoRepository.cleanupTimedOutJobs();
@@ -111,7 +118,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testAddOrUpdateAdditionalData_Insert() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertEquals(0, jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getAdditionalData().size());
         jobInfoRepository.addAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
         assertEquals(1, jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getAdditionalData().size());
@@ -120,7 +127,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testAddOrUpdateAdditionalData_Update() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         jobInfoRepository.addAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
         jobInfoRepository.addAdditionalData(TESTVALUE_JOBNAME, "key1", "value2");
         assertEquals(1, jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getAdditionalData().size());
@@ -129,7 +136,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testAddLogLines() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         jobInfoRepository.addLogLine(TESTVALUE_JOBNAME, "I am a log!");
         JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING);
         assertFalse(runningJob.getLogLines().isEmpty());
@@ -139,25 +146,25 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testFindLastBy() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 2, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 3, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 2, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 3, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertEquals(3, jobInfoRepository.findMostRecent().size());
         jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME + 1, ResultCode.SUCCESSFUL, null);
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertEquals(3, jobInfoRepository.findMostRecent().size());
     }
 
     @Test
     public void testByNameAndTimeRange() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertEquals(2, jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, new Date(new Date().getTime() - 60 * 1000), null).size());
     }
 
     @Test
     public void testFindLastByFinishDate() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertNull(jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME + 1, EnumSet.of(ResultCode.SUCCESSFUL)));
         jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME + 1, ResultCode.SUCCESSFUL, null);
         assertNotNull(jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME + 1, EnumSet.of(ResultCode.SUCCESSFUL)));
@@ -165,7 +172,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testAddWithLogLine() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME + "LogLine", TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME + "LogLine", TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         JobInfo testJob = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME + "LogLine");
         testJob.appendLogLine(new LogLine("foo", new Date()));
         jobInfoRepository.save(testJob);
@@ -179,11 +186,11 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     public void testFindQueuedJobsSortedAscByCreationTime() throws Exception {
         List<JobInfo> jobs = jobInfoRepository.findQueuedJobsSortedAscByCreationTime();
         assertTrue(jobs.isEmpty());
-        jobInfoRepository.create("test", 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create("test", 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         Thread.sleep(100);
-        jobInfoRepository.create("test2", 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create("test2", 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         Thread.sleep(100);
-        jobInfoRepository.create("test3", 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create("test3", 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         Thread.sleep(100);
         jobs = jobInfoRepository.findQueuedJobsSortedAscByCreationTime();
         assertEquals("test", jobs.get(0).getName());
@@ -192,27 +199,16 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testUpdateHostAndThreadInformation() throws Exception {
-        assertFalse(jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
-        assertTrue(jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME));
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        jobInfoRepository.updateHostThreadInformation(TESTVALUE_JOBNAME);
         JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING);
         assertEquals(Thread.currentThread().getName(), jobInfo.getThread());
         assertEquals(InternetUtils.getHostName(), jobInfo.getHost());
     }
 
     @Test
-    public void testAbortQueuedName() throws Exception {
-        assertFalse(jobInfoRepository.markAsFinishedById(new ObjectId().toString(), ResultCode.NOT_EXECUTED));
-        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
-        assertTrue(jobInfoRepository.markAsFinishedById(id, ResultCode.NOT_EXECUTED));
-        JobInfo jobInfo = jobInfoRepository.findById(id);
-        assertEquals(ResultCode.NOT_EXECUTED, jobInfo.getResultState());
-        assertNotNull(jobInfo.getFinishTime());
-    }
-
-    @Test
     public void testMarkFinishedWithException() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         jobInfoRepository.markRunningAsFinishedWithException(TESTVALUE_JOBNAME, new IllegalArgumentException("This is an error", new NullPointerException()));
         JobInfo jobInfo = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME);
         assertEquals(ResultCode.FAILED, jobInfo.getResultState());
@@ -222,7 +218,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testFindById() throws Exception {
-        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1234, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1234, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         JobInfo jobInfo = jobInfoRepository.findById(id);
         assertNotNull(jobInfo);
         assertEquals(new Long(1234), jobInfo.getMaxExecutionTime());

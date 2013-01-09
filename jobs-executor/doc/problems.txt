@@ -1,0 +1,91 @@
+
+
+[08.01.2013 19:25]
+KeyError: 23433
+
+Traceback (most recent call last)
+File "/home/jobexec/jobs-executor/venv/lib/python2.6/site-packages/flask/app.py", line 1701, in __call__
+return self.wsgi_app(environ, start_response)
+File "/home/jobexec/jobs-executor/venv/lib/python2.6/site-packages/flask/app.py", line 1689, in wsgi_app
+response = self.make_response(self.handle_exception(e))
+File "/home/jobexec/jobs-executor/venv/lib/python2.6/site-packages/flask/app.py", line 1687, in wsgi_app
+response = self.full_dispatch_request()
+File "/home/jobexec/jobs-executor/venv/lib/python2.6/site-packages/flask/app.py", line 1360, in full_dispatch_request
+rv = self.handle_user_exception(e)
+File "/home/jobexec/jobs-executor/venv/lib/python2.6/site-packages/flask/app.py", line 1358, in full_dispatch_request
+rv = self.dispatch_request()
+File "/home/jobexec/jobs-executor/venv/lib/python2.6/site-packages/flask/app.py", line 1344, in dispatch_request
+return self.view_functions[rule.endpoint](**req.view_args)
+File "/home/jobexec/jobs-executor/jobmonitor.py", line 227, in get_job_by_id
+if ps_map[a_process_id] == job_id:
+File "/home/jobexec/jobs-executor/lru.py", line 113, in __getitem__
+del self.__access_times[key]
+File "/home/jobexec/jobs-executor/venv/lib/python2.6/site-packages/ordereddict.py", line 50, in __delitem__
+dict.__delitem__(self, key)
+KeyError: 23433
+
+===============
+
+2013-01-07T14:53:01 INFO root spawned process pid=5068
+2013-01-07T14:59:55 INFO root pid 5068: exit status 1
+------
+2013-01-07T14:59:55 INFO root spawned process pid=10975
+2013-01-07T15:01:39 INFO root pid 10975: exit status 1
+
+
+FHSearchSuggestUpdate_2013-01-07_145301.log
+
+sanApiUrl: http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/
+environment found: san.develop-ci.lhotse.ov.otto.de
+user = otto_lhotse ; fredhopper_environment =  test1
+  adding: suggest-input/ (stored 0%)
+  adding: suggest-input/searchterms.csv (deflated 62%)
+  adding: suggest-output/ (stored 0%)
+  adding: suggest-output/output.zip (stored 0%)
+  adding: suggest-output/output.zip.md5 (stored 0%)
+  adding: tmp/ (stored 0%)
+  adding: tmp/data/ (stored 0%)
+  adding: tmp/data/suggest/ (stored 0%)
+curl -HContent-Type: text/csv;charset=UTF-8 -o suggest/data/suggest-input/searchterms.csv -s http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/
+bin/run-etl2-job run.kjb -DINSTANCE=suggest -DTRIGGER=upload -Dsuggest.trigger.id=san.develop-ci.lhotse.ov.otto.de-2013-01-07_15-45-01 -Dsuggest.input.dir=../../../suggest/data/suggest-input -Dsuggest.user=otto_lhotse -Dsuggest.password=XXX -Dsuggest.environment=test1
+bin/run-etl2-job run.kjb -DINSTANCE=suggest -DTRIGGER=download -Dsuggest.trigger.id=san.develop-ci.lhotse.ov.otto.de-2013-01-07_15-45-01 -Dsuggest.output.dir=../../../suggest/data/suggest-output -Dsuggest.user=otto_lhotse -Dsuggest.password=XXX -Dsuggest.environment=test1
+Finished with errors
+
+
+========
+
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Going to start new FHFullSearchUpdate instance for user agent: RemoteJobExecutorService ...
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Job FHFullSearchUpdate is not active, going to start new instance ...
+[2013-01-07 02:00:00] [jobmonitor] [INFO] preparing job FHFullSearchUpdate [50ea1e10e4b0fe4bdbeaa04c] with params: {u'productSystemAbsUrl': u'http://product.develop-ci.lhotse.ov.otto.de:17395/product/api/products/', u'sanApiUrl': u'http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/'}
+[2013-01-07 02:00:00] [jobmonitor] [INFO] trying to start job FHFullSearchUpdate ...
+[2013-01-07 02:00:00] [paramiko.transport] [INFO] Secsh channel 357 opened.
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Going to start new FHIncrementalSearchUpdate instance for user agent: RemoteJobExecutorService ...
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Found job instance, check if still running...
+[2013-01-07 02:00:00] [paramiko.transport] [INFO] Secsh channel 358 opened.
+
+[localhost] run: zdaemon -C /tmp/jobexec/instances/FHFullSearchUpdate.conf start
+[localhost] run: zdaemon -C /tmp/jobexec/instances/FHIncrementalSearchUpdate.conf status
+[localhost] out: WARNING! zdrun is managing a different program!
+[localhost] out: our program   = ['/home/fred/san-artifacts/scripts/fullUpdateScript.sh', 'http://product.develop-ci.lhotse.ov.otto.de:17395/product/api/products/', 'http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/']
+[localhost] out: daemon's args = ['/home/fred/san-artifacts/scripts/incrementalUpdateScript.sh', 'http://product.develop-ci.lhotse.ov.otto.de:17395/product/api/products/', 'http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/', '2013-01-06T01:56:12.625+01:00']
+[localhost] out: daemon process already running; pid=23854
+[localhost] out:
+[2013-01-07 02:00:00] [jobmonitor] [INFO] Started FHFullSearchUpdate [return code: 0]
+[2013-01-07 02:00:00] [werkzeug] [INFO] 10.185.16.154 - - [07/Jan/2013 02:00:00] "POST /jobs/FHFullSearchUpdate/start HTTP/1.1" 500 -
+
+========
+
+[2013-01-04 14:40:00] [jobmonitor] [INFO] Found job instance, check if still running...
+[2013-01-04 14:40:00] [paramiko.transport] [INFO] Secsh channel 4 opened.
+
+[localhost] run: zdaemon -C /tmp/instances/FHIncrementalSearchUpdate.conf status
+[localhost] out: daemon manager not running
+[localhost] out:
+
+Warning: run() received nonzero return code 3 while executing 'zdaemon -C /tmp/instances/FHIncrementalSearchUpdate.conf status'!
+
+[2013-01-04 14:40:00] [jobmonitor] [WARNING] Problem while checking job status: daemon manager not running
+[2013-01-04 14:40:00] [werkzeug] [INFO] 10.185.16.154 - - [04/Jan/2013 14:40:00] "POST /jobs/FHIncrementalSearchUpdate/start HTTP/1.1" 400 -
+
+======
+

@@ -34,7 +34,7 @@ class JobMonitorUnitTests(TestCase):
 
     def test_extract_invalid_process_id(self):
         pid = jobmonitor.extract_process_id("pid=A711")
-        self.assertEqual(pid, -1)
+        self.assertEqual(pid, None)
 
 class JobMonitorIntegrationTests(TestCase):
 
@@ -70,8 +70,12 @@ class JobMonitorIntegrationTests(TestCase):
         self.assertEqual(200, rv.status_code)
         self.assertIn('Job Monitor', rv.data)
 
-    def test_get_available_jobs(self):
+    def test_redirect_get_jobs(self):
         rv = self.app.get('/jobs')
+        self.assertEqual(301, rv.status_code)
+
+    def test_get_available_jobs(self):
+        rv = self.app.get('/jobs/')
         self.assertEqual(200, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
         self.assertIn('demojob', rv.data)
