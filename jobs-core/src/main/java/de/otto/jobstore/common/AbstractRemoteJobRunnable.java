@@ -43,7 +43,6 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     }
 
     @Override
-    public void afterExecution(JobExecutionContext context) throws JobException {
-    }
+    public void afterExecution(JobExecutionContext context) throws JobException {}
 
 }

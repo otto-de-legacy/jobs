@@ -4,7 +4,6 @@ package de.otto.jobstore.repository;
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
-import de.otto.jobstore.service.exception.JobException;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -251,13 +250,9 @@ public class JobInfoRepository {
      *          false - No running job with the given name could be found
      */
     public boolean markAsFinishedById(final String id, final ResultCode resultCode, final Throwable t) {
-        if (ObjectId.isValid(id)) {
-            final StringWriter sw = new StringWriter();
-            t.printStackTrace(new PrintWriter(sw));
-            return markRunningAsFinished(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)),
-                resultCode, "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString());
-        }
-        return false;
+        return ObjectId.isValid(id) &&
+                markRunningAsFinished(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)),
+                        resultCode, t == null ? null : exceptionToMessage(t));
     }
 
     /**
@@ -285,8 +280,7 @@ public class JobInfoRepository {
     public boolean markRunningAsFinishedWithException(final String name, final Throwable t) {
         final StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
-        return markRunningAsFinished(name, ResultCode.FAILED,
-                "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString());
+        return markRunningAsFinished(name, ResultCode.FAILED, exceptionToMessage(t));
     }
 
     /**
@@ -520,7 +514,7 @@ public class JobInfoRepository {
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
-            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, Collections.EMPTY_MAP, null);
+            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
@@ -545,7 +539,7 @@ public class JobInfoRepository {
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
-            create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, Collections.EMPTY_MAP, null);
+            create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             numberOfRemovedJobs = cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, daysAfterWhichOldJobsAreDeleted)));
             addAdditionalData(JOB_NAME_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP);
@@ -617,6 +611,12 @@ public class JobInfoRepository {
 
     private String createFinishedRunningState() {
         return RunningState.FINISHED + "_" + UUID.randomUUID().toString();
+    }
+
+    private String exceptionToMessage(Throwable t) {
+        final StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
+        return "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString();
     }
 
 }

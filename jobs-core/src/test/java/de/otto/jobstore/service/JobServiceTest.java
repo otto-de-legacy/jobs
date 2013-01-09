@@ -205,7 +205,7 @@ public class JobServiceTest {
     }
 
     @Test(expectedExceptions = JobAlreadyQueuedException.class)
-    public void testExecuteJobWithSamePriorityWhichIsAlreadyQueued() throws Exception {
+    public void testExecuteJobWithSamePriorityOfJobWhichIsAlreadyQueued() throws Exception {
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.QUEUED)).
                 thenReturn(createJobInfo(JOB_NAME_01, JobExecutionPriority.CHECK_PRECONDITIONS, RunningState.QUEUED));
 
@@ -213,15 +213,37 @@ public class JobServiceTest {
         jobService.executeJob(JOB_NAME_01);
     }
 
+    @Test
+    public void testExecuteJobWithHigherPriorityOfJobWhichIsAlreadyQueued() throws Exception {
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.QUEUED)).
+                thenReturn(createJobInfo(JOB_NAME_01, JobExecutionPriority.CHECK_PRECONDITIONS, RunningState.QUEUED));
+        when(jobInfoRepository.create(JOB_NAME_01, 0, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS, null, null))
+                .thenReturn("1234");
+
+        jobService.registerJob(createLocalJobRunnable(JOB_NAME_01));
+        String id = jobService.executeJob(JOB_NAME_01, JobExecutionPriority.IGNORE_PRECONDITIONS);
+        assertEquals("1234", id);
+    }
+
     @Test(expectedExceptions = JobExecutionNotNecessaryException.class)
     public void testExecuteJobWithSamePriorityOfJobWhichIsAlreadyRunning() throws Exception {
-        when(jobInfoRepository.create(JOB_NAME_01, 0, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null, null)).thenReturn("1234");
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.QUEUED)).thenReturn(null);
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(createJobInfo(JOB_NAME_01, JobExecutionPriority.CHECK_PRECONDITIONS, RunningState.RUNNING));
 
         jobService.registerJob(createLocalJobRunnable(JOB_NAME_01));
         jobService.executeJob(JOB_NAME_01);
+    }
+
+    @Test
+    public void testExecuteJobWithHigherPriorityOfJobWhichIsAlreadyRunning() throws Exception {
+        when(jobInfoRepository.create(JOB_NAME_01, 0, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS, null, null)).
+                thenReturn("1234");
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
+                thenReturn(createJobInfo(JOB_NAME_01, JobExecutionPriority.CHECK_PRECONDITIONS, RunningState.RUNNING));
+
+        jobService.registerJob(createLocalJobRunnable(JOB_NAME_01));
+        String id = jobService.executeJob(JOB_NAME_01, JobExecutionPriority.IGNORE_PRECONDITIONS);
+        assertEquals("1234", id);
     }
 
     @Test
@@ -292,7 +314,6 @@ public class JobServiceTest {
 
     @Test(expectedExceptions = JobAlreadyRunningException.class)
     public void testExecuteJobAndRunningFails() throws Exception {
-        when(jobInfoRepository.create(JOB_NAME_01, 0, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS, null, null)).thenReturn(null);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
         LocalMockJobRunnable runnable = new LocalMockJobRunnable(JOB_NAME_01, 0);
