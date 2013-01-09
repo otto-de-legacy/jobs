@@ -262,7 +262,7 @@ public class JobService {
                     jobRunnable.afterExecution(context);
                     jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), context.getResultCode(), result.message);
                 } catch (Exception e) {
-                    LOGGER.error("Job: " + jobRunnable.getName()+" failed: "+e.getMessage(),e);
+                    LOGGER.error("Job: " + jobRunnable.getName() + " failed: " + e.getMessage(), e);
                     jobInfoRepository.markRunningAsFinishedWithException(jobRunnable.getName(), e);
                 }
             } else {

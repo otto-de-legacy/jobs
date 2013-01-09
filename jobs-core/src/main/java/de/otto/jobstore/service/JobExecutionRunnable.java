@@ -1,8 +1,9 @@
 package de.otto.jobstore.service;
 
-import de.otto.jobstore.common.*;
+import de.otto.jobstore.common.JobExecutionContext;
+import de.otto.jobstore.common.JobRunnable;
+import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.repository.JobInfoRepository;
-import de.otto.jobstore.service.exception.JobException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +34,7 @@ final class JobExecutionRunnable implements Runnable {
                 jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), context.getResultCode(), context.getResultMessage());
             }
         } catch (Exception e) {
-            LOGGER.error("ltag=JobService.JobExecutionRunnable.run jobName=" + jobRunnable.getName()+" failed: "+e.getMessage(),e);
+            LOGGER.error("ltag=JobService.JobExecutionRunnable.run jobName=" + jobRunnable.getName() + " failed: " + e.getMessage(), e);
             jobInfoRepository.markRunningAsFinishedWithException(jobRunnable.getName(), e);
         }
     }

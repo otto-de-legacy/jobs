@@ -101,6 +101,15 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     }
 
     @Test
+    public void testMarkAsFinishedById() throws Exception {
+        assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING));
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getFinishTime());
+        jobInfoRepository.markAsFinishedById(id, ResultCode.SUCCESSFUL, null);
+        assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME, null).get(0).getFinishTime());
+    }
+
+    @Test
     public void testCleanupTimedOutJobs() throws InterruptedException {
         for(int i=0; i < 100; i++) {
             jobInfoRepository.create(TESTVALUE_JOBNAME + i, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
