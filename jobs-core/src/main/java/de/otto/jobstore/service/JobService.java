@@ -254,31 +254,33 @@ public class JobService {
         LOGGER.info("ltag=JobService.updateJobStatus jobName={} jobId={} status={}", new Object[]{jobInfo.getName(), jobInfo.getId(), remoteJobStatus.status});
         jobInfoRepository.setLogLines(jobInfo.getName(), remoteJobStatus.logLines);
         if (remoteJobStatus.status == RemoteJobStatus.Status.FINISHED) {
-            final JobLogger logger = new SimpleJobLogger(jobRunnable.getName(), jobInfoRepository);
-            final JobExecutionContext context = new JobExecutionContext(jobInfo.getId(), logger, jobInfo.getExecutionPriority());
-            final RemoteJobResult result = remoteJobStatus.result;
-            context.setResultCode(result.ok ? ResultCode.SUCCESSFUL : ResultCode.FAILED);
-            if (result.ok) {
+            final JobExecutionContext context = createJobExecutionContext(jobInfo.getName(), jobInfo.getId(), jobInfo.getExecutionPriority());
+            context.setResultCode(remoteJobStatus.result.ok ? ResultCode.SUCCESSFUL : ResultCode.FAILED);
+            if (remoteJobStatus.result.ok) {
                 try {
                     jobRunnable.afterExecution(context);
-                    jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), context.getResultCode(), result.message);
+                    jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), context.getResultCode(), remoteJobStatus.result.message);
                 } catch (Exception e) {
                     LOGGER.error("ltag=JobService.updateJobStatus.afterExecution jobName=" + jobRunnable.getName() + " jobId=" + jobInfo.getId() + " failed: " + e.getMessage(), e);
                     jobInfoRepository.markRunningAsFinishedWithException(jobRunnable.getName(), e);
                 }
             } else {
                 LOGGER.warn("ltag=JobService.updateJobStatus.resultNotOk jobName={} jobId={} exitCode={} message={}",
-                        new Object[]{jobInfo.getName(), jobInfo.getId(), result.exitCode, result.message});
-                jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(result.exitCode));
-                jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultCode.FAILED, result.message);
+                        new Object[]{jobInfo.getName(), jobInfo.getId(), remoteJobStatus.result.exitCode, remoteJobStatus.result.message});
+                jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(remoteJobStatus.result.exitCode));
+                jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultCode.FAILED, remoteJobStatus.result.message);
             }
         }
     }
 
     private void executeJob(String id, JobRunnable runnable, JobExecutionPriority executionPriority) {
-        final JobLogger jobLogger = new SimpleJobLogger(runnable.getName(), jobInfoRepository);
-        final JobExecutionContext context = new JobExecutionContext(id, jobLogger, executionPriority);
-        Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(runnable, jobInfoRepository, context));
+        Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(
+                runnable, jobInfoRepository, createJobExecutionContext(runnable.getName(), id, executionPriority)));
+    }
+
+    private JobExecutionContext createJobExecutionContext(String jobName, String jobId, JobExecutionPriority priority) {
+        final JobLogger jobLogger = new SimpleJobLogger(jobName, jobInfoRepository);
+        return new JobExecutionContext(jobId, jobLogger, priority);
     }
 
     private void executeQueuedJob(final JobInfo jobInfo) {
