@@ -332,6 +332,22 @@ public class JobInfoRepository {
     }
 
     /**
+     * Sets a status message
+     *
+     * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
+     * jobname ist not checked
+     *
+     * @param name The name of the job
+     * @param message The message to set
+     */
+    public void setStatusMessage(final String name, String message) {
+        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
+                new BasicDBObjectBuilder().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
+                        append(JobInfoProperty.STATUS_MESSAGE.val(), message).get());
+        collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
+    }
+
+    /**
      * Find a job by its id
      *
      * @param id The id of the job

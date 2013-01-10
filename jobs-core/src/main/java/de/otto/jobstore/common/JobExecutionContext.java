@@ -6,7 +6,7 @@ public final class JobExecutionContext {
     private final JobLogger jobLogger;
     private final JobExecutionPriority executionPriority;
 
-    private ResultCode resultCode;
+    private ResultCode resultCode = ResultCode.SUCCESSFUL;
     private String resultMessage;
 
     public JobExecutionContext(String id, JobLogger jobLogger, JobExecutionPriority executionPriority) {

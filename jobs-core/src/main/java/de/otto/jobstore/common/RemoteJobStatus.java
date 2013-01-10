@@ -1,7 +1,8 @@
 package de.otto.jobstore.common;
 
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 @XmlRootElement
@@ -13,9 +14,16 @@ public final class RemoteJobStatus {
     }
 
     public Status status;
-    public List<String> logLines = Collections.emptyList();
+
+    @XmlElement(name = "log_lines")
+    public List<String> logLines = new ArrayList<>();
+
     public RemoteJobResult result;
+
+    @XmlElement(name = "finish_time")
     public String finishTime;
+
+    public String message;
 
     public RemoteJobStatus() {
     }
@@ -27,9 +35,9 @@ public final class RemoteJobStatus {
         this.finishTime = finishTime;
     }
 
-    public RemoteJobStatus(Status status, List<String> logLines) {
+    public RemoteJobStatus(Status status, List<String> logLines, String message) {
         this.status = status;
         this.logLines = logLines;
+        this.message = message;
     }
-
 }

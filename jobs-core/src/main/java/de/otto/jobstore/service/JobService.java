@@ -253,6 +253,9 @@ public class JobService {
     private void updateJobStatus(JobInfo jobInfo, RemoteJobStatus remoteJobStatus, JobRunnable jobRunnable) {
         LOGGER.info("ltag=JobService.updateJobStatus jobName={} jobId={} status={}", new Object[]{jobInfo.getName(), jobInfo.getId(), remoteJobStatus.status});
         jobInfoRepository.setLogLines(jobInfo.getName(), remoteJobStatus.logLines);
+        if (remoteJobStatus.message != null && remoteJobStatus.message.length() > 0) {
+            jobInfoRepository.setStatusMessage(jobInfo.getName(), remoteJobStatus.message);
+        }
         if (remoteJobStatus.status == RemoteJobStatus.Status.FINISHED) {
             final JobExecutionContext context = createJobExecutionContext(jobInfo.getName(), jobInfo.getId(), jobInfo.getExecutionPriority());
             context.setResultCode(remoteJobStatus.result.ok ? ResultCode.SUCCESSFUL : ResultCode.FAILED);

@@ -104,6 +104,10 @@ public final class JobInfo extends AbstractItem {
         return getProperty(JobInfoProperty.RESULT_MESSAGE);
     }
 
+    public String getStatusMessage() {
+        return getProperty(JobInfoProperty.STATUS_MESSAGE);
+    }
+
     @SuppressWarnings("unchecked")
     public Map<String, String> getAdditionalData() {
         final DBObject additionalData = getProperty(JobInfoProperty.ADDITIONAL_DATA);

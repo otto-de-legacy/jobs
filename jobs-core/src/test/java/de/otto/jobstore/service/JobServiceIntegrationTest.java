@@ -63,7 +63,7 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         reset(remoteJobExecutorService);
         List<String> logLines = new ArrayList<>();
         Collections.addAll(logLines, "log1", "log2");
-        when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines));
+        when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines, "bar"));
 
         jobService.pollRemoteJobs();
 
@@ -71,6 +71,7 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         assertEquals(RunningState.RUNNING, RunningState.valueOf(jobInfo.getRunningState()));
         assertEquals(REMOTE_JOB_URI.toString(), jobInfo.getAdditionalData().get(JobInfoProperty.REMOTE_JOB_URI.val()));
         assertEquals(2, jobInfo.getLogLines().size());
+        assertEquals("bar", jobInfo.getStatusMessage());
 
         //testPollingFinishedRemoteJob
         reset(remoteJobExecutorService);
