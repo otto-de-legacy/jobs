@@ -1,6 +1,7 @@
 package de.otto.jobstore.common;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Collections;
 import java.util.List;
 
 @XmlRootElement
@@ -12,11 +13,12 @@ public final class RemoteJobStatus {
     }
 
     public Status status;
-    public List<String> logLines;
+    public List<String> logLines = Collections.emptyList();
     public RemoteJobResult result;
     public String finishTime;
 
-    public RemoteJobStatus() {}
+    public RemoteJobStatus() {
+    }
 
     public RemoteJobStatus(Status status, List<String> logLines, RemoteJobResult result, String finishTime) {
         this.status = status;
