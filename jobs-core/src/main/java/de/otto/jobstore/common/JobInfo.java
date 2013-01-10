@@ -100,8 +100,8 @@ public final class JobInfo extends AbstractItem {
         return getProperty(JobInfoProperty.FINISH_TIME);
     }
 
-    public String getErrorMessage() {
-        return getProperty(JobInfoProperty.ERROR_MESSAGE);
+    public String getResultMessage() {
+        return getProperty(JobInfoProperty.RESULT_MESSAGE);
     }
 
     @SuppressWarnings("unchecked")

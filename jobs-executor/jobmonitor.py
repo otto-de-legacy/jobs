@@ -270,7 +270,7 @@ def stop_job_instance(job_name, job_id):
 # ------------------------------------------------------
 
 def response_job_status(job_name, job_active, job_id, job_process_id, job_finishtime):
-    log_lines = get_last_lines(get_job_instance_logpath(job_name, job_id), 100)
+    log_lines = get_last_lines(get_job_instance_logpath(job_name, job_id), 200)
     if job_active:
         # TODO: Link to job status page in addition to only presenting job_id
         msg = { 'status': 'RUNNING', 'job_id': "%s" % job_id, 'log_lines': log_lines,

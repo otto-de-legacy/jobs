@@ -128,7 +128,7 @@ public final class JobInfoRepresentation {
         }
         return new JobInfoRepresentation(jobInfo.getId(), jobInfo.getName(), jobInfo.getHost(),
                 jobInfo.getThread(), jobInfo.getCreationTime(), jobInfo.getStartTime(), jobInfo.getFinishTime(),
-                jobInfo.getErrorMessage(), jobInfo.getRunningState(), jobInfo.getResultState(),
+                jobInfo.getResultMessage(), jobInfo.getRunningState(), jobInfo.getResultState(),
                 jobInfo.getMaxExecutionTime(), jobInfo.getLastModifiedTime(), jobInfo.getAdditionalData(),
                 logLines);
     }

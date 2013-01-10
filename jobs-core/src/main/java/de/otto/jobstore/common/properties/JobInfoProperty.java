@@ -15,10 +15,8 @@ public enum JobInfoProperty implements ItemProperty {
     START_TIME("startTime"),
     FINISH_TIME("finishTime"),
     PARAMETERS("parameters"),
-    @Deprecated
-    FORCE_EXECUTION("forceExecution"),
     EXECUTION_PRIORITY("executionPriority"),
-    ERROR_MESSAGE("errorMessage"),
+    RESULT_MESSAGE("resultMessage"),
     RUNNING_STATE("runningState"),
     RESULT_STATE("resultState"),
     MAX_EXECUTION_TIME("maxExecutionTime"),

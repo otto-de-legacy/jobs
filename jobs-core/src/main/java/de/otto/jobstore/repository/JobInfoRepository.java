@@ -220,19 +220,19 @@ public class JobInfoRepository {
      *
      * @param query The query of to find object to update
      * @param resultCode The result state of the job
-     * @param errorMessage An optional error message
+     * @param resultMessage An optional error message
      * @return true - The job was marked as requested<br/>
      *          false - No running job with the given name could be found
      */
-    private boolean markRunningAsFinished(final DBObject query, final ResultCode resultCode, final String errorMessage) {
+    private boolean markRunningAsFinished(final DBObject query, final ResultCode resultCode, final String resultMessage) {
         final Date dt = new Date();
         final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
                 append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
                 append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
                 append(JobInfoProperty.FINISH_TIME.val(), dt).
                 append(JobInfoProperty.RESULT_STATE.val(), resultCode.name());
-        if (errorMessage != null) {
-            set.append(JobInfoProperty.ERROR_MESSAGE.val(), errorMessage);
+        if (resultMessage != null) {
+            set.append(JobInfoProperty.RESULT_MESSAGE.val(), resultMessage);
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
         final WriteResult result = collection.update(query, update, false, false, WriteConcern.SAFE);
@@ -260,13 +260,13 @@ public class JobInfoRepository {
      *
      * @param name The name of the job
      * @param resultCode The result state of the job
-     * @param errorMessage An optional error message
+     * @param resultMessage An optional error message
      * @return true - The job was marked as requested<br/>
      *          false - No running job with the given name could be found
      */
-    public boolean markRunningAsFinished(final String name, final ResultCode resultCode, final String errorMessage) {
+    public boolean markRunningAsFinished(final String name, final ResultCode resultCode, final String resultMessage) {
         return markRunningAsFinished(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()),
-                resultCode, errorMessage);
+                resultCode, resultMessage);
     }
 
     /**
