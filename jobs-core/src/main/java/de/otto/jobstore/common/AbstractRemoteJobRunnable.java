@@ -23,15 +23,11 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
         return true;
     }
 
-    @Override
-    public void beforeExecution(JobExecutionContext context) throws JobException {
-    }
-
     /**
      * By default returns true, override for your custom needs,
      */
     @Override
-    public boolean checkPreconditions(JobExecutionContext context) {
+    public boolean prepare(JobExecutionContext context) {
         return true;
     }
 
@@ -41,16 +37,6 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
      */
     @Override
     public void execute(JobExecutionContext context) throws JobException {
-        if (checkPreconditions(context)) {
-            context.setRunningState(RunningState.RUNNING);
-            startRemoteJob(context);
-        } else {
-            context.setResultCode(ResultCode.NOT_EXECUTED);
-            context.setRunningState(RunningState.FINISHED);
-        }
-    }
-
-    protected void startRemoteJob(JobExecutionContext context) throws JobException {
         final JobLogger jobLogger = context.getJobLogger();
         try {
             log.info("Trigger remote job '{}' [{}] ...", getName(), context.getId());

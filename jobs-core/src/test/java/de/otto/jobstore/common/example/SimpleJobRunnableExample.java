@@ -42,7 +42,7 @@ public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
      *                               and would thus cause a division by zero error
      */
     @Override
-    protected void doExecute(JobExecutionContext executionContext) throws JobExecutionException {
+    public void execute(JobExecutionContext executionContext) throws JobExecutionException {
         if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())
                 || new GregorianCalendar().get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
             executionContext.setResultCode(ResultCode.NOT_EXECUTED);

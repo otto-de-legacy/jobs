@@ -37,12 +37,13 @@ public interface JobRunnable {
      */
     boolean isRemote();
 
-    boolean checkPreconditions(JobExecutionContext context);
-
     /**
-     * This method is called right before the job is executed.
+     * Checks preconditions whether job should be executed.
+     *
+     * @return true - The job can now be executed</br>
+     *         false - The job should not be executed
      */
-    void beforeExecution(JobExecutionContext context) throws JobException;
+    boolean prepare(JobExecutionContext context) throws JobException;
 
     /**
      * Executes the job.

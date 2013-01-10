@@ -162,7 +162,7 @@ public class JobServiceTest {
             }
 
             @Override
-            protected void doExecute(JobExecutionContext executionContext) throws JobExecutionException {
+            public void execute(JobExecutionContext executionContext) throws JobExecutionException {
                 throw new JobExecutionException("problem while executing");
             }
         };
@@ -300,7 +300,7 @@ public class JobServiceTest {
             }
 
             @Override
-            protected void doExecute(JobExecutionContext executionContext) throws JobExecutionException {
+            public void execute(JobExecutionContext executionContext) throws JobExecutionException {
                 throw new JobExecutionException("problem while executing");
             }
         };
@@ -491,7 +491,7 @@ public class JobServiceTest {
         }
 
         @Override
-        protected void doExecute(JobExecutionContext executionContext) throws JobExecutionException {
+        public void execute(JobExecutionContext executionContext) throws JobExecutionException {
             executed = true;
             executionContext.setRunningState(RunningState.FINISHED);
             executionContext.setResultCode(ResultCode.SUCCESSFUL);
