@@ -38,10 +38,9 @@ public final class StepOneJobRunnableExample extends AbstractLocalJobRunnable {
 
     /**
      * A very lazy job which triggers job two if done
-     * @param executionContext The context in which this job is executed
      */
     @Override
-    public void execute(JobExecutionContext executionContext) throws JobException {
+    protected void doExecute(JobExecutionContext executionContext) throws JobException {
         if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())
                 || jobService.listJobNames().contains(StepTwoJobRunnableExample.STEP_TWO_JOB)) {
             executionContext.setResultCode(ResultCode.NOT_EXECUTED);

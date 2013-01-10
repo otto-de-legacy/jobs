@@ -38,7 +38,7 @@ public class RemoteJobExecutorService {
     public URI startJob(final RemoteJob job) throws JobException {
         final String startUrl = jobExecutorUri + job.name + "/start";
         try {
-            LOGGER.info("Going to start new job from {} ...", startUrl);
+            LOGGER.info("Going to start job: {} ...", startUrl);
             final ClientResponse response = client.resource(startUrl)
                     .type(MediaType.APPLICATION_JSON).header("Connection", "close").header("User-Agent", "RemoteJobExecutorService")
                     .post(ClientResponse.class, job.toJsonObject());
@@ -58,7 +58,7 @@ public class RemoteJobExecutorService {
     public void stopJob(URI jobUri) throws JobException {
         final String stopUrl = jobUri + "/stop";
         try {
-            LOGGER.info("Going to stop job from {} ...", stopUrl);
+            LOGGER.info("Going to stop job: {} ...", stopUrl);
             client.resource(stopUrl).header("Connection", "close").post();
         } catch (UniformInterfaceException e) {
             if (e.getResponse().getStatus() == 403) {

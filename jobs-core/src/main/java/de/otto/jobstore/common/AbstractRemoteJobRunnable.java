@@ -24,12 +24,33 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     }
 
     @Override
-    public void execute(JobExecutionContext context) throws JobException {
-        context.setRunningState(RunningState.RUNNING);
+    public void beforeExecution(JobExecutionContext context) throws JobException {
     }
 
+    /**
+     * By default returns true, override for your custom needs,
+     */
     @Override
-    public void beforeExecution(JobExecutionContext context) throws JobException {
+    public boolean checkPreconditions(JobExecutionContext context) {
+        return true;
+    }
+
+    /**
+     * Only triggers the remote job, poll to check wether job is finished or not.
+     * @see de.otto.jobstore.service.JobService#pollRemoteJobs()
+     */
+    @Override
+    public void execute(JobExecutionContext context) throws JobException {
+        if (checkPreconditions(context)) {
+            context.setRunningState(RunningState.RUNNING);
+            startRemoteJob(context);
+        } else {
+            context.setResultCode(ResultCode.NOT_EXECUTED);
+            context.setRunningState(RunningState.FINISHED);
+        }
+    }
+
+    protected void startRemoteJob(JobExecutionContext context) throws JobException {
         final JobLogger jobLogger = context.getJobLogger();
         try {
             log.info("Trigger remote job '{}' [{}] ...", getName(), context.getId());
@@ -42,7 +63,11 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
         }
     }
 
+    /**
+     * Implementation might want to set the {@link JobExecutionContext#resultCode}
+     */
     @Override
-    public void afterExecution(JobExecutionContext context) throws JobException {}
+    public void afterExecution(JobExecutionContext context) throws JobException {
+    }
 
 }

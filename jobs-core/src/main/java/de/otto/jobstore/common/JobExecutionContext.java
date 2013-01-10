@@ -53,4 +53,13 @@ public final class JobExecutionContext {
         this.resultMessage = resultMessage;
     }
 
+    @Override
+    public String toString() {
+        return "JobExecutionContext{" +
+                "id='" + id + '\'' +
+                ", runningState=" + runningState +
+                ", resultCode=" + resultCode +
+                ", resultMessage='" + resultMessage + '\'' +
+                '}';
+    }
 }

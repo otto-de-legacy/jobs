@@ -37,6 +37,13 @@ public interface JobRunnable {
      */
     boolean isRemote();
 
+    boolean checkPreconditions(JobExecutionContext context);
+
+    /**
+     * This method is called right before the job is executed.
+     */
+    void beforeExecution(JobExecutionContext context) throws JobException;
+
     /**
      * Executes the job.
      *
@@ -44,11 +51,6 @@ public interface JobRunnable {
      * @throws de.otto.jobstore.service.exception.JobExecutionException Thrown if the execution of the job failed
      */
     void execute(JobExecutionContext context) throws JobException;
-
-    /**
-     * This method is called right before the job is executed.
-     */
-    void beforeExecution(JobExecutionContext context) throws JobException;
 
     /**
      * This method is called after the job is executed successfully.

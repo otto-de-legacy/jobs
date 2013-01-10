@@ -30,10 +30,8 @@ public final class StepTwoJobRunnableExample extends AbstractLocalJobRunnable {
 
     /**
      * Job always finishes with an error
-     * @param executionContext The context in which this job is executed
      */
-    @Override
-    public void execute(JobExecutionContext executionContext) throws JobExecutionException {
+    public void doExecute(JobExecutionContext executionContext) throws JobExecutionException {
         throw new JobExecutionException("I do not want to work");
     }
 
