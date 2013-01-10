@@ -127,20 +127,23 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testAddOrUpdateAdditionalData_Insert() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertEquals(0, jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getAdditionalData().size());
         jobInfoRepository.addAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
-        assertEquals(1, jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getAdditionalData().size());
-        assertEquals("value1", jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getAdditionalData().get("key1"));
+        JobInfo jobInfo = jobInfoRepository.findById(id);
+        assertEquals(1, jobInfo.getAdditionalData().size());
+        assertEquals("value1", jobInfo.getAdditionalData().get("key1"));
     }
 
     @Test
     public void testAddOrUpdateAdditionalData_Update() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        String id =
+                jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         jobInfoRepository.addAdditionalData(TESTVALUE_JOBNAME, "key1", "value1");
         jobInfoRepository.addAdditionalData(TESTVALUE_JOBNAME, "key1", "value2");
-        assertEquals(1, jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getAdditionalData().size());
-        assertEquals("value2", jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getAdditionalData().get("key1"));
+        JobInfo jobInfo = jobInfoRepository.findById(id);
+        assertEquals(1, jobInfo.getAdditionalData().size());
+        assertEquals("value2", jobInfo.getAdditionalData().get("key1"));
     }
 
     @Test

@@ -4,6 +4,7 @@ import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.repository.JobInfoRepository;
 import de.otto.jobstore.service.exception.*;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -410,6 +411,27 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(),any(Throwable.class));
         assertEquals(ResultCode.SUCCESSFUL, runnable.afterSuccessContext.getResultCode());
     }
+
+    @Test
+    public void testJobDoesRequireUpdate() throws Exception {
+        Date dt = new Date();
+        Date lastModification = new Date(dt.getTime() - 60L * 1000L);
+        long currentTime = dt.getTime();
+        long pollingInterval = 30 * 1000L;
+        boolean requiresUpdate = ReflectionTestUtils.invokeMethod(jobService, "jobRequiresUpdate", lastModification, currentTime, pollingInterval);
+        assertTrue(requiresUpdate);
+    }
+
+    @Test
+    public void testJobDoesNotRequireUpdate() throws Exception {
+        Date dt = new Date();
+        Date lastModification = new Date(dt.getTime() - 60L * 1000L);
+        long currentTime = dt.getTime();
+        long pollingInterval = 90 * 1000L;
+        boolean requiresUpdate = ReflectionTestUtils.invokeMethod(jobService, "jobRequiresUpdate", lastModification, currentTime, pollingInterval);
+        assertFalse(requiresUpdate);
+    }
+
 
     /***
      *  HELPER

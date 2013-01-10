@@ -11,7 +11,7 @@
 
     <!-- Repository Definition -->
 
-    <bean class="de.otto.jobstore.repository.JobInfoRepository">
+    <bean id="jobInfoRepository" class="de.otto.jobstore.repository.JobInfoRepository">
         <constructor-arg index="0" ref="mongo"/>
         <constructor-arg index="1" value="jobstore"/>
         <constructor-arg index="2" value="jobs"/>
@@ -20,6 +20,11 @@
     <bean class="de.otto.jobstore.service.RemoteJobExecutorService">
         <constructor-arg index="0" value="http://127.0.0.1:5000/jobs/"/>
         <!-- constructor-arg index="0" value="http://fh02.develop-ci.lhotse.ov.otto.de:5000/jobs/"/ -->
+    </bean>
+
+    <bean id="jobServiceWithoutRemoteJobExecutorService" class="de.otto.jobstore.service.JobService">
+        <constructor-arg index="0" ref="jobInfoRepository"/>
+        <constructor-arg index="1" value="null"/>
     </bean>
 
 </beans>

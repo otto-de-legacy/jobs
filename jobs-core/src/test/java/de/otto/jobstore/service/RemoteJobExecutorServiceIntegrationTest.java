@@ -17,7 +17,7 @@ import java.util.Map;
 import static org.testng.AssertJUnit.*;
 
 @ContextConfiguration(locations = {"classpath:spring/lhotse-jobs-context.xml"})
-public class RemoteJobExecutorServiceTest extends AbstractTestNGSpringContextTests {
+public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSpringContextTests {
 
     private static final String JOB_NAME = "demojob";
 
