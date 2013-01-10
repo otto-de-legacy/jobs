@@ -58,10 +58,8 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         assertEquals(RunningState.RUNNING, RunningState.valueOf(jobInfo.getRunningState()));
         assertEquals(PARAMETERS, jobInfo.getParameters());
         assertEquals(REMOTE_JOB_URI.toString(), jobInfo.getAdditionalData().get(JobInfoProperty.REMOTE_JOB_URI.val()));
-    }
 
-    @Test(dependsOnMethods = "testExecutingRemoteJob")
-    public void testPollingRunningRemoteJob() throws Exception {
+        //testPollingRunningRemoteJob
         reset(remoteJobExecutorService);
         List<String> logLines = new ArrayList<>();
         Collections.addAll(logLines, "log1", "log2");
@@ -69,23 +67,19 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
         jobService.pollRemoteJobs();
 
-        JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(JOB_NAME_1, RunningState.RUNNING);
+        jobInfo = jobInfoRepository.findByNameAndRunningState(JOB_NAME_1, RunningState.RUNNING);
         assertEquals(RunningState.RUNNING, RunningState.valueOf(jobInfo.getRunningState()));
         assertEquals(REMOTE_JOB_URI.toString(), jobInfo.getAdditionalData().get(JobInfoProperty.REMOTE_JOB_URI.val()));
         assertEquals(2, jobInfo.getLogLines().size());
-    }
 
-    @Test(dependsOnMethods = "testPollingRunningRemoteJob")
-    public void testPollingFinishedRemoteJob() throws Exception {
+        //testPollingFinishedRemoteJob
         reset(remoteJobExecutorService);
-        List<String> logLines = new ArrayList<>();
-        Collections.addAll(logLines, "log1", "log2");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
                 new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "done"), "date"));
 
         jobService.pollRemoteJobs();
 
-        JobInfo jobInfo = jobInfoRepository.findByName(JOB_NAME_1, 1).get(0);
+        jobInfo = jobInfoRepository.findByName(JOB_NAME_1, 1).get(0);
         assertTrue(jobInfo.getRunningState().startsWith("FINISHED"));
         assertEquals(REMOTE_JOB_URI.toString(), jobInfo.getAdditionalData().get(JobInfoProperty.REMOTE_JOB_URI.val()));
         assertEquals(ResultCode.SUCCESSFUL, jobInfo.getResultState());
