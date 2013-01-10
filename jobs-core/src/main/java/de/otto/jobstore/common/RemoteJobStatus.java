@@ -27,4 +27,9 @@ public final class RemoteJobStatus {
         this.finishTime = finishTime;
     }
 
+    public RemoteJobStatus(Status status, List<String> logLines) {
+        this.status = status;
+        this.logLines = logLines;
+    }
+
 }
