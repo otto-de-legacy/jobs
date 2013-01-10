@@ -492,9 +492,8 @@ public class JobServiceTest {
 
         @Override
         public void execute(JobExecutionContext executionContext) throws JobExecutionException {
-            executed = true;
-            executionContext.setRunningState(RunningState.FINISHED);
             executionContext.setResultCode(ResultCode.SUCCESSFUL);
+            executed = true;
         }
 
         public boolean isExecuted() {

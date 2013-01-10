@@ -257,7 +257,6 @@ public class JobService {
             final JobLogger logger = new SimpleJobLogger(jobRunnable.getName(), jobInfoRepository);
             final JobExecutionContext context = new JobExecutionContext(jobInfo.getId(), logger, jobInfo.getExecutionPriority());
             final RemoteJobResult result = remoteJobStatus.result;
-            context.setRunningState(RunningState.FINISHED);
             context.setResultCode(result.ok ? ResultCode.SUCCESSFUL : ResultCode.FAILED);
             if (result.ok) {
                 try {

@@ -29,7 +29,7 @@ public final class JobInfo extends AbstractItem {
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
-        if(state != RunningState.QUEUED) {
+        if (state != RunningState.QUEUED) {
             addProperty(JobInfoProperty.START_TIME, dt);
         }
         addProperty(JobInfoProperty.CREATION_TIME, dt);

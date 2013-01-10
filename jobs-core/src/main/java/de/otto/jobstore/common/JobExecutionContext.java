@@ -6,7 +6,6 @@ public final class JobExecutionContext {
     private final JobLogger jobLogger;
     private final JobExecutionPriority executionPriority;
 
-    private RunningState runningState;
     private ResultCode resultCode;
     private String resultMessage;
 
@@ -14,7 +13,6 @@ public final class JobExecutionContext {
         this.id = id;
         this.jobLogger = jobLogger;
         this.executionPriority = executionPriority;
-        this.runningState = RunningState.QUEUED;
     }
 
     public JobLogger getJobLogger() {
@@ -23,14 +21,6 @@ public final class JobExecutionContext {
 
     public JobExecutionPriority getExecutionPriority() {
         return executionPriority;
-    }
-
-    public RunningState getRunningState() {
-        return runningState;
-    }
-
-    public void setRunningState(RunningState state) {
-        this.runningState = state;
     }
 
     public void setResultCode(ResultCode resultCode) {
@@ -57,9 +47,9 @@ public final class JobExecutionContext {
     public String toString() {
         return "JobExecutionContext{" +
                 "id='" + id + '\'' +
-                ", runningState=" + runningState +
                 ", resultCode=" + resultCode +
                 ", resultMessage='" + resultMessage + '\'' +
                 '}';
     }
+
 }

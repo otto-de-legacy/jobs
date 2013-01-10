@@ -3,7 +3,6 @@ package de.otto.jobstore.service;
 import de.otto.jobstore.common.JobExecutionContext;
 import de.otto.jobstore.common.JobRunnable;
 import de.otto.jobstore.common.ResultCode;
-import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.repository.JobInfoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,10 +26,8 @@ final class JobExecutionRunnable implements Runnable {
         try {
             LOGGER.info("ltag=JobService.JobExecutionRunnable.run start jobName={}", jobRunnable.getName());
             if (jobRunnable.prepare(context)) {
-                context.setRunningState(RunningState.RUNNING);
                 jobRunnable.execute(context);
                 if (!jobRunnable.isRemote()) {
-                    context.setRunningState(RunningState.FINISHED);
                     LOGGER.info("ltag=JobService.JobExecutionRunnable.run finished jobName={}", jobRunnable.getName());
                     jobRunnable.afterExecution(context);
                     jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), context.getResultCode(), context.getResultMessage());
