@@ -356,8 +356,8 @@ public class JobServiceTest {
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
-        when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
-                new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines, null, null));
+        when(remoteJobExecutorService.getStatus(any(URI.class)))
+                .thenReturn(new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines, null, null));
         jobService.pollRemoteJobs();
         verify(jobInfoRepository, times(1)).setLogLines(JOB_NAME_01, logLines);
     }

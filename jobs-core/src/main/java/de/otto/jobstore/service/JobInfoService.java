@@ -102,18 +102,6 @@ public class JobInfoService {
     }
 
     /**
-     * Returns all job information for the given name which were last modified after the given date. The result list
-     * is sorted descending by the jobs creation date.
-     *
-     * @param name The name of the job for which to return the information
-     * @param after The date after which the last modified date has to be
-     * @return The list of job information
-     */
-    public List<JobInfo> getByNameAndTimeRange(String name, Date after) {
-        return jobInfoRepository.findByNameAndTimeRange(name, after, null);
-    }
-
-    /**
      * Returns all job information for the given name which were last modified after the given after date and before
      * the given before date. The result list is sorted descending by the jobs creation date.
      *
@@ -122,12 +110,12 @@ public class JobInfoService {
      * @param before The date before which the last modified date has to be
      * @return The list of job information
      */
-    public List<JobInfo> getByNameAndTimeRange(String name, Date after, Date before) {
-        return jobInfoRepository.findByNameAndTimeRange(name, after, before);
+    public List<JobInfo> getByNameAndTimeRange(String name, Date after, Date before, ResultCode resultCode) {
+        return jobInfoRepository.findByNameAndTimeRange(name, after, before, resultCode);
     }
 
     /**
-     * Removed all job information.
+     * Remove all job information.
      */
     public void clean() {
         jobInfoRepository.clear(false);

@@ -3,29 +3,40 @@ package de.otto.jobstore.common;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import de.otto.jobstore.common.properties.JobInfoProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public final class JobInfo extends AbstractItem {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobInfo.class);
+
     private static final long serialVersionUID = 2454224303569320787L;
 
-    private static final int MAX_LOGLINES = 100;
+    private static final int MAX_LOGLINES = 200;
 
     public JobInfo(DBObject dbObject) {
         super(dbObject);
     }
 
     public JobInfo(String name, String host, String thread, Long maxExecutionTime) {
-        this(name, host, thread, maxExecutionTime, RunningState.RUNNING);
+        this(name, host, thread, maxExecutionTime, RunningState.QUEUED);
     }
 
     public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state) {
         this(name, host, thread, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
+    public JobInfo(Date dt, String name, String host, String thread, Long maxExecutionTime, RunningState state) {
+        this(dt, name, host, thread, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+    }
+
     public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
-        final Date dt = new Date();
+        this(new Date(), name, host, thread, maxExecutionTime, state, executionPriority, additionalData);
+    }
+
+    public JobInfo(Date dt, String name, String host, String thread, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
@@ -155,6 +166,7 @@ public final class JobInfo extends AbstractItem {
         final List<LogLine> result = new ArrayList<>(Math.min(logLines.size(), MAX_LOGLINES));
         int endPos = logLines.size();
         int startPos = Math.max(0, endPos - MAX_LOGLINES);
+        LOGGER.info("Use log lines from {} to {}", startPos, endPos);
         for (DBObject logLine : logLines.subList(startPos, endPos)) {
             result.add(new LogLine(logLine));
         }

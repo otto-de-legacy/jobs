@@ -2,6 +2,7 @@ package de.otto.jobstore.web;
 
 import de.otto.jobstore.common.JobExecutionPriority;
 import de.otto.jobstore.common.JobInfo;
+import de.otto.jobstore.common.ResultCode;
 import de.otto.jobstore.service.JobInfoService;
 import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.*;
@@ -172,17 +173,19 @@ public final class JobInfoResource {
      * Returns a map with the distinct job names as the key and the jobs with the given name as their values.
      *
      * @param hours The hours the jobs go back into the past
+     * @param resultStatus Filter the jobs by their result status (default null == unfiltered)
      * @return The map of distinct names with their jobs as values
      */
     @GET
     @Path("/history")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getJobsHistory(@QueryParam("hours") @DefaultValue("12") final int hours) {
+    public Response getJobsHistory(@QueryParam("hours") @DefaultValue("12") final int hours,
+                                   @QueryParam("resultStatus") final ResultCode resultStatus) {
         final Collection<String> jobNames = jobService.listJobNames();
         final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
-        final Date dt = new Date(new Date().getTime() - 1000 * 60 * 60 * hours);
+        final Date dt = new Date(new Date().getTime() - hours * 60 * 60 * 1000);
         for (String jobName : jobNames) {
-            final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt);
+            final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), resultStatus);
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<>();
             for (JobInfo jobInfo : jobInfoList) {
                 jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo));

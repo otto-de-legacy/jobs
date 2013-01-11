@@ -241,7 +241,7 @@ def get_job_by_id(job_name, job_id):
 
 @app.route('/jobs/<job_name>/stop', methods = ['POST'])
 @app.route('/jobs/<job_name>/<job_id>/stop', methods = ['POST'])  # DEPRECATED
-def stop_job_instance(job_name, job_id):
+def stop_job_instance(job_name, job_id = None):
     """Stops the given job instance from running."""
 
     # check if job exists
@@ -291,15 +291,15 @@ def get_job_status(job_name, job_filepath):
             log.warn("Problem while checking job status: %s" % cmd_result)
         else:
             job_active = cmd_result.succeeded and "program running" in cmd_result
-            if job_active:
-                job_process_id = extract_process_id(cmd_result)
-            else:
-                # get finish time
-                zdaemon_file = "/tmp/zdaemon-%s.log" % job_name
-                cmd_finishtime = run("grep 'pid %s: exit' %s | cut -d' ' -f1" % (job_process_id, zdaemon_file))
-                job_finishtime = cmd_finishtime
-            # some debug info
-            log.info('%s running? %s [pid=%s] [finishtime=%s]' % (job_name, job_active, job_process_id, job_finishtime))
+        job_process_id = extract_process_id(cmd_result)
+        # get finish time
+        if not job_active and job_process_id:
+            zdaemon_file = "/tmp/zdaemon-%s.log" % job_name
+            cmd_finishtime = run("grep 'pid %s: exit' %s | cut -d' ' -f1" % (job_process_id, zdaemon_file))
+            print "---> %s" % cmd_finishtime
+            job_finishtime = cmd_finishtime
+        # some debug info
+        log.info('%s running? %s [exit_code=%s] [pid=%s] [finishtime=%s]' % (job_name, job_active, cmd_result.return_code, job_process_id, job_finishtime))
     return job_active, job_process_id, job_finishtime
 
 

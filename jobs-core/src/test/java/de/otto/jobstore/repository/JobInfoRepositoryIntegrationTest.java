@@ -171,7 +171,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     public void testByNameAndTimeRange() {
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.QUEUED, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-        assertEquals(2, jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, new Date(new Date().getTime() - 60 * 1000), null).size());
+        assertEquals(2, jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, new Date(new Date().getTime() - 60 * 1000), null, null).size());
     }
 
     @Test
@@ -255,17 +255,46 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testCleanupOldJobs() throws Exception {
         jobInfoRepository.setHoursAfterWhichOldJobsAreDeleted(1);
-        JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.FINISHED);
-        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.CREATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 12));
+        JobInfo jobInfo = new JobInfo(new Date(new Date().getTime() - DAY_IN_MS * 12), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.FINISHED);
         jobInfoRepository.save(jobInfo);
         assertEquals(1L, jobInfoRepository.count());
         jobInfoRepository.cleanupOldJobs();
         assertNull(jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME)); //Job should be gone
     }
 
+    final long DAY_IN_MS = 1000 * 60 * 60 * 24;
+
+    @Test
+    public void findByTimeRangeAndFilter() throws Exception {
+        final long now = System.currentTimeMillis();
+        createTestJobInfo(now - 3 * DAY_IN_MS, ResultCode.SUCCESSFUL);
+        createTestJobInfo(now - 2 * DAY_IN_MS, ResultCode.FAILED);
+        createTestJobInfo(now - 1 * DAY_IN_MS, ResultCode.SUCCESSFUL);
+        // all
+        Date start = new Date(now - 4 * DAY_IN_MS);
+        List<JobInfo> jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, null);
+        assertEquals("all jobs", 3, jobInfos.size());
+        // only successful
+        jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, ResultCode.SUCCESSFUL);
+        assertEquals("only successful jobs", 2, jobInfos.size());
+        // only successful yesterday
+           start = new Date(now - DAY_IN_MS - 1000);
+        Date end = new Date(now - DAY_IN_MS + 1000);
+        jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, ResultCode.SUCCESSFUL);
+        assertEquals("only successful jobs from yesterday", 1, jobInfos.size());
+    }
+
+    private void createTestJobInfo(long timestamp, ResultCode resultCode) {
+        JobInfo jobInfo1 = new JobInfo(new Date(timestamp), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
+        jobInfoRepository.save(jobInfo1);
+        boolean updated = jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, resultCode, null);
+        assertTrue(updated);
+    }
+
+
     @Test
     public void testFindMostRecentByResultState() throws Exception {
-        JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
+        JobInfo jobInfo = new JobInfo(new Date(System.currentTimeMillis() - DAY_IN_MS), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
         jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultCode.FAILED, null);
         JobInfo jobInfo1 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);

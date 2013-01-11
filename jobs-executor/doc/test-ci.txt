@@ -10,8 +10,8 @@ curl -i -X POST -H'Content-Type: application/json' -d @incrementalUpdate.json ht
 
 server:
 
-[develop-ci]      fh02.develop-ci.lhotse.ov.otto.de
-[develop]         fh03.develop.lhotse.ov.otto.de
+[develop-ci]      fh02.develop-ci.lhotse.ov.otto.de  (search-dev-b07321)
+[develop]         fh03.develop.lhotse.ov.otto.de     (search-dev-b07340)
 [prelive-cluster] search-qa-86.lhotse.ov.otto.de
 [live]            search-live-111.lhotse.ov.otto.de
 [lpt]             search-dev-b072ec.lhotse.ov.otto.de

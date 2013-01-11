@@ -153,15 +153,19 @@ public class JobInfoRepository {
      * @param name The name of the jobs to return
      * @param start The date on or after which the jobs were created
      * @param end The date on or before which the jobs were created
+     * @param resultCode Limit to the jobs with the specified result state
      * @return The list of jobs sorted by creationTime in descending order
      */
-    public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end) {
+    public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final ResultCode resultCode) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
         if (start != null) {
             query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.GTE.op(), start));
         }
         if (end != null) {
             query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), end));
+        }
+        if (resultCode != null) {
+            query.append(JobInfoProperty.RESULT_STATE.val(), resultCode.name());
         }
         final DBCursor cursor = collection.find(query.get()).
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
@@ -591,7 +595,11 @@ public class JobInfoRepository {
     // ~~
 
     protected void save(JobInfo jobInfo) {
-        collection.save(jobInfo.toDbObject());
+        WriteResult wr = collection.save(jobInfo.toDbObject());
+        final CommandResult cr = wr.getLastError(WriteConcern.SAFE);
+        if (!cr.ok()) {
+            LOGGER.error("Unable to save job info object id={}: " + wr, jobInfo.getId());
+        }
     }
 
     protected void save(JobInfo jobInfo, WriteConcern writeConcern) {
