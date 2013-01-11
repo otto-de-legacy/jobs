@@ -1,6 +1,5 @@
 package de.otto.jobstore.repository;
 
-
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
@@ -20,12 +19,17 @@ import java.util.*;
  */
 public class JobInfoRepository {
 
-    private static final String JOB_NAME_CLEANUP = "JobInfo_Cleanup";
-    private static final String JOB_NAME_TIMED_OUT_CLEANUP = "JobInfo_TimedOut_Cleanup";
-
     private static final Logger LOGGER = LoggerFactory.getLogger(JobInfoRepository.class);
+
+    private static final String JOB_NAME_CLEANUP              = "JobInfo_Cleanup";
+    private static final String JOB_NAME_TIMED_OUT_CLEANUP    = "JobInfo_TimedOut_Cleanup";
+    private static final String JOB_NAME_CLEANUP_NOT_EXECUTED = "JobInfo_NotExecuted_Cleanup";
+
     private final DBCollection collection;
-    private int daysAfterWhichOldJobsAreDeleted = 7;
+
+    private int hoursAfterWhichOldJobsAreDeleted         = 7 * 24;
+    private int hoursAfterWhichNotExecutedJobsAreDeleted = 4;
+
 
     public JobInfoRepository(final Mongo mongo, final String dbName, final String collectionName) {
         this(mongo, dbName, collectionName, null, null);
@@ -49,17 +53,18 @@ public class JobInfoRepository {
         prepareCollection();
     }
 
-    public int getDaysAfterWhichOldJobsAreDeleted() {
-        return daysAfterWhichOldJobsAreDeleted;
+    public int getHoursAfterWhichOldJobsAreDeleted() {
+        return hoursAfterWhichOldJobsAreDeleted;
     }
 
     /**
-     * Sets the number of days after which old jobs are removed. Default value is 5.
+     * Sets the number of hours after which old jobs are removed.
+     * Default value is 7 days.
      *
-     * @param days The number of days
+     * @param hours The number of hours
      */
-    public void setDaysAfterWhichOldJobsAreDeleted(int days) {
-        this.daysAfterWhichOldJobsAreDeleted = days;
+    public void setHoursAfterWhichOldJobsAreDeleted(int hours) {
+        this.hoursAfterWhichOldJobsAreDeleted = hours;
     }
 
     /**
@@ -156,7 +161,7 @@ public class JobInfoRepository {
             query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.GTE.op(), start));
         }
         if (end != null) {
-            query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), start));
+            query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), end));
         }
         final DBCursor cursor = collection.find(query.get()).
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
@@ -169,7 +174,7 @@ public class JobInfoRepository {
      *
      * @param name The name of the job
      * @return true - If the job with the given name was activated successfully<br/>
-     *          false - If no queued job with the current name could be found and thus could not activated
+     *         false - If no queued job with the current name could be found and thus could not activated
      */
     public boolean activateQueuedJob(final String name) {
         Date dt = new Date();
@@ -192,7 +197,6 @@ public class JobInfoRepository {
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
      * jobname ist not checked
      *
-     *
      * @param name The name of the job
      */
     public void updateHostThreadInformation(final String name) {
@@ -203,7 +207,6 @@ public class JobInfoRepository {
      * Updates the host and thread information on the running job with the given name
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
      * jobname ist not checked
-     *
      *
      * @param name The name of the job
      * @param host The host to set
@@ -222,7 +225,7 @@ public class JobInfoRepository {
      * @param resultCode The result state of the job
      * @param resultMessage An optional error message
      * @return true - The job was marked as requested<br/>
-     *          false - No running job with the given name could be found
+     *         false - No running job with the given name could be found
      */
     private boolean markRunningAsFinished(final DBObject query, final ResultCode resultCode, final String resultMessage) {
         final Date dt = new Date();
@@ -242,12 +245,11 @@ public class JobInfoRepository {
     /**
      * Marks a running job with the given name as finished.
      *
-     *
      * @param id The id of the job
      * @param resultCode The result state of the job
      * @param t An exception
      * @return true - The job was marked as requested<br/>
-     *          false - No running job with the given name could be found
+     *         false - No running job with the given name could be found
      */
     public boolean markAsFinishedById(final String id, final ResultCode resultCode, final Throwable t) {
         return ObjectId.isValid(id) &&
@@ -262,7 +264,7 @@ public class JobInfoRepository {
      * @param resultCode The result state of the job
      * @param resultMessage An optional error message
      * @return true - The job was marked as requested<br/>
-     *          false - No running job with the given name could be found
+     *         false - No running job with the given name could be found
      */
     public boolean markRunningAsFinished(final String name, final ResultCode resultCode, final String resultMessage) {
         return markRunningAsFinished(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()),
@@ -318,7 +320,7 @@ public class JobInfoRepository {
      * it is overwritten. The lastModified date of the job is set to the current date.
      *
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
-     * jobname ist not checked
+     * jobname ist not checked.
      *
      * @param name The name of the job
      * @param key The key of the data to save
@@ -332,7 +334,7 @@ public class JobInfoRepository {
     }
 
     /**
-     * Sets a status message
+     * Sets a status message.
      *
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
      * jobname ist not checked
@@ -348,7 +350,7 @@ public class JobInfoRepository {
     }
 
     /**
-     * Find a job by its id
+     * Find a job by its id.
      *
      * @param id The id of the job
      * @return The job with the given id or null if no corresponding job was found.
@@ -472,7 +474,7 @@ public class JobInfoRepository {
     }
 
     /**
-     * Removed the running job (flags it as timed out) with the given name if it is timed out
+     * Removed the running job (flag it as timed out) with the given name if it is timed out
      *
      * @param name The name of the job
      * @param currentDate The current date
@@ -514,7 +516,7 @@ public class JobInfoRepository {
     }
 
     /**
-     * Counts the number of documents in the repository
+     * Counts the number of documents in the repository.
      *
      * @return The number of documents in the repository
      */
@@ -555,13 +557,38 @@ public class JobInfoRepository {
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
-            create(JOB_NAME_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            numberOfRemovedJobs = cleanup(new Date(currentDate.getTime() - 1000 * 60 * 60 * 24 * Math.max(1, daysAfterWhichOldJobsAreDeleted)));
+            /* register clean up job with max execution time */
+            long maxExecutionTime = 5 * 60 * 1000;
+            create(JOB_NAME_CLEANUP, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            Date beforeDate = new Date(currentDate.getTime() - (Math.min(4, hoursAfterWhichOldJobsAreDeleted) * 60 * 60 * 1000));
+            LOGGER.info("Going to delete not runnnig jobs before {} ...", beforeDate);
+            /* ... good bye ... */
+            numberOfRemovedJobs = cleanupNotRunning(beforeDate);
             addAdditionalData(JOB_NAME_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP);
         }
         return numberOfRemovedJobs;
     }
+
+    public int cleanupNotExecutedJobs() {
+        final Date currentDate = new Date();
+        removeJobIfTimedOut(JOB_NAME_CLEANUP_NOT_EXECUTED, currentDate);
+        int numberOfRemovedJobs = 0;
+        if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
+            /* register clean up job with max execution time */
+            long maxExecutionTime = 5 * 60 * 1000;
+            create(JOB_NAME_CLEANUP_NOT_EXECUTED, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            Date beforeDate = new Date(currentDate.getTime() - (Math.min(1, hoursAfterWhichNotExecutedJobsAreDeleted) * 60 * 60 * 1000));
+            LOGGER.info("Going to delete not executed jobs before {} ...", beforeDate);
+            /* ... good bye ... */
+            numberOfRemovedJobs = cleanupNotExecuted(beforeDate);
+            addAdditionalData(JOB_NAME_CLEANUP_NOT_EXECUTED, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+            markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP_NOT_EXECUTED);
+        }
+        return numberOfRemovedJobs;
+    }
+
+    // ~~
 
     protected void save(JobInfo jobInfo) {
         collection.save(jobInfo.toDbObject());
@@ -571,10 +598,20 @@ public class JobInfoRepository {
         collection.save(jobInfo.toDbObject(), writeConcern);
     }
 
-    protected int cleanup(Date clearJobsBefore) {
+    protected int cleanupNotRunning(Date clearJobsBefore) {
         final WriteResult result = collection.remove(new BasicDBObject().
                 append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
-                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())), WriteConcern.SAFE);
+                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())),
+                WriteConcern.SAFE);
+        return result.getN();
+    }
+
+    protected int cleanupNotExecuted(Date clearJobsBefore) {
+        final WriteResult result = collection.remove(new BasicDBObject().
+                append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
+                append(JobInfoProperty.RESULT_STATE.val(), ResultCode.NOT_EXECUTED.name()).
+                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.FINISHED.name()),
+                WriteConcern.SAFE);
         return result.getN();
     }
 

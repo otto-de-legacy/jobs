@@ -243,7 +243,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testCleanupOldRunningJobs() throws Exception {
-        jobInfoRepository.setDaysAfterWhichOldJobsAreDeleted(1);
+        jobInfoRepository.setHoursAfterWhichOldJobsAreDeleted(1);
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.LAST_MODIFICATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
         jobInfoRepository.save(jobInfo);
@@ -254,7 +254,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testCleanupOldJobs() throws Exception {
-        jobInfoRepository.setDaysAfterWhichOldJobsAreDeleted(1);
+        jobInfoRepository.setHoursAfterWhichOldJobsAreDeleted(1);
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.FINISHED);
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.CREATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 12));
         jobInfoRepository.save(jobInfo);
