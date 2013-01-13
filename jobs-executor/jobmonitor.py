@@ -48,7 +48,7 @@ HOSTNAME          = socket.gethostname()
 if 'jenkins' in HOSTNAME:
     JOB_USERNAME  = 'jenkins'
 elif 'fh' in HOSTNAME or 'search' in HOSTNAME:
-    JOB_USERNAME  = 'fred'   # TODO: only for the time being, should settings file should be deployed
+    JOB_USERNAME  = 'fred'   # TODO: only for the time being, settings file should be deployed
 else:
     JOB_USERNAME  = os.environ['USER']
 
@@ -74,7 +74,7 @@ ps_map = LRUCacheDict(max_size=1000, expiration=24*60*60)
 def api_root():
     """Index page spitting out who we are."""
 
-    # TODO: link to most important resources
+    # TODO: link to most important resources (a la JSON Home)
     return 'Job Monitor (v %s)' % __version__
 
 
@@ -260,7 +260,7 @@ def stop_job_instance(job_name, job_id = None):
             log.info('Return code from stop job %s: %d' % (job_name, cmd_result.return_code))
 
         if cmd_result.succeeded and "daemon process stopped" in cmd_result:
-            msg = { 'status': 'FINISHED', 'result': {'ok': True, 'message': "job '%s' stopped with process id=%d" % (job_name, job_process_id) } }
+            msg = { 'status': 'FINISHED', 'result': {'ok': True, 'message': "job '%s' stopped with process id=%s" % (job_name, job_process_id) } }
             return Response(json.dumps(msg), status=200, mimetype='application/json')
         else:
             msg = { 'status': 'ERROR', 'result': {'ok': False, 'message': "%s" % cmd_result } }
@@ -287,6 +287,7 @@ def get_job_status(job_name, job_filepath):
     job_finishtime = None
     with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
         cmd_result = run("zdaemon -C %s status" % job_filepath)
+        # Be aware of the fact that zdaemon will restart a malicious job and therefore report it as running!
         if cmd_result.return_code > 0:
             log.warn("Problem while checking job status: %s" % cmd_result)
         else:
@@ -294,9 +295,9 @@ def get_job_status(job_name, job_filepath):
         job_process_id = extract_process_id(cmd_result)
         # get finish time
         if not job_active and job_process_id:
-            zdaemon_file = "/tmp/zdaemon-%s.log" % job_name
+            zdaemon_file = "/tmp/zdaemon-%s.log" % job_name  # TODO: relies on job definition 'eventlog.logfiles.path'
             cmd_finishtime = run("grep 'pid %s: exit' %s | cut -d' ' -f1" % (job_process_id, zdaemon_file))
-            print "---> %s" % cmd_finishtime
+            log.info("---> finishtime %s" % cmd_finishtime)  # TODO: fix finish time
             job_finishtime = cmd_finishtime
         # some debug info
         log.info('%s running? %s [exit_code=%s] [pid=%s] [finishtime=%s]' % (job_name, job_active, cmd_result.return_code, job_process_id, job_finishtime))
@@ -341,6 +342,7 @@ def make_multiline_conf(line):
     """Dirty hack: make sure the zdaemon definition is split from one to multiple lines."""
     trans = re.sub(r'<(/?\w+)>',        r'\n<\1>\n', line)
     trans = re.sub(r'(backoff-limit )', r'\n\1', trans)
+    trans = re.sub(r'(exit-codes )',    r'\n\1', trans)
     trans = re.sub(r'(socket-name )',   r'\n\1', trans)
     return  re.sub(r'(transcript )',    r'\n\1', trans)
 

@@ -43,20 +43,19 @@ class JobMonitorIntegrationTests(TestCase):
         # get rid of old job instance file
         try:
             os.remove(os.path.join(jobmonitor.app.config['JOB_INSTANCES_DIR'], 'demojob.conf'))
+            os.remove(os.path.expanduser('~/zdsock'))
         except OSError:
             pass
         # prepare HTTP client
         self.app = jobmonitor.app.test_client()
         print "starting test using: %s" % jobmonitor.app.config
-        # if running job instance, kill it first
+        # if there is still a running demojob instance, stop it first
         rv = self.app.get('/jobs/demojob')
         self.assertLess(rv.status_code, 500)
         if rv.status_code == 200:
             resp_js = flask.json.loads(rv.data)
-            if resp_js.has_key('job_id'):
-                job_id = resp_js['job_id']
-                rv_stop = self.app.post('/jobs/demojob/%s/stop' % job_id)
-                self.assertEqual(200, rv_stop.status_code)
+            self.assertTrue(resp_js.has_key('message'), "No message found in JSON response")
+            self.assertTrue(resp_js['message'], "No job instance found for 'demojob'")
         # delete old test job
         rv_delete = self.app.delete('/jobs/test_job')
         self.assertLess(rv_delete.status_code, 500)
@@ -86,18 +85,16 @@ class JobMonitorIntegrationTests(TestCase):
         self.assertEqual('application/json', rv.headers['Content-Type'])
         self.assertIn("No job template exists for 'foobar'", rv.data)
 
-    @disabled
     def test_get_unknown_job_instance(self):
         rv = self.app.get('/jobs/foobar/4711')
         self.assertEqual(404, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
-        self.assertIn("No job instance '4711' found for 'foobar'", rv.data)
+        self.assertIn("No job instance found for 'foobar'", rv.data)
 
     def test_create_new_empty_job(self):
         rv = self.app.post('/jobs/test_job', content_type='application/text')
         self.assertEqual(400, rv.status_code)
 
-    @disabled
     def test_create_new_job(self):
         payload = open('tests/test_job.conf', 'r').read()
         rv = self.app.post('/jobs/test_job', data=payload, content_type='application/text')
@@ -109,12 +106,11 @@ class JobMonitorIntegrationTests(TestCase):
         rv_get = self.app.get(job_url)
         self.assertEqual(200, rv_get.status_code, "Link '%s' cannot be resolved" % job_url)
 
-    @disabled
     def test_start_new_job_two_times(self):
         payload = open('tests/test_job.conf', 'r').read()
-        rv = self.app.post('/jobs/test_job', data=payload)
+        rv = self.app.post('/jobs/test_job', data=payload, content_type='application/text')
         self.assertEqual(201, rv.status_code)
-        rv2 = self.app.post('/jobs/test_job', data=payload)
+        rv2 = self.app.post('/jobs/test_job', data=payload, content_type='application/text')
         self.assertEqual(303, rv2.status_code, "Job 'test_job' should already exist")
 
     def test_start_job_instance_missing_parameter(self):
@@ -128,17 +124,17 @@ class JobMonitorIntegrationTests(TestCase):
         rv = self.app.post('/jobs/demojob/start', content_type='text/html', data="<body>foobar</body>")
         self.assertEqual(415, rv.status_code)
 
-    @disabled
     def test_start_job_instance_successfull(self):
-        payload = { 'parameters': { "sample_file": "/var/log/syslog" } }
+        payload = { 'parameters': { "sample_file": "/var/log/mongodb.log" } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(201, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
         self.assertIn('job \'demojob\' started with process id=', rv.data)
+        rv_stop = self.app.post('/jobs/demojob/stop')
+        self.assertEqual(200, rv_stop.status_code)
 
-    @disabled
     def test_start_job_instance_two_times(self):
-        payload = { 'parameters': { "sample_file": "/var/log/syslog" } }
+        payload = { 'parameters': { "sample_file": "/var/log/mongodb.log" } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(201, rv.status_code)
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
@@ -147,9 +143,8 @@ class JobMonitorIntegrationTests(TestCase):
         resp_js = flask.json.loads(rv.data)
         self.assertIn('RUNNING', resp_js['status'])
 
-    @disabled
     def test_get_job_status(self):
-        payload = { 'parameters': { "sample_file": "/var/log/syslog" } }
+        payload = { 'parameters': { "sample_file": "/var/log/mongodb.log" } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(201, rv.status_code)
         # Follow link as per respsone header
@@ -157,9 +152,8 @@ class JobMonitorIntegrationTests(TestCase):
         rv_get = self.app.get(job_url)
         self.assertEqual(200, rv_get.status_code)
 
-    @disabled
     def test_stop_job_two_times(self):
-        payload = { 'parameters': { "sample_file": "/var/log/syslog" } }
+        payload = { 'parameters': { "sample_file": "/var/log/mongodb.log" } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         resp_js = flask.json.loads(rv.data)
         self.assertIn('STARTED', resp_js['status'])
