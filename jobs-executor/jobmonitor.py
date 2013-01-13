@@ -337,6 +337,7 @@ def save_job_template(job_name, data):
     fullpath = get_job_template_filepath(job_name)
     file = open(fullpath, 'w')
     file.write(make_multiline_conf(data))
+    file.close()
 
 def make_multiline_conf(line):
     """Dirty hack: make sure the zdaemon definition is split from one to multiple lines."""
