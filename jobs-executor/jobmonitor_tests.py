@@ -5,6 +5,7 @@
 
 import os
 import unittest
+import dateutil.parser
 
 import flask
 from flask.helpers import json
@@ -132,14 +133,26 @@ class JobMonitorIntegrationTests(TestCase):
         rv = self.app.post('/jobs/demojob/start', content_type='text/html', data="<body>foobar</body>")
         self.assertEqual(415, rv.status_code)
 
-    def test_start_job_instance_successfull(self):
+    def test_start_job_instance_successful(self):
         payload = { 'parameters': { "sample_file": DEMO_FILE } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(201, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
+        job_url = rv.headers["Link"]
+        self.assertTrue(job_url.startswith('/jobs/demojob/'))
         self.assertIn('job \'demojob\' started with process id=', rv.data)
+        # stop this job instance
         rv_stop = self.app.post('/jobs/demojob/stop')
         self.assertEqual(200, rv_stop.status_code)
+        # verify status is really finish
+        rv_status = self.app.get(job_url)
+        self.assertEqual(200, rv_status.status_code)
+        resp_js = flask.json.loads(rv_status.data)
+        self.assertEqual('FINISHED', resp_js['status'])
+        self.assertTrue(resp_js.has_key('finish_time'), "No finish_time part of JSON response")
+        date = dateutil.parser.parse(resp_js['finish_time'])
+        self.assertGreaterEqual(date.year, 2013, "Year should be at least current year")
+        self.assertTrue(resp_js['result']['ok'])
 
     def test_start_job_instance_two_times(self):
         payload = { 'parameters': { "sample_file": DEMO_FILE } }
@@ -149,7 +162,7 @@ class JobMonitorIntegrationTests(TestCase):
         self.assertEqual(303, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
         resp_js = flask.json.loads(rv.data)
-        self.assertIn('RUNNING', resp_js['status'])
+        self.assertEqual('RUNNING', resp_js['status'])
 
     def test_get_job_status(self):
         payload = { 'parameters': { "sample_file": DEMO_FILE } }
@@ -164,16 +177,16 @@ class JobMonitorIntegrationTests(TestCase):
         payload = { 'parameters': { "sample_file": DEMO_FILE } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         resp_js = flask.json.loads(rv.data)
-        self.assertIn('STARTED', resp_js['status'])
+        self.assertEqual('STARTED', resp_js['status'])
         job_url = rv.headers["Link"]
         rv_stop = self.app.post('%s/stop' % job_url)
         self.assertEqual(200, rv_stop.status_code)
         resp_js = flask.json.loads(rv_stop.data)
-        self.assertIn('FINISHED', resp_js['status'])
+        self.assertEqual('FINISHED', resp_js['status'])
         # try to stop second time...
         rv_stop = self.app.post('%s/stop' % job_url)
         self.assertEqual(403, rv_stop.status_code)
-        self.assertIn('FINISHED', resp_js['status'])
+        self.assertEqual('FINISHED', resp_js['status'])
 
 # --
 if __name__ == '__main__':

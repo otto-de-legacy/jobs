@@ -62,7 +62,7 @@ app.config.from_object(__name__)
 # (2) read in configuration file as specified by environment variable
 app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
 
-# (3) prepare mapping of unix process ids to timestamps (cache at max 24 hours)
+# (3) prepare mapping of unix process ids (key) to timestamps (value)
 ps_map = LRUCacheDict(max_size=1000, expiration=24*60*60)
 
 
@@ -222,21 +222,10 @@ def get_job_by_id(job_name, job_id):
         msg = { 'message': "No job instance found for '%s'" % job_name}
         return Response(json.dumps(msg), status=404, mimetype='application/json')
 
-    # find job by ID (and show log)
-    found_process_id = None
-    for a_process_id in ps_map.keys():
-        if ps_map[a_process_id] == job_id:
-            found_process_id = a_process_id
-            break
-
-    # check if currently running job is same to one requested
+    # check status of the specified job instance
     job_fullpath = get_job_instance_filepath(job_name)
-    (job_active, job_process_id, job_finishtime) = get_job_status(job_name, job_fullpath)
-
-    if job_process_id == found_process_id:
-        return response_job_status(job_name, job_active, job_id, job_process_id, job_finishtime)
-    else:
-        return response_job_status(job_name, False, job_id, found_process_id, job_finishtime)
+    (job_active, job_process_id, job_finishtime) = get_job_status(job_name, job_fullpath, job_id)
+    return response_job_status(job_name, job_active, job_id, job_process_id, job_finishtime)
 
 
 @app.route('/jobs/<job_name>/stop', methods = ['POST'])
@@ -250,7 +239,7 @@ def stop_job_instance(job_name, job_id = None):
 
     # check if job is active
     job_fullpath = get_job_instance_filepath(job_name)
-    (job_active, job_process_id, job_finishtime) = get_job_status(job_name, job_fullpath)
+    (job_active, job_process_id, job_finishtime) = get_job_status(job_name, job_fullpath, job_id)
     if not job_active:
         msg = { 'status': 'FINISHED', 'message':'job has already finished', 'finish_time': '%s' % job_finishtime }
         return Response(json.dumps(msg), status=403, mimetype='application/json')
@@ -281,23 +270,25 @@ def response_job_status(job_name, job_active, job_id, job_process_id, job_finish
                 'result':{'ok': True, 'message': "job '%s' is not running any more, process_id %s" % (job_name, job_process_id) }}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
 
-def get_job_status(job_name, job_filepath):
+def get_job_status(job_name, job_filepath, job_id = None):
     job_active = False
     job_process_id = None
     job_finishtime = None
     with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
         cmd_result = run("zdaemon -C %s status" % job_filepath)
         # Be aware of the fact that zdaemon will restart a malicious job and therefore report it as running!
+        # Otherwise a finished process will typically reply with "daemon manager not running"
         if cmd_result.return_code > 0:
             log.warn("Problem while checking job status: %s" % cmd_result)
         else:
             job_active = cmd_result.succeeded and "program running" in cmd_result
-        job_process_id = extract_process_id(cmd_result)
-        # get finish time
-        if not job_active and job_process_id:
+        if job_active:
+            job_process_id = extract_process_id(cmd_result)
+        # get finish time (from the job_id)
+        if not job_active and job_id:
             zdaemon_file = "/tmp/zdaemon-%s.log" % job_name  # TODO: relies on job definition 'eventlog.logfiles.path'
-            cmd_finishtime = run("grep 'pid %s: exit' %s | cut -d' ' -f1" % (job_process_id, zdaemon_file))
-            log.info("---> finishtime %s" % cmd_finishtime)  # TODO: fix finish time
+            job_process_id = get_process_id(job_id)
+            cmd_finishtime = run("grep -E 'pid %s: (exit|terminated)' %s | cut -d' ' -f1" % (job_process_id, zdaemon_file))
             job_finishtime = cmd_finishtime
         # some debug info
         log.info('%s running? %s [exit_code=%s] [pid=%s] [finishtime=%s]' % (job_name, job_active, cmd_result.return_code, job_process_id, job_finishtime))
@@ -382,11 +373,19 @@ def ensure_job_instance_directory():
         os.makedirs(app.config['JOB_INSTANCES_DIR'])
     if not os.path.exists(app.config['JOB_LOG_DIR']):
         os.makedirs(app.config['JOB_LOG_DIR'])
+        # TODO: ensure common group 'users' is set
         os.chmod(app.config['JOB_LOG_DIR'], 00775)  # make it group writable
 
 def exists_job_instance(job_name):
     return os.path.exists(get_job_instance_filepath(job_name))
 
+def get_process_id(job_id):
+    found_process_id = None
+    for a_process_id in ps_map.keys():
+        if ps_map[a_process_id] == job_id:
+            found_process_id = a_process_id
+            break
+    return found_process_id
 
 def extract_process_id(cmd_string):
     matcher = re.search(r'pid=(\d+)', cmd_string)
