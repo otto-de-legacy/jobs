@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.17"
+__version__ = "0.8.18"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -65,6 +65,16 @@ app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
 # (3) prepare mapping of unix process ids (key) to timestamps (value)
 ps_map = LRUCacheDict(max_size=1000, expiration=24*60*60)
 
+# Hold all information of a result for a job instance
+class JobResult:
+    def __init__(self, job_name, is_active, process_id, finish_time, return_success, return_code, return_message):
+        self.job_name = job_name
+        self.is_active = is_active
+        self.process_id = process_id
+        self.finish_time = finish_time
+        self.return_success = return_success
+        self.return_code = return_code
+        self.return_message = return_message
 
 # ------------------------------------------------------
 # HTTP API
@@ -142,20 +152,19 @@ def start_job_instance(job_name):
         return Response("Only 'application/json' currently supported as media type", status=415)
 
     # ~~ check if already running
-    job_active = False
-    job_process_id = None
+    job_status = None
     if exists_job_instance(job_name):
-        log.info("Found job instance, check if still running...")
+        log.info("Found job instance, check if still running ...")
         job_filepath = get_job_instance_filepath(job_name)
-        (job_active, job_process_id, job_finishtime) = get_job_status(job_name, job_filepath)
+        job_status = get_job_status(job_name, job_filepath)
 
-    if job_active:
+    if job_status and job_status.is_active:
         try:
-            job_id = ps_map[job_process_id]
+            job_id = ps_map[job_status.process_id]
         except KeyError:
             job_id = "unknown"
         log.info('Job %s is still active, link to latest running instance: %s ...' % (job_name, job_id))
-        msg = { 'status': 'RUNNING', 'message': "job '%s' [%s] is still running with process id %d" % (job_name, job_id, job_process_id)}
+        msg = { 'status': 'RUNNING', 'message': "job '%s' [%s] is still running with pid=%d" % (job_name, job_id, job_status.process_id)}
         resp = Response(json.dumps(msg), status=303, mimetype='application/json')
         resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
     else:
@@ -177,9 +186,9 @@ def start_job_instance(job_name):
 
         # ~~ construct response
         job_process_id = extract_process_id(cmd_result)
-        if cmd_result.succeeded and "daemon process started" in cmd_result and job_process_id:
+        if job_process_id and cmd_result.succeeded and "daemon process started" in cmd_result:
             ps_map[job_process_id] = job_id
-            msg = { 'status': 'STARTED', 'message': "job '%s' started with process id=%s" % (job_name, job_process_id) }
+            msg = { 'status': 'STARTED', 'result': {'ok': True}, 'message': "job '%s' started with pid=%s" % (job_name, job_process_id) }
             resp = Response(json.dumps(msg), status=201, mimetype='application/json')
             resp.headers['Link'] = url_for('get_job_by_id', job_name=job_name, job_id=job_id)
         else:
@@ -197,13 +206,13 @@ def get_current_job(job_name):
     if exists_job_instance(job_name):
         job_filepath = get_job_instance_filepath(job_name)
         log.info("Found job instance, check if still running...")
-        (job_active, job_process_id, job_finishtime) = get_job_status(job_name, job_filepath)
+        job_status = get_job_status(job_name, job_filepath)
         # TODO: also care for exit code
         try:
-            job_id = ps_map[job_process_id]
+            job_id = ps_map[job_status.process_id]
         except KeyError:
             job_id = "unknown"
-        return response_job_status(job_name, job_active, job_id, job_process_id, job_finishtime)
+        return response_job_status(job_id, job_status)
     else:
         if exists_job_template(job_name):
             msg = { 'message': "No job instance found for '%s'" % job_name }
@@ -219,13 +228,13 @@ def get_job_by_id(job_name, job_id):
 
     # check if there exists at least a job instance
     if not exists_job_instance(job_name):
-        msg = { 'message': "No job instance found for '%s'" % job_name}
+        msg = { 'message': "No job instance found for '%s'" % job_name }
         return Response(json.dumps(msg), status=404, mimetype='application/json')
 
     # check status of the specified job instance
     job_fullpath = get_job_instance_filepath(job_name)
-    (job_active, job_process_id, job_finishtime) = get_job_status(job_name, job_fullpath, job_id)
-    return response_job_status(job_name, job_active, job_id, job_process_id, job_finishtime)
+    job_status = get_job_status(job_name, job_fullpath, job_id)
+    return response_job_status(job_id, job_status)
 
 
 @app.route('/jobs/<job_name>/stop', methods = ['POST'])
@@ -239,9 +248,9 @@ def stop_job_instance(job_name, job_id = None):
 
     # check if job is active
     job_fullpath = get_job_instance_filepath(job_name)
-    (job_active, job_process_id, job_finishtime) = get_job_status(job_name, job_fullpath, job_id)
-    if not job_active:
-        msg = { 'status': 'FINISHED', 'message':'job has already finished', 'finish_time': '%s' % job_finishtime }
+    job_status = get_job_status(job_name, job_fullpath, job_id)
+    if not job_status.is_active:
+        msg = { 'status': 'FINISHED', 'message':'job has already finished', 'finish_time': '%s' % job_status.finish_time }
         return Response(json.dumps(msg), status=403, mimetype='application/json')
     else:
         with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
@@ -249,25 +258,26 @@ def stop_job_instance(job_name, job_id = None):
             log.info('Return code from stop job %s: %d' % (job_name, cmd_result.return_code))
 
         if cmd_result.succeeded and "daemon process stopped" in cmd_result:
-            msg = { 'status': 'FINISHED', 'result': {'ok': True, 'message': "job '%s' stopped with process id=%s" % (job_name, job_process_id) } }
+            msg = { 'status': 'FINISHED', 'result': {'ok': True, 'message': "job '%s' stopped with pid=%s" % (job_name, job_status.process_id) } }
             return Response(json.dumps(msg), status=200, mimetype='application/json')
         else:
-            msg = { 'status': 'ERROR', 'result': {'ok': False, 'message': "%s" % cmd_result } }
+            msg = { 'status': 'ERROR', 'result': {'ok': False, 'message': "Unable to stop job: %s" % cmd_result } }
             return Response(json.dumps(msg), status=500, mimetype='application/json')
 
 
 # ------------------------------------------------------
 
-def response_job_status(job_name, job_active, job_id, job_process_id, job_finishtime):
-    log_lines = get_last_lines(get_job_instance_logpath(job_name, job_id), 200)
-    if job_active:
+def response_job_status(job_id, job_status):
+    log_lines = get_last_lines(get_job_instance_logpath(job_status.job_name, job_id), 200)
+    if job_status.is_active:
         # TODO: Link to job status page in addition to only presenting job_id
         msg = { 'status': 'RUNNING', 'job_id': "%s" % job_id, 'log_lines': log_lines,
-                'message': "job '%s' is running with process id %s" % (job_name, job_process_id)}
+                'message': "job '%s' is running with pid=%s" % (job_status.job_name, job_status.process_id)}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
     else:
-        msg = { 'status': 'FINISHED', 'log_lines': log_lines, 'finish_time': '%s' % job_finishtime,
-                'result':{'ok': True, 'message': "job '%s' is not running any more, process_id %s" % (job_name, job_process_id) }}
+        msg = { 'status': 'FINISHED', 'log_lines': log_lines, 'finish_time': '%s' % job_status.finish_time,
+                'result':{'ok': job_status.return_success, 'exit_code': job_status.return_code,
+                          'message': "job '%s' (pid=%s) is not running any more: %s" % (job_status.job_name, job_status.process_id, job_status.return_message) }}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
 
 def get_job_status(job_name, job_filepath, job_id = None):
@@ -292,7 +302,12 @@ def get_job_status(job_name, job_filepath, job_id = None):
             job_finishtime = cmd_finishtime
         # some debug info
         log.info('%s running? %s [exit_code=%s] [pid=%s] [finishtime=%s]' % (job_name, job_active, cmd_result.return_code, job_process_id, job_finishtime))
-    return job_active, job_process_id, job_finishtime
+    # ~~
+    if  cmd_result.return_code == 3:
+        log.info("Accept daemon not running status as OK")
+        cmd_result.return_code = 0
+        cmd_result.succeeded = True
+    return JobResult(job_name, job_active, job_process_id, job_finishtime, cmd_result.succeeded, cmd_result.return_code, '%s' % cmd_result)
 
 
 def create_jobconf(job_name, job_id, params):

@@ -57,7 +57,7 @@ class JobMonitorIntegrationTests(TestCase):
 
         # prepare HTTP client
         self.app = jobmonitor.app.test_client()
-        print "starting test using: %s" % jobmonitor.app.config
+        print "Start Test '%s' ..." % self._testMethodName  # jobmonitor.app.config
         # if there is still a running demojob instance, stop it first
         rv = self.app.get('/jobs/demojob')
         self.assertLess(rv.status_code, 500)
@@ -133,26 +133,44 @@ class JobMonitorIntegrationTests(TestCase):
         rv = self.app.post('/jobs/demojob/start', content_type='text/html', data="<body>foobar</body>")
         self.assertEqual(415, rv.status_code)
 
-    def test_start_job_instance_successful(self):
+    def test_start_stop_job_instance_successful(self):
         payload = { 'parameters': { "sample_file": DEMO_FILE } }
+
+        # (1) start job instance
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(201, rv.status_code)
         self.assertEqual('application/json', rv.headers['Content-Type'])
         job_url = rv.headers["Link"]
         self.assertTrue(job_url.startswith('/jobs/demojob/'))
-        self.assertIn('job \'demojob\' started with process id=', rv.data)
-        # stop this job instance
+        self.assertIn('job \'demojob\' started with pid=', rv.data)
+        resp_js = flask.json.loads(rv.data)
+        self.assertTrue(resp_js['result']['ok'])
+
+        # (2) verify status is really running
+        rv_status = self.app.get(job_url)
+        self.assertEqual(200, rv_status.status_code)
+        resp_js = flask.json.loads(rv_status.data)
+        self.assertEqual('RUNNING', resp_js['status'])
+        self.assertTrue(resp_js.has_key('job_id'))
+
+        # (3) stop this job instance
         rv_stop = self.app.post('/jobs/demojob/stop')
         self.assertEqual(200, rv_stop.status_code)
-        # verify status is really finish
+        resp_js = flask.json.loads(rv_stop.data)
+        self.assertTrue(resp_js['result']['ok'])
+        self.assertEqual('FINISHED', resp_js['status'])
+
+        # (4) verify status is really finish
         rv_status = self.app.get(job_url)
         self.assertEqual(200, rv_status.status_code)
         resp_js = flask.json.loads(rv_status.data)
         self.assertEqual('FINISHED', resp_js['status'])
         self.assertTrue(resp_js.has_key('finish_time'), "No finish_time part of JSON response")
+        # expect something like '2013-01-14T13:00:04'
         date = dateutil.parser.parse(resp_js['finish_time'])
         self.assertGreaterEqual(date.year, 2013, "Year should be at least current year")
         self.assertTrue(resp_js['result']['ok'])
+
 
     def test_start_job_instance_two_times(self):
         payload = { 'parameters': { "sample_file": DEMO_FILE } }

@@ -128,3 +128,9 @@ class TestCase(unittest.TestCase, AutoStubMixIn):
             return super(TestCase, self).assertLess(a, b, msg)
         if not a < b:
             self.fail(msg or '%r not less than %r' % (a, b))
+
+    def assertGreaterEqual(self, a, b, msg=None):
+        if hasattr(super(TestCase, self), 'assertGreaterEqual'):
+            return super(TestCase, self).assertGreaterEqual(a, b, msg)
+        if not a >= b:
+            self.fail(msg or '%r not greater or equal than %r' % (a, b))
