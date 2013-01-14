@@ -1,10 +1,13 @@
 package de.otto.jobstore.service;
 
+import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.JobLogger;
+import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.repository.JobInfoRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 final class SimpleJobLogger implements JobLogger {
@@ -16,7 +19,7 @@ final class SimpleJobLogger implements JobLogger {
     SimpleJobLogger(String jobName, JobInfoRepository jobInfoRepository) {
         this.jobName = jobName;
         this.jobInfoRepository = jobInfoRepository;
-        this.logLines = new ArrayList<String>();
+        this.logLines = new ArrayList<>();
     }
 
     @Override
@@ -35,6 +38,16 @@ final class SimpleJobLogger implements JobLogger {
     @Override
     public void insertOrUpdateAdditionalData(String key, String value) {
         jobInfoRepository.addAdditionalData(jobName, key, value);
+    }
+
+    @Override
+    public String getAdditionalData(String key) {
+        JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(jobName, RunningState.RUNNING);
+        Map<String, String> additionalData = jobInfo.getAdditionalData();
+        if(additionalData != null){
+            return additionalData.get(key);
+        }else return null;
+
     }
 
 }

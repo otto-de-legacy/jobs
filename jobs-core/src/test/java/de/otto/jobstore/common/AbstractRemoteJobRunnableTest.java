@@ -102,6 +102,11 @@ public class AbstractRemoteJobRunnableTest {
         public void insertOrUpdateAdditionalData(String key, String value) {
             additionalData.put(key, value);
         }
+
+        @Override
+        public String getAdditionalData(String key) {
+            return additionalData.get(key);
+        }
     }
 
 }

@@ -5,7 +5,6 @@ import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.repository.JobInfoRepository;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -39,7 +38,6 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
     @BeforeClass
     public void setUp() throws Exception {
         jobInfoRepository.clear(true);
-        ReflectionTestUtils.setField(jobService, "remoteJobExecutorService", remoteJobExecutorService);
     }
 
     @Test

@@ -30,6 +30,11 @@ public interface JobRunnable {
     long getPollingInterval();
 
     /**
+     * Asks for the current remote status. Is only called on remote jobs.
+     */
+    RemoteJobStatus getRemoteStatus(JobExecutionContext context);
+
+    /**
      * Flag if the job is executed locally or remotely
      *
      * @return true - The job is executed remotely</br>

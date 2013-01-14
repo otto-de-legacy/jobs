@@ -24,7 +24,6 @@
 
     <bean id="jobServiceWithoutRemoteJobExecutorService" class="de.otto.jobstore.service.JobService">
         <constructor-arg index="0" ref="jobInfoRepository"/>
-        <constructor-arg index="1" value="null"/>
     </bean>
 
 </beans>

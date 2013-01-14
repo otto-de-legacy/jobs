@@ -1,14 +1,12 @@
 package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.*;
-import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.repository.JobInfoRepository;
 import de.otto.jobstore.service.exception.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PreDestroy;
-import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -28,7 +26,6 @@ public class JobService {
     private final Map<String, JobRunnable> jobs = new ConcurrentHashMap<>();
     private final Set<Set<String>> runningConstraints = new CopyOnWriteArraySet<>();
     private final JobInfoRepository jobInfoRepository;
-    private final RemoteJobExecutorService remoteJobExecutorService;
     private boolean executionEnabled = true;
 
     /**
@@ -36,9 +33,8 @@ public class JobService {
      *
      * @param jobInfoRepository The jobInfo Repository to store the jobs in
      */
-    public JobService(final JobInfoRepository jobInfoRepository, RemoteJobExecutorService remoteJobExecutorService) {
+    public JobService(final JobInfoRepository jobInfoRepository) {
         this.jobInfoRepository = jobInfoRepository;
-        this.remoteJobExecutorService = remoteJobExecutorService;
     }
 
     public boolean isExecutionEnabled() {
@@ -186,12 +182,12 @@ public class JobService {
     public void pollRemoteJobs() {
         if (executionEnabled) {
             for (Map.Entry<String, JobRunnable> job : jobs.entrySet()) {
-                if (job.getValue().isRemote()) {
+                JobRunnable jobRunnable = job.getValue();
+                if (jobRunnable.isRemote()) {
                     final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(job.getKey(), RunningState.RUNNING);
                     if (runningJob != null) {
-                        if (jobRequiresUpdate(runningJob.getLastModifiedTime(), System.currentTimeMillis(), job.getValue().getPollingInterval())) {
-                            final RemoteJobStatus remoteJobStatus = remoteJobExecutorService.getStatus(
-                                    URI.create(runningJob.getAdditionalData().get(JobInfoProperty.REMOTE_JOB_URI.val())));
+                        if (jobRequiresUpdate(runningJob.getLastModifiedTime(), System.currentTimeMillis(), jobRunnable.getPollingInterval())) {
+                            final RemoteJobStatus remoteJobStatus = jobRunnable.getRemoteStatus(createJobExecutionContext(jobRunnable.getName(), runningJob.getId(), runningJob.getExecutionPriority()));
                             if (remoteJobStatus != null) {
                                 updateJobStatus(runningJob, remoteJobStatus, job.getValue());
                             }

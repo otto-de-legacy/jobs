@@ -19,6 +19,12 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     }
 
     @Override
+    public RemoteJobStatus getRemoteStatus(JobExecutionContext context) {
+        return remoteJobExecutorService.getStatus(
+                URI.create(context.getJobLogger().getAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val())));
+    }
+
+    @Override
     public final boolean isRemote() {
         return true;
     }

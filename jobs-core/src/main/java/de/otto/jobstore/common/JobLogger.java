@@ -24,4 +24,10 @@ public interface JobLogger {
     */
     void insertOrUpdateAdditionalData(String key, String value);
 
+    /**
+     * Return the additional data stored for this job
+     * @param key the key of the additional data
+     * @return value The value to be found.
+     */
+    public String getAdditionalData(String key);
 }

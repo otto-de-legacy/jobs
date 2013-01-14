@@ -10,6 +10,11 @@ public abstract class AbstractLocalJobRunnable implements JobRunnable {
     }
 
     @Override
+    public RemoteJobStatus getRemoteStatus(JobExecutionContext context) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public final boolean isRemote() {
         return false;
     }

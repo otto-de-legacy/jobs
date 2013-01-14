@@ -29,7 +29,7 @@ public class JobServiceTest {
     public void setUp() throws Exception {
         jobInfoRepository = mock(JobInfoRepository.class);
         remoteJobExecutorService = mock(RemoteJobExecutorService.class);
-        jobService = new JobService(jobInfoRepository, remoteJobExecutorService);
+        jobService = new JobService(jobInfoRepository);
     }
 
     @Test
@@ -325,7 +325,7 @@ public class JobServiceTest {
 
     @Test(expectedExceptions = JobExecutionDisabledException.class)
     public void testJobExecutedDisabled() throws Exception {
-        JobService jobServiceImpl = new JobService(jobInfoRepository, remoteJobExecutorService);
+        JobService jobServiceImpl = new JobService(jobInfoRepository);
         jobServiceImpl.setExecutionEnabled(false);
 
         jobServiceImpl.registerJob(createLocalJobRunnable(JOB_NAME_01));
