@@ -268,7 +268,7 @@ def stop_job_instance(job_name, job_id = None):
 # ------------------------------------------------------
 
 def response_job_status(job_id, job_status):
-    log_lines = get_last_lines(get_job_instance_logpath(job_status.job_name, job_id), 200)
+    log_lines = get_last_lines(get_job_instance_logpath(job_status.job_name, job_id))
     if job_status.is_active:
         # TODO: Link to job status page in addition to only presenting job_id
         msg = { 'status': 'RUNNING', 'job_id': "%s" % job_id, 'log_lines': log_lines,
@@ -288,26 +288,26 @@ def get_job_status(job_name, job_filepath, job_id = None):
         cmd_result = run("zdaemon -C %s status" % job_filepath)
         # Be aware of the fact that zdaemon will restart a malicious job and therefore report it as running!
         # Otherwise a finished process will typically reply with "daemon manager not running"
-        if cmd_result.return_code > 0:
+        exit_code = cmd_result.return_code
+        is_ok = cmd_result.succeeded
+        return_msg = '%s' % cmd_result
+        if exit_code > 0:
             log.warn("Problem while checking job status: %s" % cmd_result)
         else:
-            job_active = cmd_result.succeeded and "program running" in cmd_result
+            job_active = is_ok and "program running" in cmd_result
         if job_active:
             job_process_id = extract_process_id(cmd_result)
-        # get finish time (from the job_id)
+        # get finish time (via zdaemon log file and associated job_id)
         if not job_active and job_id:
             zdaemon_file = "/tmp/zdaemon-%s.log" % job_name  # TODO: relies on job definition 'eventlog.logfiles.path'
             job_process_id = get_process_id(job_id)
-            cmd_finishtime = run("grep -E 'pid %s: (exit|terminated)' %s | cut -d' ' -f1" % (job_process_id, zdaemon_file))
-            job_finishtime = cmd_finishtime
+            cmd_finishline = run("grep -E 'pid %s: (exit|terminated)' %s" % (job_process_id, zdaemon_file))
+            job_finishtime = extract_finishtime(cmd_finishline)
+            exit_code = extract_exitcode(cmd_finishline)
         # some debug info
-        log.info('%s running? %s [exit_code=%s] [pid=%s] [finishtime=%s]' % (job_name, job_active, cmd_result.return_code, job_process_id, job_finishtime))
+        log.info('%s running? %s [exit_code=%s] [pid=%s] [finishtime=%s]' % (job_name, job_active, exit_code, job_process_id, job_finishtime))
     # ~~
-    if  cmd_result.return_code == 3:
-        log.info("Accept daemon not running status as OK")
-        cmd_result.return_code = 0
-        cmd_result.succeeded = True
-    return JobResult(job_name, job_active, job_process_id, job_finishtime, cmd_result.succeeded, cmd_result.return_code, '%s' % cmd_result)
+    return JobResult(job_name, job_active, job_process_id, job_finishtime, is_ok, exit_code, return_msg)
 
 
 def create_jobconf(job_name, job_id, params):
@@ -409,14 +409,32 @@ def extract_process_id(cmd_string):
     else:
         return None
 
-def get_last_lines(filepath, nr_lines):
-    """Return the last nr_lines from file (as given by filepath)."""
+def extract_exitcode(cmd_string):
+    matcher = re.search(r'exit status (\d+)', cmd_string)
+    if matcher:
+        return int(matcher.group(1))
+    else:
+        return -1
+
+def extract_finishtime(cmd_string):
+    matcher = re.search(r'^([0-9T\-:]+)\s', cmd_string)
+    if matcher:
+        return matcher.group(1)
+    else:
+        return None
+
+
+def get_last_lines(filepath, nr_lines = None):
+    """Return the last nr_lines (or all if not specified) from file (as given by filepath)."""
     if os.path.exists(filepath):
         fh = open(filepath, 'r')
-        file_size = fh.tell()
-        fh.seek(max(file_size - 4*1024, 0))
-        # this will get rid of trailing newlines, unlike readlines()
-        return fh.read().splitlines()[-nr_lines:]
+        if nr_lines:
+            file_size = fh.tell()
+            fh.seek(max(file_size - 4*1024, 0))
+            # this will get rid of trailing newlines, unlike readlines()
+            return fh.read().splitlines()[-nr_lines:]
+        else:
+            return fh.read().splitlines()
     else:
         return []
 

@@ -40,6 +40,19 @@ class JobMonitorUnitTests(TestCase):
         pid = jobmonitor.extract_process_id("pid=A711")
         self.assertEqual(pid, None)
 
+    def test_extract_finish_time(self):
+        dt = jobmonitor.extract_finishtime("2013-01-13T20:39:38 INFO root pid 27919: exit status 73")
+        self.assertEqual(dt, "2013-01-13T20:39:38")
+
+    def test_extract_exit_code(self):
+        dt = jobmonitor.extract_exitcode("2013-01-13T20:39:38 INFO root pid 27919: exit status 73")
+        self.assertEqual(dt, 73)
+
+    def test_extract_exit_code_with_suffix(self):
+        dt = jobmonitor.extract_exitcode("2013-01-14T00:09:38 INFO root pid 12229: exit status 0; exiting now")
+        self.assertEqual(dt, 0)
+
+
 class JobMonitorIntegrationTests(TestCase):
 
     def setUp(self):
@@ -144,7 +157,9 @@ class JobMonitorIntegrationTests(TestCase):
         self.assertTrue(job_url.startswith('/jobs/demojob/'))
         self.assertIn('job \'demojob\' started with pid=', rv.data)
         resp_js = flask.json.loads(rv.data)
+        self.assertEqual('STARTED', resp_js['status'])
         self.assertTrue(resp_js['result']['ok'])
+        self.assertTrue(resp_js.has_key('message'))
 
         # (2) verify status is really running
         rv_status = self.app.get(job_url)
@@ -152,6 +167,7 @@ class JobMonitorIntegrationTests(TestCase):
         resp_js = flask.json.loads(rv_status.data)
         self.assertEqual('RUNNING', resp_js['status'])
         self.assertTrue(resp_js.has_key('job_id'))
+        self.assertTrue(resp_js.has_key('log_lines'))
 
         # (3) stop this job instance
         rv_stop = self.app.post('/jobs/demojob/stop')
@@ -170,6 +186,7 @@ class JobMonitorIntegrationTests(TestCase):
         date = dateutil.parser.parse(resp_js['finish_time'])
         self.assertGreaterEqual(date.year, 2013, "Year should be at least current year")
         self.assertTrue(resp_js['result']['ok'])
+        self.assertEqual(resp_js['result']['exit_code'], -1)
 
 
     def test_start_job_instance_two_times(self):
