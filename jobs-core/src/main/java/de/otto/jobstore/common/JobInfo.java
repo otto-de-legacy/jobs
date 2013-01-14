@@ -166,7 +166,7 @@ public final class JobInfo extends AbstractItem {
         final List<LogLine> result = new ArrayList<>(Math.min(logLines.size(), MAX_LOGLINES));
         int endPos = logLines.size();
         int startPos = Math.max(0, endPos - MAX_LOGLINES);
-        LOGGER.info("Use log lines from {} to {}", startPos, endPos);
+        LOGGER.debug("Use log lines from {} to {}", startPos, endPos);
         for (DBObject logLine : logLines.subList(startPos, endPos)) {
             result.add(new LogLine(logLine));
         }
