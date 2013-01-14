@@ -18,6 +18,6 @@ kill $(ps aux | grep '[p]ython jobmonitor.py' | awk '{print $2}')
 # we execute in our own environment to not mix up anything
 virtualenv venv
 . venv/bin/activate
-pip install --quiet fabric Flask paramiko pycrypto ordereddict
+pip install --quiet fabric Flask paramiko pycrypto ordereddict python-dateutil
 
 exit 0
