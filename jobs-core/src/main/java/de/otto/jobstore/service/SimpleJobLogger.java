@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 final class SimpleJobLogger implements JobLogger {
 
     private final String jobName;
@@ -17,9 +16,13 @@ final class SimpleJobLogger implements JobLogger {
     private List<String> logLines;
 
     SimpleJobLogger(String jobName, JobInfoRepository jobInfoRepository) {
+        this(jobName, jobInfoRepository, new ArrayList<String>());
+    }
+
+    SimpleJobLogger(String jobName, JobInfoRepository jobInfoRepository, List<String> logLines) {
         this.jobName = jobName;
         this.jobInfoRepository = jobInfoRepository;
-        this.logLines = new ArrayList<>();
+        this.logLines = logLines;
     }
 
     @Override
@@ -29,6 +32,15 @@ final class SimpleJobLogger implements JobLogger {
             logLines.add(logLine);
         }
     }
+
+    /*
+    @Override
+    public void setLoggingData(String logLines) {
+        for (String line : logLines) {
+            addLoggingData(line);
+        }
+    }
+    */
 
     @Override
     public List<String> getLoggingData() {
@@ -44,10 +56,7 @@ final class SimpleJobLogger implements JobLogger {
     public String getAdditionalData(String key) {
         JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(jobName, RunningState.RUNNING);
         Map<String, String> additionalData = jobInfo.getAdditionalData();
-        if(additionalData != null){
-            return additionalData.get(key);
-        }else return null;
-
+        return (additionalData != null) ? additionalData.get(key) : null;
     }
 
 }

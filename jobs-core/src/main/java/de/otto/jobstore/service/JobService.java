@@ -252,8 +252,9 @@ public class JobService {
             jobInfoRepository.setStatusMessage(jobInfo.getName(), remoteJobStatus.message);
         }
         if (remoteJobStatus.status == RemoteJobStatus.Status.FINISHED) {
-            final JobExecutionContext context = createJobExecutionContext(jobInfo.getName(), jobInfo.getId(), jobInfo.getExecutionPriority());
+            final JobExecutionContext context = createJobExecutionContext(jobInfo.getName(), jobInfo.getId(), jobInfo.getExecutionPriority(), remoteJobStatus.logLines);
             context.setResultCode(remoteJobStatus.result.ok ? ResultCode.SUCCESSFUL : ResultCode.FAILED);
+            context.setResultMessage(remoteJobStatus.message);
             if (remoteJobStatus.result.ok) {
                 try {
                     jobRunnable.afterExecution(context);
@@ -278,6 +279,11 @@ public class JobService {
 
     private JobExecutionContext createJobExecutionContext(String jobName, String jobId, JobExecutionPriority priority) {
         final JobLogger jobLogger = new SimpleJobLogger(jobName, jobInfoRepository);
+        return new JobExecutionContext(jobId, jobLogger, priority);
+    }
+
+    private JobExecutionContext createJobExecutionContext(String jobName, String jobId, JobExecutionPriority priority, List<String> logLines) {
+        final JobLogger jobLogger = new SimpleJobLogger(jobName, jobInfoRepository, logLines);
         return new JobExecutionContext(jobId, jobLogger, priority);
     }
 
