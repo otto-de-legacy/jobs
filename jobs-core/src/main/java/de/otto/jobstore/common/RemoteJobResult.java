@@ -21,4 +21,14 @@ public final class RemoteJobResult {
         this.message = message;
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("RemoteJobResult");
+        sb.append("{ok=").append(ok);
+        sb.append(", exitCode=").append(exitCode);
+        sb.append(", message='").append(message).append('\'');
+        sb.append('}');
+        return sb.toString();
+    }
 }

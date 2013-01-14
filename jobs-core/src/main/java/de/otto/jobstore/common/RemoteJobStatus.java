@@ -40,4 +40,19 @@ public final class RemoteJobStatus {
         this.logLines = logLines;
         this.message = message;
     }
+
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("RemoteJobStatus");
+        sb.append("{status=").append(status);
+        sb.append(", logLines=").append(logLines);
+        sb.append(", result=").append(result);
+        sb.append(", finishTime='").append(finishTime).append('\'');
+        sb.append(", message='").append(message).append('\'');
+        sb.append('}');
+        return sb.toString();
+    }
+
 }
