@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.18"
+__version__ = "0.8.20"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -280,6 +280,7 @@ def response_job_status(job_id, job_status):
                           'message': "job '%s' (pid=%s) is not running any more: %s" % (job_status.job_name, job_status.process_id, job_status.return_message) }}
         return Response(json.dumps(msg), status=200, mimetype='application/json')
 
+
 def get_job_status(job_name, job_filepath, job_id = None):
     job_active = False
     job_process_id = None
@@ -304,6 +305,7 @@ def get_job_status(job_name, job_filepath, job_id = None):
             cmd_finishline = run("grep -E 'pid %s: (exit|terminated)' %s" % (job_process_id, zdaemon_file))
             job_finishtime = extract_finishtime(cmd_finishline)
             exit_code = extract_exitcode(cmd_finishline)
+            is_ok = (exit_code == 0)
         # some debug info
         log.info('%s running? %s [exit_code=%s] [pid=%s] [finishtime=%s]' % (job_name, job_active, exit_code, job_process_id, job_finishtime))
     # ~~

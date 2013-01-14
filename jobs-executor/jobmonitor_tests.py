@@ -70,7 +70,7 @@ class JobMonitorIntegrationTests(TestCase):
 
         # prepare HTTP client
         self.app = jobmonitor.app.test_client()
-        print "Start Test '%s' ..." % self._testMethodName  # jobmonitor.app.config
+        print "~~ Start Test '%s' ..." % self._testMethodName  # jobmonitor.app.config
         # if there is still a running demojob instance, stop it first
         rv = self.app.get('/jobs/demojob')
         self.assertLess(rv.status_code, 500)
@@ -146,8 +146,21 @@ class JobMonitorIntegrationTests(TestCase):
         rv = self.app.post('/jobs/demojob/start', content_type='text/html', data="<body>foobar</body>")
         self.assertEqual(415, rv.status_code)
 
+
+    def test_start_job_invalid_file(self):
+        payload = { 'parameters': { 'sample_file': '/tmp/honkitonki' } }
+
+        rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
+        resp_js = flask.json.loads(rv.data)
+        self.assertEqual(500, rv.status_code)
+        self.assertEqual('application/json', rv.headers['Content-Type'])
+        self.assertEqual('FINISHED', resp_js['status'])
+        self.assertEqual(resp_js['result']['exit_code'], 1)
+        self.assertFalse(resp_js['result']['ok'])
+
+
     def test_start_stop_job_instance_successful(self):
-        payload = { 'parameters': { "sample_file": DEMO_FILE } }
+        payload = { 'parameters': { 'sample_file': DEMO_FILE } }
 
         # (1) start job instance
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
@@ -185,12 +198,12 @@ class JobMonitorIntegrationTests(TestCase):
         # expect something like '2013-01-14T13:00:04'
         date = dateutil.parser.parse(resp_js['finish_time'])
         self.assertGreaterEqual(date.year, 2013, "Year should be at least current year")
-        self.assertTrue(resp_js['result']['ok'])
+        self.assertFalse(resp_js['result']['ok'])  # to be honest: we don't know about the result
         self.assertEqual(resp_js['result']['exit_code'], -1)
 
 
     def test_start_job_instance_two_times(self):
-        payload = { 'parameters': { "sample_file": DEMO_FILE } }
+        payload = { 'parameters': { 'sample_file': DEMO_FILE } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(201, rv.status_code)
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
@@ -200,7 +213,7 @@ class JobMonitorIntegrationTests(TestCase):
         self.assertEqual('RUNNING', resp_js['status'])
 
     def test_get_job_status(self):
-        payload = { 'parameters': { "sample_file": DEMO_FILE } }
+        payload = { 'parameters': { 'sample_file': DEMO_FILE } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         self.assertEqual(201, rv.status_code)
         # Follow link as per respsone header
@@ -209,7 +222,7 @@ class JobMonitorIntegrationTests(TestCase):
         self.assertEqual(200, rv_get.status_code)
 
     def test_stop_job_two_times(self):
-        payload = { 'parameters': { "sample_file": DEMO_FILE } }
+        payload = { 'parameters': { 'sample_file': DEMO_FILE } }
         rv = self.app.post('/jobs/demojob/start', content_type='application/json', data=json.dumps(payload))
         resp_js = flask.json.loads(rv.data)
         self.assertEqual('STARTED', resp_js['status'])
