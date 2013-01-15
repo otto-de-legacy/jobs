@@ -189,6 +189,8 @@ public class JobService {
                             final RemoteJobStatus remoteJobStatus = jobRunnable.getRemoteStatus(createJobExecutionContext(jobRunnable.getName(), runningJob.getId(), runningJob.getExecutionPriority()));
                             if (remoteJobStatus != null) {
                                 updateJobStatus(runningJob, remoteJobStatus, job.getValue());
+                            } else {
+                                LOGGER.warn("No remote status got for jobName={}", job.getKey());
                             }
                         }
                     } else {
@@ -252,6 +254,7 @@ public class JobService {
             jobInfoRepository.setStatusMessage(jobInfo.getName(), remoteJobStatus.message);
         }
         if (remoteJobStatus.status == RemoteJobStatus.Status.FINISHED) {
+            LOGGER.info("ltag=JobService.updateJobStatus.statusFinish jobName={} result={}", jobInfo.getName(), remoteJobStatus.result);
             final JobExecutionContext context = createJobExecutionContext(jobInfo.getName(), jobInfo.getId(), jobInfo.getExecutionPriority(), remoteJobStatus.logLines);
             context.setResultCode(remoteJobStatus.result.ok ? ResultCode.SUCCESSFUL : ResultCode.FAILED);
             context.setResultMessage(remoteJobStatus.message);

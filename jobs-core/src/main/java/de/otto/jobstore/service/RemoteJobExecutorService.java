@@ -72,14 +72,16 @@ public class RemoteJobExecutorService {
         try {
             final ClientResponse response = client.resource(jobUri.toString()).
                     accept(MediaType.APPLICATION_JSON).header("Connection", "close").get(ClientResponse.class);
+            RemoteJobStatus status = response.getEntity(RemoteJobStatus.class);
+            LOGGER.info("Response from server: {}", status);
             if (response.getStatus() == 200) {
-                return response.getEntity(RemoteJobStatus.class);
+                return status;
             }
             LOGGER.warn("Received unexpected status code {} when trying to retrieve status for remote job from: {}", response.getStatus(), jobUri);
         } catch (UniformInterfaceException | ClientHandlerException e) {
-            LOGGER.warn("Received unexpected exception when trying to retrieve status for remote job from: {}", jobUri, e);
+            LOGGER.warn("Problem while trying to retrieve status for remote job from: {}", jobUri, e);
         }
-        return null;
+        return null; // TODO: this should be avoided
     }
 
     public boolean isAlive() {
