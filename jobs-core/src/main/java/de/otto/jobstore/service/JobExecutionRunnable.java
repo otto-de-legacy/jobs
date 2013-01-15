@@ -24,20 +24,20 @@ final class JobExecutionRunnable implements Runnable {
     @Override
     public void run() {
         try {
-            LOGGER.info("ltag=JobService.JobExecutionRunnable.run start jobName={}", jobRunnable.getName());
+            LOGGER.info("ltag=JobService.JobExecutionRunnable.run start jobName={} jobId={}", jobRunnable.getName(), context.getId());
             if (jobRunnable.prepare(context)) {
                 jobRunnable.execute(context);
                 if (!jobRunnable.isRemote()) {
-                    LOGGER.info("ltag=JobService.JobExecutionRunnable.run finished jobName={}", jobRunnable.getName());
+                    LOGGER.info("ltag=JobService.JobExecutionRunnable.run finished jobName={} jobId={}", jobRunnable.getName(), context.getId());
                     jobRunnable.afterExecution(context);
                     jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), context.getResultCode(), context.getResultMessage());
                 }
             } else {
-                LOGGER.info("ltag=JobService.JobExecutionRunnable.run skipped jobName={}", jobRunnable.getName());
+                LOGGER.info("ltag=JobService.JobExecutionRunnable.run skipped jobName={} jobId={}", jobRunnable.getName(), context.getId());
                 jobInfoRepository.markRunningAsFinished(jobRunnable.getName(), ResultCode.NOT_EXECUTED, null);
             }
         } catch (Exception e) {
-            LOGGER.error("ltag=JobService.JobExecutionRunnable.run jobName=" + jobRunnable.getName() + " failed: " + e.getMessage(), e);
+            LOGGER.error("ltag=JobService.JobExecutionRunnable.run jobName=" + jobRunnable.getName() + " jobId=" + context.getId() + " failed: " + e.getMessage(), e);
             jobInfoRepository.markRunningAsFinishedWithException(jobRunnable.getName(), e);
         }
     }
