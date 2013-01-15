@@ -21,6 +21,7 @@ public class JobServiceTest {
     private JobService jobService;
     private JobInfoRepository jobInfoRepository;
     private RemoteJobExecutorService remoteJobExecutorService;
+    private JobInfoService jobInfoService;
 
     private static final String JOB_NAME_01 = "test";
     private static final String JOB_NAME_02 = "test2";
@@ -30,6 +31,7 @@ public class JobServiceTest {
         jobInfoRepository = mock(JobInfoRepository.class);
         remoteJobExecutorService = mock(RemoteJobExecutorService.class);
         jobService = new JobService(jobInfoRepository);
+        jobInfoService = new JobInfoService(jobInfoRepository);
     }
 
     @Test
@@ -317,7 +319,7 @@ public class JobServiceTest {
 
     @Test
     public void testPollRemoteJobsNoUpdateNecessary() throws Exception {
-        jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, 0, 1000 * 60 * 60));
+        jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 1000 * 60 * 60));
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(new JobInfo(JOB_NAME_01, "host", "thread", 1000L));
         jobService.pollRemoteJobs();
@@ -326,7 +328,7 @@ public class JobServiceTest {
 
     @Test
     public void testPollRemoteJobsJobStillRunning() throws Exception {
-        jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, 0, 0));
+        jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0));
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
@@ -335,12 +337,12 @@ public class JobServiceTest {
         when(remoteJobExecutorService.getStatus(any(URI.class)))
                 .thenReturn(new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines, null, null));
         jobService.pollRemoteJobs();
-        verify(jobInfoRepository, times(1)).setLogLines(JOB_NAME_01, logLines);
+        verify(jobInfoRepository, times(1)).appendLogLines(JOB_NAME_01, logLines);
     }
 
     @Test
     public void testPollRemoteJobsJobIsFinishedNotSuccessfully() throws Exception {
-        jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, 0, 0));
+        jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0));
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
@@ -355,7 +357,7 @@ public class JobServiceTest {
 
     @Test
     public void testPollRemoteJobsJobIsFinishedSuccessfully() throws Exception {
-        RemoteMockJobRunnable runnable = new RemoteMockJobRunnable(JOB_NAME_01, 0, 0);
+        RemoteMockJobRunnable runnable = new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0);
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
@@ -372,7 +374,7 @@ public class JobServiceTest {
 
     @Test
     public void testPollRemoteJobsJobIsFinishedSuccessfullyAfterExecutionException() throws Exception {
-        RemoteMockJobRunnable runnable = new RemoteMockJobRunnable(JOB_NAME_01, 0, 0);
+        RemoteMockJobRunnable runnable = new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0);
         runnable.throwExceptionInAfterExecution = true;
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
@@ -384,7 +386,7 @@ public class JobServiceTest {
                 new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo"), null));
 
         jobService.pollRemoteJobs();
-        verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(),any(Throwable.class));
+        verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(), any(Throwable.class));
         assertEquals(ResultCode.SUCCESSFUL, runnable.afterSuccessContext.getResultCode());
     }
 
@@ -424,8 +426,9 @@ public class JobServiceTest {
         public JobExecutionContext afterSuccessContext = null;
         public boolean throwExceptionInAfterExecution = false;
 
-        private RemoteMockJobRunnable(String name, long maxExecutionTime, long pollingInterval) {
-            super(remoteJobExecutorService);
+        // TODO: same as in JobServiceIntegrationTest
+        private RemoteMockJobRunnable(String name, RemoteJobExecutorService rjes, JobInfoService jis, long maxExecutionTime, long pollingInterval) {
+            super(rjes, jis);
             this.name = name;
             this.maxExecutionTime = maxExecutionTime;
             this.pollingInterval = pollingInterval;

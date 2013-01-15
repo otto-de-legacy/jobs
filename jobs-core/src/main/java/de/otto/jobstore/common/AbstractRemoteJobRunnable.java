@@ -1,6 +1,7 @@
 package de.otto.jobstore.common;
 
 import de.otto.jobstore.common.properties.JobInfoProperty;
+import de.otto.jobstore.service.JobInfoService;
 import de.otto.jobstore.service.RemoteJobExecutorService;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
@@ -11,17 +12,32 @@ import java.net.URI;
 
 public abstract class AbstractRemoteJobRunnable implements JobRunnable {
 
-    private final RemoteJobExecutorService remoteJobExecutorService;
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    protected AbstractRemoteJobRunnable(RemoteJobExecutorService remoteJobExecutorService) {
+    protected final RemoteJobExecutorService remoteJobExecutorService;
+    protected final JobInfoService jobInfoService;
+
+    protected AbstractRemoteJobRunnable(RemoteJobExecutorService remoteJobExecutorService, JobInfoService jobInfoService) {
         this.remoteJobExecutorService = remoteJobExecutorService;
+        this.jobInfoService = jobInfoService;
     }
 
     @Override
     public RemoteJobStatus getRemoteStatus(JobExecutionContext context) {
-        return remoteJobExecutorService.getStatus(
+        RemoteJobStatus status = remoteJobExecutorService.getStatus(
                 URI.create(context.getJobLogger().getAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val())));
+
+        JobInfo jobInfo = jobInfoService.getById(context.getId());
+
+        if (jobInfo != null && status.logLines != null
+                && jobInfo.getLogLines() != null && !jobInfo.getLogLines().isEmpty()) {
+            int currentLength = jobInfo.getLogLines().size();
+            // Assume that old lines are already included, and therefore can be cut off
+            if (currentLength <= status.logLines.size()) {
+                status.logLines = status.logLines.subList(currentLength, status.logLines.size());
+            }
+        }
+        return status;
     }
 
     @Override

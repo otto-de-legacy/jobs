@@ -356,7 +356,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     public void testSetLogLines() throws Exception {
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
-        jobInfoRepository.setLogLines(TESTVALUE_JOBNAME, Arrays.asList("test1", "test2", "test3"));
+        jobInfoRepository.appendLogLines(TESTVALUE_JOBNAME, Arrays.asList("test1", "test2", "test3"));
         JobInfo retrievedJobInfo = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME);
         assertEquals(3, retrievedJobInfo.getLogLines().size());
     }

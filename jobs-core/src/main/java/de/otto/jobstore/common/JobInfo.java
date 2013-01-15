@@ -14,8 +14,6 @@ public final class JobInfo extends AbstractItem {
 
     private static final long serialVersionUID = 2454224303569320787L;
 
-    private static final int MAX_LOGLINES = 200;
-
     public JobInfo(DBObject dbObject) {
         super(dbObject);
     }
@@ -163,11 +161,8 @@ public final class JobInfo extends AbstractItem {
         final List<DBObject> logLines = getProperty(JobInfoProperty.LOG_LINES);
         if (logLines == null) return Collections.emptyList();
 
-        final List<LogLine> result = new ArrayList<>(Math.min(logLines.size(), MAX_LOGLINES));
-        int endPos = logLines.size();
-        int startPos = Math.max(0, endPos - MAX_LOGLINES);
-        LOGGER.debug("Use log lines from {} to {}", startPos, endPos);
-        for (DBObject logLine : logLines.subList(startPos, endPos)) {
+        final List<LogLine> result = new ArrayList<>(logLines.size());
+        for (DBObject logLine : logLines) {
             result.add(new LogLine(logLine));
         }
         return result;

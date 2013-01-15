@@ -30,14 +30,22 @@ public final class RemoteJobStatus {
 
     public RemoteJobStatus(Status status, List<String> logLines, RemoteJobResult result, String finishTime) {
         this.status = status;
-        this.logLines = logLines;
+        if  (logLines != null) {
+            this.logLines = logLines;
+        }
         this.result = result;
         this.finishTime = finishTime;
     }
 
+    /**
+     * Convenience constructor in case you are not finished yet,
+     */
     public RemoteJobStatus(Status status, List<String> logLines, String message) {
         this.status = status;
-        this.logLines = logLines;
+        if  (logLines != null) {
+            this.logLines = logLines;
+        }
         this.message = message;
     }
+
 }

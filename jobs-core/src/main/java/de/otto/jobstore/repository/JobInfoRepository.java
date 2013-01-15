@@ -458,21 +458,23 @@ public class JobInfoRepository {
     }
 
     /**
-     * Sets the log lines of the running job with the supplies name
+     * Appends the log lines of the running job with the supplies name
+     * to the already existing log lines.
      *
      * @param name The name of the job
      * @param lines the log lines to add
      * @return true - The data was successfully added to the job<br/>
      *         false - No running job with the given name could be found
      */
-    public boolean setLogLines(final String name, final List<String> lines) {
+    public boolean appendLogLines(final String name, final List<String> lines) {
         final Date dt = new Date();
         final List<DBObject> logLines = new ArrayList<>();
         for (String line : lines) {
             logLines.add(new LogLine(line, dt).toDbObject());
         }
-        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
-                new BasicDBObject().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).append(JobInfoProperty.LOG_LINES.val(), logLines));
+        final DBObject update = new BasicDBObject().
+                append("$pushAll", new BasicDBObject(JobInfoProperty.LOG_LINES.val(), logLines)).
+                append(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
         final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update, false, false, WriteConcern.SAFE);
         return result.getN() == 1;
     }

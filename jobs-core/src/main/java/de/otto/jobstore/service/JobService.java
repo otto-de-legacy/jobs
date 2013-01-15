@@ -247,7 +247,7 @@ public class JobService {
 
     private void updateJobStatus(JobInfo jobInfo, RemoteJobStatus remoteJobStatus, JobRunnable jobRunnable) {
         LOGGER.info("ltag=JobService.updateJobStatus jobName={} jobId={} status={}", new Object[]{jobInfo.getName(), jobInfo.getId(), remoteJobStatus.status});
-        jobInfoRepository.setLogLines(jobInfo.getName(), remoteJobStatus.logLines);
+        jobInfoRepository.appendLogLines(jobInfo.getName(), remoteJobStatus.logLines);
         if (remoteJobStatus.message != null && remoteJobStatus.message.length() > 0) {
             jobInfoRepository.setStatusMessage(jobInfo.getName(), remoteJobStatus.message);
         }

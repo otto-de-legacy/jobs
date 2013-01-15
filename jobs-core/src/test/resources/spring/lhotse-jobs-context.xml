@@ -9,13 +9,21 @@
         <constructor-arg index="0" value="127.0.0.1"/>
     </bean>
 
-    <!-- Repository Definition -->
+
+    <!-- Repository/Service Definition -->
 
     <bean id="jobInfoRepository" class="de.otto.jobstore.repository.JobInfoRepository">
         <constructor-arg index="0" ref="mongo"/>
         <constructor-arg index="1" value="jobstore"/>
         <constructor-arg index="2" value="jobs"/>
     </bean>
+
+    <bean id="jobInfoService" class="de.otto.jobstore.service.JobInfoService">
+        <constructor-arg index="0" ref="jobInfoRepository"/>
+    </bean>
+
+
+    <!-- Executor services -->
 
     <bean class="de.otto.jobstore.service.RemoteJobExecutorService">
         <constructor-arg index="0" value="http://127.0.0.1:5000/jobs/"/>

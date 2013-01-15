@@ -15,8 +15,6 @@ import java.util.*;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
 import static org.testng.AssertJUnit.*;
 
 @ContextConfiguration(locations = {"classpath:spring/lhotse-jobs-context.xml"})
@@ -27,6 +25,9 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
     @Resource
     private JobInfoRepository jobInfoRepository;
+
+    @Resource
+    private JobInfoService jobInfoService;
 
     private RemoteJobExecutorService remoteJobExecutorService = mock(RemoteJobExecutorService.class);
     private RemoteJobRunnableMock jobRunnable;
@@ -46,25 +47,26 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
     @Test
     public void testExecutingRemoteJob() throws Exception {
-        jobRunnable = new RemoteJobRunnableMock(remoteJobExecutorService, 0, 0);
+        jobRunnable = new RemoteJobRunnableMock(remoteJobExecutorService, jobInfoService, 0, 0);
         jobService.registerJob(jobRunnable);
         reset(remoteJobExecutorService);
         when(remoteJobExecutorService.startJob(any(RemoteJob.class))).thenReturn(REMOTE_JOB_URI);
         String id = jobService.executeJob(JOB_NAME_3);
         Thread.sleep(1000);
-        //Job should be started
+        // job should be started
         assertNotNull(id);
         JobInfo jobInfo = jobInfoRepository.findById(id);
-        //Job should still be running
+        // job should still be running
         assertEquals(RunningState.RUNNING, RunningState.valueOf(jobInfo.getRunningState()));
         assertEquals(PARAMETERS, jobInfo.getParameters());
         assertEquals(REMOTE_JOB_URI.toString(), jobInfo.getAdditionalData().get(JobInfoProperty.REMOTE_JOB_URI.val()));
 
-        //testPollingRunningRemoteJob
+        // testPollingRunningRemoteJob
         reset(remoteJobExecutorService);
         List<String> logLines = new ArrayList<>();
-        Collections.addAll(logLines, "log1", "log2");
+        Collections.addAll(logLines, "log l.1", "log l.2");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines, "bar"));
+        // verify(remoteJobExecutorService, times(1)).
 
         jobService.pollRemoteJobs();
 
@@ -144,8 +146,9 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         final long maxExecutionTime;
         final long pollingInterval;
 
-        RemoteJobRunnableMock(RemoteJobExecutorService remoteJobExecutorService, long maxExecutionTime, long pollingInterval) {
-            super(remoteJobExecutorService);
+        // TODO: (almost) same as in JobServiceTest
+        RemoteJobRunnableMock(RemoteJobExecutorService remoteJobExecutorService, JobInfoService jobInfoService,  long maxExecutionTime, long pollingInterval) {
+            super(remoteJobExecutorService, jobInfoService);
             this.maxExecutionTime = maxExecutionTime;
             this.pollingInterval = pollingInterval;
         }
