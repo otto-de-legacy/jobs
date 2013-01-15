@@ -12,6 +12,7 @@ enum MongoOperator {
     LT("$lt"),
     LTE("$lte"),
     NE("$ne"),
+    NIN("$nin"),
     PUSH("$push"),
     SET("$set");
 

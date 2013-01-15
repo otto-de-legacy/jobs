@@ -28,8 +28,7 @@ public class JobInfoServiceTest {
 
     @Test
     public void testGetMostRecentExecuted() throws Exception {
-        when(jobInfoRepository.findMostRecentByNameAndResultState("test",
-                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)))).thenReturn(new JobInfo("test", "host", "thread", 1234L));
+        when(jobInfoRepository.findMostRecentFinished("test")).thenReturn(new JobInfo("test", "host", "thread", 1234L));
 
         JobInfo jobInfo = jobInfoService.getMostRecentExecuted("test");
         assertEquals("test", jobInfo.getName());
@@ -49,10 +48,8 @@ public class JobInfoServiceTest {
     @Test
     public void testGetMostRecentExecutedList() throws Exception {
         when(jobInfoRepository.distinctJobNames()).thenReturn(Arrays.asList("test", "test2"));
-        when(jobInfoRepository.findMostRecentByNameAndResultState("test",
-                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)))).thenReturn(new JobInfo("test", "host", "thread", 1234L));
-        when(jobInfoRepository.findMostRecentByNameAndResultState("test2",
-                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)))).thenReturn(null);
+        when(jobInfoRepository.findMostRecentFinished("test")).thenReturn(new JobInfo("test", "host", "thread", 1234L));
+        when(jobInfoRepository.findMostRecentFinished("test2")).thenReturn(null);
 
         List<JobInfo> jobInfoList = jobInfoService.getMostRecentExecuted();
         assertEquals(1, jobInfoList.size());
