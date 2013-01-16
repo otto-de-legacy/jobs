@@ -7,6 +7,11 @@ Show the zdaemon start/stop/status commands which were triggered:
 
     grep -B 2 "run: zdaemon" /tmp/jobexec.log
 
+
+
+ db.jobinfo.find({"name":"FHFullSearchUpdate", "resultState" : /SUCCESSFUL/}).sort({"creationTime":-1}).limit(1).pretty();
+
+
 - - - - - - - - - - - - - -
 
 [localhost] run: zdaemon -C /tmp/jobexec/instances/FHIncrementalSearchUpdate.conf start
