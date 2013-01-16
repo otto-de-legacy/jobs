@@ -285,14 +285,15 @@ def get_job_status(job_name, job_filepath, job_id = None):
     job_active = False
     job_process_id = None
     job_finishtime = None
+    exit_code = 0
     with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
         cmd_result = run("zdaemon -C %s status" % job_filepath)
         # Be aware of the fact that zdaemon will restart a malicious job and therefore report it as running!
-        # Otherwise a finished process will typically reply with "daemon manager not running"
-        exit_code = cmd_result.return_code
+        # Otherwise a finished process will typically reply with "daemon manager not running" (with exit code: 3)
+        zdaemon_exit_code = cmd_result.return_code
         is_ok = cmd_result.succeeded
         return_msg = '%s' % cmd_result
-        if exit_code > 0:
+        if zdaemon_exit_code != 0 and zdaemon_exit_code != 3:
             log.warn("Problem while checking job status: %s" % cmd_result)
         else:
             job_active = is_ok and "program running" in cmd_result
@@ -302,7 +303,7 @@ def get_job_status(job_name, job_filepath, job_id = None):
         if not job_active and job_id:
             zdaemon_file = "/tmp/zdaemon-%s.log" % job_name  # TODO: relies on job definition 'eventlog.logfiles.path'
             job_process_id = get_process_id(job_id)
-            cmd_finishline = run("grep -E 'pid %s: (exit|terminated)' %s" % (job_process_id, zdaemon_file))
+            cmd_finishline = run("tac %s | grep -m 1 -E 'pid %s: (exit|terminated)'" % (zdaemon_file, job_process_id))
             job_finishtime = extract_finishtime(cmd_finishline)
             exit_code = extract_exitcode(cmd_finishline)
             is_ok = (exit_code == 0)
@@ -399,9 +400,12 @@ def exists_job_instance(job_name):
 def get_process_id(job_id):
     found_process_id = None
     for a_process_id in ps_map.keys():
-        if ps_map[a_process_id] == job_id:
-            found_process_id = a_process_id
-            break
+        try:
+            if ps_map[a_process_id] == job_id:
+                found_process_id = a_process_id
+                break
+        except KeyError:
+            pass
     return found_process_id
 
 def extract_process_id(cmd_string):
