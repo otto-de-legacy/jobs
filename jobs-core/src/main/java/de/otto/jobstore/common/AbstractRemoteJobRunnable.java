@@ -24,25 +24,20 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
 
     @Override
     public RemoteJobStatus getRemoteStatus(JobExecutionContext context) {
-        RemoteJobStatus status = remoteJobExecutorService.getStatus(
+        final RemoteJobStatus status = remoteJobExecutorService.getStatus(
                 URI.create(context.getJobLogger().getAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val())));
 
-        JobInfo jobInfo = jobInfoService.getById(context.getId());
+        final JobInfo jobInfo = jobInfoService.getById(context.getId());
 
         if (jobInfo != null && status.logLines != null
                 && jobInfo.getLogLines() != null && !jobInfo.getLogLines().isEmpty()) {
-            int currentLength = jobInfo.getLogLines().size();
+            final int currentLength = jobInfo.getLogLines().size();
             // Assume that old lines are already included, and therefore can be cut off
             if (currentLength <= status.logLines.size()) {
                 status.logLines = status.logLines.subList(currentLength, status.logLines.size());
             }
         }
         return status;
-    }
-
-    @Override
-    public final boolean isRemote() {
-        return true;
     }
 
     /**
@@ -61,11 +56,11 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     public void execute(JobExecutionContext context) throws JobException {
         final JobLogger jobLogger = context.getJobLogger();
         try {
-            log.info("Trigger remote job '{}' [{}] ...", getName(), context.getId());
-            final URI uri = remoteJobExecutorService.startJob(new RemoteJob(getName(), context.getId(), getParameters()));
+            log.info("Trigger remote job '{}' [{}] ...", getJobDefinition().getName(), context.getId());
+            final URI uri = remoteJobExecutorService.startJob(new RemoteJob(getJobDefinition().getName(), context.getId(), getParameters()));
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), uri.toString());
         } catch (RemoteJobAlreadyRunningException e) {
-            log.info("Remote job '{}' [{}] is already running: " + e.getMessage(), getName(), context.getId());
+            log.info("Remote job '{}' [{}] is already running: " + e.getMessage(), getJobDefinition().getName(), context.getId());
             jobLogger.insertOrUpdateAdditionalData("resumedAlreadyRunningJob", e.getJobUri().toString());
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), e.getJobUri().toString());
         }

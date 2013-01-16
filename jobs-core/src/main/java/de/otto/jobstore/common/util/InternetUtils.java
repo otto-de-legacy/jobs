@@ -1,4 +1,4 @@
-package de.otto.jobstore.common;
+package de.otto.jobstore.common.util;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;

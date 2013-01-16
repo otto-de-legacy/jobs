@@ -22,7 +22,7 @@ final class SimpleJobLogger implements JobLogger {
     SimpleJobLogger(String jobName, JobInfoRepository jobInfoRepository, List<String> logLines) {
         this.jobName = jobName;
         this.jobInfoRepository = jobInfoRepository;
-        this.logLines = logLines;
+        this.logLines = logLines == null ? new ArrayList<String>() : logLines;
     }
 
     @Override

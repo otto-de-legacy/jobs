@@ -122,13 +122,18 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         }
 
         @Override
-        public String getName() {
-            return name;
-        }
+        public JobDefinition getJobDefinition() {
+            return new AbstractLocalJobDefinition() {
+                @Override
+                public String getName() {
+                    return name;
+                }
 
-        @Override
-        public long getMaxExecutionTime() {
-            return 1000;  //To change body of implemented methods use File | Settings | File Templates.
+                @Override
+                public long getTimeoutPeriod() {
+                    return 1000;
+                }
+            };
         }
 
         @Override
@@ -143,34 +148,39 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
     class RemoteJobRunnableMock extends AbstractRemoteJobRunnable {
 
-        final long maxExecutionTime;
+        final long timeoutPeriod;
         final long pollingInterval;
 
         // TODO: (almost) same as in JobServiceTest
-        RemoteJobRunnableMock(RemoteJobExecutorService remoteJobExecutorService, JobInfoService jobInfoService,  long maxExecutionTime, long pollingInterval) {
+        RemoteJobRunnableMock(RemoteJobExecutorService remoteJobExecutorService, JobInfoService jobInfoService,  long timeoutPeriod, long pollingInterval) {
             super(remoteJobExecutorService, jobInfoService);
-            this.maxExecutionTime = maxExecutionTime;
+            this.timeoutPeriod = timeoutPeriod;
             this.pollingInterval = pollingInterval;
         }
 
         @Override
-        public String getName() {
-            return JOB_NAME_3;
+        public JobDefinition getJobDefinition() {
+            return new AbstractRemoteJobDefinition() {
+                @Override
+                public String getName() {
+                    return JOB_NAME_3;
+                }
+
+                @Override
+                public long getTimeoutPeriod() {
+                    return timeoutPeriod;
+                }
+
+                @Override
+                public long getPollingInterval() {
+                    return pollingInterval;
+                }
+            };
         }
 
         @Override
         public Map<String, String> getParameters() {
             return PARAMETERS;
-        }
-
-        @Override
-        public long getMaxExecutionTime() {
-            return maxExecutionTime;
-        }
-
-        @Override
-        public long getPollingInterval() {
-            return pollingInterval;
         }
     }
 }

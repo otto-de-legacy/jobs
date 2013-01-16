@@ -10,9 +10,9 @@ import java.util.Map;
 public interface JobRunnable {
 
     /**
-     * The name of the job
+     * Returns the defining data of this job
      */
-    String getName();
+    JobDefinition getJobDefinition();
 
     /**
      * Returns the parameters being used to execute the job.
@@ -20,27 +20,9 @@ public interface JobRunnable {
     Map<String, String> getParameters();
 
     /**
-     * The time after which a job is considered to be timed out (in milliseconds).
-     */
-    long getMaxExecutionTime();
-
-    /**
-     * The interval after which the job should be polled for new information (in milliseconds).
-     */
-    long getPollingInterval();
-
-    /**
      * Asks for the current remote status. Is only called on remote jobs.
      */
     RemoteJobStatus getRemoteStatus(JobExecutionContext context);
-
-    /**
-     * Flag if the job is executed locally or remotely
-     *
-     * @return true - The job is executed remotely</br>
-     *         false - The job is executed locally
-     */
-    boolean isRemote();
 
     /**
      * Checks preconditions whether job should be executed.

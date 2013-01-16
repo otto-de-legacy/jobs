@@ -3,9 +3,8 @@ package de.otto.jobstore.repository;
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
+import de.otto.jobstore.common.util.InternetUtils;
 import org.bson.types.ObjectId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -17,40 +16,21 @@ import java.util.*;
  * The method {@link #cleanupTimedOutJobs} needs to be called regularly to remove possible timed out jobs which would
  * otherwise stop new jobs from being able to execute.
  */
-public class JobInfoRepository {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(JobInfoRepository.class);
+public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     private static final String JOB_NAME_CLEANUP              = "JobInfo_Cleanup";
     private static final String JOB_NAME_TIMED_OUT_CLEANUP    = "JobInfo_TimedOut_Cleanup";
     private static final String JOB_NAME_CLEANUP_NOT_EXECUTED = "JobInfo_NotExecuted_Cleanup";
 
-    private final DBCollection collection;
-
     private int hoursAfterWhichOldJobsAreDeleted         = 7 * 24;
     private int hoursAfterWhichNotExecutedJobsAreDeleted = 2;
 
-
-    public JobInfoRepository(final Mongo mongo, final String dbName, final String collectionName) {
-        this(mongo, dbName, collectionName, null, null);
+    public JobInfoRepository(Mongo mongo, String dbName, String collectionName) {
+        super(mongo, dbName, collectionName);
     }
 
-    public JobInfoRepository(final Mongo mongo, final String dbName, final String collectionName, final String username, final String password) {
-        final DB db = mongo.getDB(dbName);
-        if (username != null && !username.isEmpty()) {
-            if (!db.isAuthenticated()) {
-                final boolean authenticateSuccess = db.authenticate(username, password.toCharArray());
-                if (!authenticateSuccess) {
-                    throw new RuntimeException("The authentication at the database: " + dbName + " on the host: " +
-                            mongo.getAddress() + " with the username: " + username + " and the given password was not successful");
-                } else {
-                    LOGGER.info("Login at database {} on the host {} was successful", dbName, mongo.getAddress());
-                }
-            }
-        }
-        collection = db.getCollection(collectionName);
-        LOGGER.info("Prepare access to MongoDB collection '{}' on {}/{}", new Object[]{collectionName, mongo, dbName});
-        prepareCollection();
+    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password) {
+        super(mongo, dbName, collectionName, username, password);
     }
 
     public int getHoursAfterWhichOldJobsAreDeleted() {
@@ -99,13 +79,13 @@ public class JobInfoRepository {
                          final RunningState runningState, final JobExecutionPriority executionPriority, 
                          final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
-            LOGGER.info("Create job={} in state={} ...", name, runningState);
+            logger.info("Create job={} in state={} ...", name, runningState);
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
             save(jobInfo, WriteConcern.SAFE);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
-            LOGGER.warn("job={} with state={} already exists, creation skipped!", name, runningState);
+            logger.warn("job={} with state={} already exists, creation skipped!", name, runningState);
             return null;
         }
     }
@@ -185,7 +165,7 @@ public class JobInfoRepository {
                 new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()).
                         append(JobInfoProperty.START_TIME.val(), dt).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        LOGGER.info("Activate queued job={} ...", name);
+        logger.info("Activate queued job={} ...", name);
         try{
             final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED.name()), update, false, false, WriteConcern.SAFE);
             return result.getN() == 1;
@@ -502,27 +482,6 @@ public class JobInfoRepository {
         }
     }
 
-    /**
-     * Clears all elements from the repository
-     *
-     * @param dropCollection Flag if the collection should be dropped
-     */
-    public void clear(final boolean dropCollection) {
-        LOGGER.info("Going to clear all entities on collection: {}", collection.getFullName());
-        if (dropCollection) {
-            collection.drop();
-            prepareCollection();
-        } else {
-            final WriteResult wr = collection.remove(new BasicDBObject());
-            final CommandResult cr = wr.getLastError(WriteConcern.SAFE);
-            if (cr.ok()) {
-                LOGGER.info("Cleared all entities successfully on collection: {}", collection.getFullName());
-            } else {
-                LOGGER.error("Could not clear entities on collection {}: {}", collection.getFullName(), cr.getErrorMessage());
-            }
-        }
-    }
-
     public void remove(final String id) {
         if (ObjectId.isValid(id)) {
             collection.remove(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), WriteConcern.SAFE);
@@ -557,7 +516,7 @@ public class JobInfoRepository {
                     }
                 }
             }
-            LOGGER.info("Deleted {} timed-out jobs: {}", numberOfRemovedJobs, removedJobs);
+            logger.info("Deleted {} timed-out jobs: {}", numberOfRemovedJobs, removedJobs);
             addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             if (!removedJobs.isEmpty()) {
                 addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "removedJobs", removedJobs.toString());
@@ -575,10 +534,11 @@ public class JobInfoRepository {
             /* register clean up job with max execution time */
             long maxExecutionTime = 5 * 60 * 1000;
             create(JOB_NAME_CLEANUP, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            Date beforeDate = new Date(currentDate.getTime() - (hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000));
-            LOGGER.info("Going to delete not runnnig jobs before {} ...", beforeDate);
+            Date beforeDate = new Date(currentDate.getTime() - (Math.min(4, hoursAfterWhichOldJobsAreDeleted) * 60 * 60 * 1000));
+            logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
+            /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotRunning(beforeDate);
-            LOGGER.info("Deleted {} not runnnig jobs.", numberOfRemovedJobs);
+            logger.info("Deleted {} not runnnig jobs.", numberOfRemovedJobs);
             addAdditionalData(JOB_NAME_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP);
         }
@@ -593,10 +553,11 @@ public class JobInfoRepository {
             /* register clean up job with max execution time */
             long maxExecutionTime = 5 * 60 * 1000;
             create(JOB_NAME_CLEANUP_NOT_EXECUTED, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            Date beforeDate = new Date(currentDate.getTime() - (hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000));
-            LOGGER.info("Going to delete not executed jobs before {} ...", beforeDate);
+            Date beforeDate = new Date(currentDate.getTime() - (Math.min(1, hoursAfterWhichNotExecutedJobsAreDeleted) * 60 * 60 * 1000));
+            logger.info("Going to delete not executed jobs before {} ...", beforeDate);
+            /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotExecuted(beforeDate);
-            LOGGER.info("Deleted {} not executed jobs.", numberOfRemovedJobs);
+            logger.info("Deleted {} not executed jobs.", numberOfRemovedJobs);
             addAdditionalData(JOB_NAME_CLEANUP_NOT_EXECUTED, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP_NOT_EXECUTED);
         }
@@ -604,18 +565,6 @@ public class JobInfoRepository {
     }
 
     // ~~
-
-    protected void save(JobInfo jobInfo) {
-        WriteResult wr = collection.save(jobInfo.toDbObject());
-        final CommandResult cr = wr.getLastError(WriteConcern.SAFE);
-        if (!cr.ok()) {
-            LOGGER.error("Unable to save job info object id={}: " + wr, jobInfo.getId());
-        }
-    }
-
-    protected void save(JobInfo jobInfo, WriteConcern writeConcern) {
-        collection.save(jobInfo.toDbObject(), writeConcern);
-    }
 
     protected int cleanupNotRunning(Date clearJobsBefore) {
         final WriteResult result = collection.remove(new BasicDBObject().
@@ -634,7 +583,7 @@ public class JobInfoRepository {
         return result.getN();
     }
 
-    private void prepareCollection() {
+    protected void prepareCollection() {
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1));
         collection.ensureIndex(new BasicDBObject().
@@ -645,26 +594,11 @@ public class JobInfoRepository {
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
     }
 
-    private JobInfo fromDbObject(final DBObject dbObject) {
+    protected JobInfo fromDbObject(final DBObject dbObject) {
         if (dbObject == null) {
             return null;
         }
         return new JobInfo(dbObject);
-    }
-
-    private List<JobInfo> getAll(final DBCursor cursor) {
-        final List<JobInfo> elements = new ArrayList<>();
-        while (cursor.hasNext()) {
-            elements.add(fromDbObject(cursor.next()));
-        }
-        return elements;
-    }
-
-    private JobInfo getFirst(final DBCursor cursor) {
-        if (cursor.hasNext()) {
-            return fromDbObject(cursor.next());
-        }
-        return null;
     }
 
     private BasicDBObject createFindByNameAndRunningStateQuery(final String name, final String state) {
@@ -690,7 +624,7 @@ public class JobInfoRepository {
 
     private <E extends Enum<E>> List<String> toStringList(Set<E> enumSet) {
         final List<String> strings = new ArrayList<>();
-        for (Enum e : enumSet) {
+        for (Enum<E> e : enumSet) {
             strings.add(e.name());
         }
         return strings;

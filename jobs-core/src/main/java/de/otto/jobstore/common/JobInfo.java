@@ -3,14 +3,10 @@ package de.otto.jobstore.common;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import de.otto.jobstore.common.properties.JobInfoProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public final class JobInfo extends AbstractItem {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(JobInfo.class);
 
     private static final long serialVersionUID = 2454224303569320787L;
 

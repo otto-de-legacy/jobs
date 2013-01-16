@@ -18,6 +18,12 @@
         <constructor-arg index="2" value="jobs"/>
     </bean>
 
+    <bean id="jobDefinitionRepository" class="de.otto.jobstore.repository.JobDefinitionRepository">
+        <constructor-arg index="0" ref="mongo"/>
+        <constructor-arg index="1" value="jobstore"/>
+        <constructor-arg index="2" value="jobDefinitions"/>
+    </bean>
+
     <bean id="jobInfoService" class="de.otto.jobstore.service.JobInfoService">
         <constructor-arg index="0" ref="jobInfoRepository"/>
     </bean>
@@ -31,7 +37,8 @@
     </bean>
 
     <bean id="jobServiceWithoutRemoteJobExecutorService" class="de.otto.jobstore.service.JobService">
-        <constructor-arg index="0" ref="jobInfoRepository"/>
+        <constructor-arg index="0" ref="jobDefinitionRepository"/>
+        <constructor-arg index="1" ref="jobInfoRepository"/>
     </bean>
 
 </beans>
