@@ -28,7 +28,7 @@ public class JobInfoRepository {
     private final DBCollection collection;
 
     private int hoursAfterWhichOldJobsAreDeleted         = 7 * 24;
-    private int hoursAfterWhichNotExecutedJobsAreDeleted = 4;
+    private int hoursAfterWhichNotExecutedJobsAreDeleted = 2;
 
 
     public JobInfoRepository(final Mongo mongo, final String dbName, final String collectionName) {
@@ -59,7 +59,6 @@ public class JobInfoRepository {
 
     /**
      * Sets the number of hours after which old jobs are removed.
-     * Default value is 7 days.
      *
      * @param hours The number of hours
      */
@@ -549,6 +548,7 @@ public class JobInfoRepository {
                     }
                 }
             }
+            LOGGER.info("Deleted {} timed-out jobs: {}", numberOfRemovedJobs, removedJobs);
             addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             if (!removedJobs.isEmpty()) {
                 addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "removedJobs", removedJobs.toString());
@@ -566,10 +566,10 @@ public class JobInfoRepository {
             /* register clean up job with max execution time */
             long maxExecutionTime = 5 * 60 * 1000;
             create(JOB_NAME_CLEANUP, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            Date beforeDate = new Date(currentDate.getTime() - (Math.min(4, hoursAfterWhichOldJobsAreDeleted) * 60 * 60 * 1000));
+            Date beforeDate = new Date(currentDate.getTime() - (hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000));
             LOGGER.info("Going to delete not runnnig jobs before {} ...", beforeDate);
-            /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotRunning(beforeDate);
+            LOGGER.info("Deleted {} not runnnig jobs.", numberOfRemovedJobs);
             addAdditionalData(JOB_NAME_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP);
         }
@@ -584,10 +584,10 @@ public class JobInfoRepository {
             /* register clean up job with max execution time */
             long maxExecutionTime = 5 * 60 * 1000;
             create(JOB_NAME_CLEANUP_NOT_EXECUTED, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            Date beforeDate = new Date(currentDate.getTime() - (Math.min(1, hoursAfterWhichNotExecutedJobsAreDeleted) * 60 * 60 * 1000));
+            Date beforeDate = new Date(currentDate.getTime() - (hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000));
             LOGGER.info("Going to delete not executed jobs before {} ...", beforeDate);
-            /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotExecuted(beforeDate);
+            LOGGER.info("Deleted {} not executed jobs.", numberOfRemovedJobs);
             addAdditionalData(JOB_NAME_CLEANUP_NOT_EXECUTED, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP_NOT_EXECUTED);
         }
