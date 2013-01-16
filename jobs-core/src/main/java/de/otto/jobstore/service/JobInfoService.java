@@ -29,8 +29,7 @@ public class JobInfoService {
      * @return The most recent executed job
      */
     public JobInfo getMostRecentExecuted(String name) {
-        return jobInfoRepository.findMostRecentByNameAndResultState(name,
-                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)));
+        return jobInfoRepository.findMostRecentFinished(name);
     }
 
     /**

@@ -391,9 +391,18 @@ public class JobInfoRepository {
      * @param name The name of the job
      * @return The job with the given name and the most current timestamp or null if none could be found.
      */
-    public JobInfo findMostRecentByName(final String name) {
+    public JobInfo findMostRecent(final String name) {
         final DBCursor cursor = collection.find(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), name)).
+                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val())).limit(1);
+        return getFirst(cursor);
+    }
+
+    public JobInfo findMostRecentFinished(String name) {
+        final List<String> resultStates = toStringList(EnumSet.complementOf(EnumSet.of(RunningState.FINISHED)));
+        final DBCursor cursor = collection.find(new BasicDBObject().
+                append(JobInfoProperty.NAME.val(), name).
+                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NIN.op(), resultStates))).
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val())).limit(1);
         return getFirst(cursor);
     }
@@ -421,7 +430,7 @@ public class JobInfoRepository {
     public List<JobInfo> findMostRecent() {
         final List<JobInfo> jobs = new ArrayList<>();
         for (String name : distinctJobNames()) {
-            final JobInfo jobInfo = findMostRecentByName(name);
+            final JobInfo jobInfo = findMostRecent(name);
             if (jobInfo != null) {
                 jobs.add(jobInfo);
             }
@@ -664,10 +673,7 @@ public class JobInfoRepository {
     }
 
     private DBObject createFindByNameAndResultStateQuery(final String name, final Set<ResultCode> states) {
-        final List<String> resultStates = new ArrayList<>();
-        for (ResultCode state : states) {
-            resultStates.add(state.name());
-        }
+        final List<String> resultStates = toStringList(states);
         return new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
                 append(JobInfoProperty.RESULT_STATE.val(), new BasicDBObject(MongoOperator.IN.op(), resultStates));
     }
@@ -682,4 +688,11 @@ public class JobInfoRepository {
         return "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString();
     }
 
+    private <E extends Enum<E>> List<String> toStringList(Set<E> enumSet) {
+        final List<String> strings = new ArrayList<>();
+        for (Enum e : enumSet) {
+            strings.add(e.name());
+        }
+        return strings;
+    }
 }

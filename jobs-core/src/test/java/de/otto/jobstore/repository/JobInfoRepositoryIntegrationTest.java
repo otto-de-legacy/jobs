@@ -185,12 +185,12 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testAddWithLogLine() throws Exception {
         jobInfoRepository.create(TESTVALUE_JOBNAME + "LogLine", TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-        JobInfo testJob = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME + "LogLine");
+        JobInfo testJob = jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME + "LogLine");
         testJob.appendLogLine(new LogLine("foo", new Date()));
         jobInfoRepository.save(testJob);
         assertEquals(1, testJob.getLogLines().size());
         jobInfoRepository.addLogLine(TESTVALUE_JOBNAME + "LogLine", "bar");
-        testJob = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME + "LogLine");
+        testJob = jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME + "LogLine");
         assertEquals(2, testJob.getLogLines().size());
     }
 
@@ -222,7 +222,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     public void testMarkFinishedWithException() throws Exception {
         jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         jobInfoRepository.markRunningAsFinishedWithException(TESTVALUE_JOBNAME, new IllegalArgumentException("This is an error", new NullPointerException()));
-        JobInfo jobInfo = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME);
+        JobInfo jobInfo = jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME);
         assertEquals(ResultCode.FAILED, jobInfo.getResultState());
         String runningState = jobInfo.getRunningState();
         assertNotNull(runningState);
@@ -249,7 +249,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         jobInfoRepository.save(jobInfo);
         assertEquals(1L, jobInfoRepository.count());
         jobInfoRepository.cleanupOldJobs();
-        assertNotNull(jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME)); //Job should still be there as it is running
+        assertNotNull(jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME)); //Job should still be there as it is running
     }
 
     @Test
@@ -259,7 +259,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         jobInfoRepository.save(jobInfo);
         assertEquals(1L, jobInfoRepository.count());
         jobInfoRepository.cleanupOldJobs();
-        assertNull(jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME)); //Job should be gone
+        assertNull(jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME)); //Job should be gone
     }
 
     final long DAY_IN_MS = 1000 * 60 * 60 * 24;
@@ -357,7 +357,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
         jobInfoRepository.appendLogLines(TESTVALUE_JOBNAME, Arrays.asList("test1", "test2", "test3"));
-        JobInfo retrievedJobInfo = jobInfoRepository.findMostRecentByName(TESTVALUE_JOBNAME);
+        JobInfo retrievedJobInfo = jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME);
         assertEquals(3, retrievedJobInfo.getLogLines().size());
     }
 
@@ -397,5 +397,25 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         assertNotNull(jobInfoRepository.findById(jobInfo.getId()));
         jobInfoRepository.remove(jobInfo.getId());
         assertNull(jobInfoRepository.findById(jobInfo.getId()));
+    }
+
+    @Test
+    public void testFindMostRecentFinishedByName() throws Exception {
+        //Two finished jobs
+        JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
+        jobInfoRepository.save(jobInfo);
+        jobInfoRepository.markAsFinishedById(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
+
+        JobInfo jobInfo1 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
+        jobInfoRepository.save(jobInfo1);
+        jobInfoRepository.markAsFinishedById(jobInfo1.getId(), ResultCode.SUCCESSFUL, null);
+        //One running and one queued job
+        JobInfo jobInfo2 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
+        jobInfoRepository.save(jobInfo2);
+        JobInfo jobInfo3 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.QUEUED);
+        jobInfoRepository.save(jobInfo3);
+
+        JobInfo retrievedJobInfo = jobInfoRepository.findMostRecentFinished(TESTVALUE_JOBNAME);
+        assertEquals(jobInfo1.getId(), retrievedJobInfo.getId());
     }
 }
