@@ -68,6 +68,7 @@ public class JobService {
         final String name = jobDefinition.getName();
         final boolean inserted;
         if (jobs.containsKey(name)) {
+            LOGGER.warn("ltag=JobService.createJob.registerJob Tried to re-register job with name={}", name);
             inserted = false;
         } else {
             jobs.put(name, jobRunnable);

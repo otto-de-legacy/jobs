@@ -6,7 +6,7 @@ import de.otto.jobstore.common.properties.JobDefinitionProperty;
 
 public final class StoredJobDefinition extends AbstractItem implements JobDefinition {
 
-    public static final StoredJobDefinition JOB_EXEC_SEMAPHORE = new StoredJobDefinition("JOBS", 0, 0, false);
+    public static final StoredJobDefinition JOB_EXEC_SEMAPHORE = new StoredJobDefinition("ALL_JOBS", 0, 0, false);
 
     private static final long serialVersionUID = 2454224305569320787L;
 
