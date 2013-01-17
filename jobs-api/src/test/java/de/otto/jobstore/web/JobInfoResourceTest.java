@@ -190,23 +190,23 @@ public class JobInfoResourceTest {
 
     @Test
     public void testTogglingJobEnabled() throws Exception {
-        when(jobService.isEnabled("test")).thenReturn(Boolean.TRUE);
+        when(jobService.isJobExecutionEnabled("test")).thenReturn(Boolean.TRUE);
         Response response = jobInfoResource.toggleJobEnabled("test");
         assertEquals(200, response.getStatus());
-        assertTrue(((String)response.getEntity()).contains("false"));
+        assertTrue(((String)response.getEntity()).contains("disabled"));
     }
 
     @Test
     public void testTogglingJobDisabled() throws Exception {
-        when(jobService.isEnabled("test")).thenReturn(Boolean.FALSE);
+        when(jobService.isJobExecutionEnabled("test")).thenReturn(Boolean.FALSE);
         Response response = jobInfoResource.toggleJobEnabled("test");
         assertEquals(200, response.getStatus());
-        assertTrue(((String)response.getEntity()).contains("true"));
+        assertTrue(((String)response.getEntity()).contains("enabled"));
     }
 
     @Test
     public void testTogglingJobDisabledNotRegistered() throws Exception {
-        when(jobService.isEnabled("test")).thenThrow(new JobNotRegisteredException(""));
+        when(jobService.isJobExecutionEnabled("test")).thenThrow(new JobNotRegisteredException(""));
         Response response = jobInfoResource.toggleJobEnabled("test");
         assertEquals(404, response.getStatus());
     }

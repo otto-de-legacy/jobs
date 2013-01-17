@@ -6,6 +6,8 @@ import de.otto.jobstore.common.properties.JobDefinitionProperty;
 
 public final class StoredJobDefinition extends AbstractItem implements JobDefinition {
 
+    public static final StoredJobDefinition JOB_EXEC_SEMAPHORE = new StoredJobDefinition("JOBS", 0, 0, false);
+
     private static final long serialVersionUID = 2454224305569320787L;
 
     public StoredJobDefinition(DBObject dbObject) {
@@ -40,8 +42,8 @@ public final class StoredJobDefinition extends AbstractItem implements JobDefini
         return remote == null ? false : remote;
     }
 
-    public void setDisabled(boolean paused) {
-        addProperty(JobDefinitionProperty.DISABLED, paused);
+    public void setDisabled(boolean disabled) {
+        addProperty(JobDefinitionProperty.DISABLED, disabled);
     }
 
     public boolean isDisabled() {

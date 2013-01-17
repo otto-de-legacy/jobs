@@ -45,10 +45,10 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
     }
 
     @Test
-    public void testPausingJob() throws Exception {
+    public void testDisablingJob() throws Exception {
         StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true);
         jobDefinitionRepository.save(jd);
-        jobDefinitionRepository.enableJob(JOB_NAME);
+        jobDefinitionRepository.setJobExecutionEnabled(JOB_NAME, false);
 
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertTrue(retrievedJobDefinition.isDisabled());
@@ -59,7 +59,7 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
         StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true);
         jd.setDisabled(true);
         jobDefinitionRepository.save(jd);
-        jobDefinitionRepository.disableJob(JOB_NAME);
+        jobDefinitionRepository.setJobExecutionEnabled(JOB_NAME, true);
 
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertFalse(retrievedJobDefinition.isDisabled());

@@ -2,6 +2,7 @@ package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
+import de.otto.jobstore.repository.JobDefinitionRepository;
 import de.otto.jobstore.repository.JobInfoRepository;
 import de.otto.jobstore.service.exception.JobException;
 import org.springframework.test.context.ContextConfiguration;
@@ -29,6 +30,9 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
     @Resource
     private JobInfoService jobInfoService;
 
+    @Resource
+    private JobDefinitionRepository jobDefinitionRepository;
+
     private RemoteJobExecutorService remoteJobExecutorService = mock(RemoteJobExecutorService.class);
     private RemoteJobRunnableMock jobRunnable;
 
@@ -42,6 +46,7 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
     public void setUp() throws Exception {
         jobService.clean();
         jobInfoRepository.clear(true);
+        jobDefinitionRepository.addOrUpdate(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
         reset(remoteJobExecutorService);
     }
 

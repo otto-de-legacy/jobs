@@ -72,6 +72,16 @@ public final class JobInfoResource {
     }
 
     /**
+     * Disables/Enables job execution
+     */
+    @DELETE
+    public Response toggleJobExecution() {
+        final boolean newStatus = !jobService.isExecutionEnabled();
+        jobService.setExecutionEnabled(newStatus);
+        return Response.ok("{\"status\" : " + (newStatus ? "enabled" : "disabled") + "}").build();
+    }
+
+    /**
      * Executes a job and its content location.
      *
      * @param name The name of the job to execute
@@ -131,17 +141,18 @@ public final class JobInfoResource {
         return Response.ok(feed).build();
     }
 
+    /**
+     * Disables/enables execution of jobs with the given name
+     * @param name The name of the job to enable/disable
+     * @return The current status of the status (enabled true/false)
+     */
     @DELETE
     @Path("/{name}")
     public Response toggleJobEnabled(@PathParam("name") final String name) {
         try {
-            final boolean enabled = jobService.isEnabled(name);
-            if (enabled) {
-                jobService.disableJob(name);
-            } else {
-                jobService.enableJob(name);
-            }
-            return Response.ok("{\"enabled\" : " + !enabled + "}").build();
+            final boolean newStatus = !jobService.isJobExecutionEnabled(name);
+            jobService.setJobExecutionEnabled(name, newStatus);
+            return Response.ok("{\"status\" : " + (newStatus ? "enabled" : "disabled") + "}").build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }

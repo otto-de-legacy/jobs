@@ -29,7 +29,6 @@ public class JobService {
     private final Set<Set<String>> runningConstraints = new CopyOnWriteArraySet<>();
     private final JobDefinitionRepository jobDefinitionRepository;
     private final JobInfoRepository jobInfoRepository;
-    private boolean executionEnabled = true;
 
     /**
      * Creates a JobService Object.
@@ -40,10 +39,11 @@ public class JobService {
     public JobService(JobDefinitionRepository jobDefinitionRepository, final JobInfoRepository jobInfoRepository) {
         this.jobDefinitionRepository = jobDefinitionRepository;
         this.jobInfoRepository = jobInfoRepository;
+        jobDefinitionRepository.addOrUpdate(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
     }
 
     public boolean isExecutionEnabled() {
-        return executionEnabled;
+        return isJobEnabled(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName());
     }
 
     /**
@@ -53,7 +53,7 @@ public class JobService {
      *                         false - No jobs will be executed
      */
     public void setExecutionEnabled(boolean executionEnabled) {
-        this.executionEnabled = executionEnabled;
+        jobDefinitionRepository.setJobExecutionEnabled(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName(), executionEnabled);
     }
 
     /**
@@ -77,17 +77,28 @@ public class JobService {
         return inserted;
     }
 
-    public boolean isEnabled(final String name) throws JobNotRegisteredException {
-        final StoredJobDefinition jobDefinition = jobDefinitionRepository.find(checkJobName(name));
-        return jobDefinition.isDisabled();
+    /**
+     * Check if execution of a job is enabled
+     *
+     * @param name The name of the job to check
+     * @return true - The execution of the job is enabled<br>
+     *        false - The execution of the job is disabled
+     * @throws JobNotRegisteredException If the job is not registered with this jobService instance
+     */
+    public boolean isJobExecutionEnabled(final String name) throws JobNotRegisteredException {
+        return isJobEnabled(checkJobName(name));
     }
 
-    public void disableJob(final String name) throws JobNotRegisteredException {
-        jobDefinitionRepository.disableJob(checkJobName(name));
-    }
-
-    public void enableJob(final String name) throws JobNotRegisteredException {
-        jobDefinitionRepository.enableJob(checkJobName(name));
+    /**
+     * Disable or enable the execution of a job
+     *
+     * @param name The name of the job
+     * @param executionEnabled true - The execution of the job is enabled<br>
+     *        false - The execution of the job is disabled
+     * @throws JobNotRegisteredException If the job is not registered with this jobService instance
+     */
+    public void setJobExecutionEnabled(String name, boolean executionEnabled) throws JobNotRegisteredException {
+        jobDefinitionRepository.setJobExecutionEnabled(checkJobName(name), executionEnabled);
     }
 
     /**
@@ -161,7 +172,7 @@ public class JobService {
         if (jobDefinition.isDisabled()) {
             throw new JobExecutionDisabledException("Execution of jobs with name " + jobDefinition.getName() + " has been paused");
         }
-        if (!executionEnabled) {
+        if (!isExecutionEnabled()) {
             throw new JobExecutionDisabledException("Execution of jobs has been disabled");
         }
         final JobInfo queuedJobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.QUEUED);
@@ -191,7 +202,7 @@ public class JobService {
      * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
      */
     public void executeQueuedJobs() {
-        if (executionEnabled) {
+        if (isExecutionEnabled()) {
             LOGGER.info("ltag=JobServiceImpl.executeQueuedJobs");
             for (JobInfo jobInfo : jobInfoRepository.findQueuedJobsSortedAscByCreationTime()) {
                 final StoredJobDefinition jobDefinition = jobDefinitionRepository.find(jobInfo.getName());
@@ -211,7 +222,7 @@ public class JobService {
      * Polls all remote jobs and updates their status if necessary
      */
     public void pollRemoteJobs() {
-        if (executionEnabled) {
+        if (isExecutionEnabled()) {
             for (JobRunnable jobRunnable : jobs.values()) {
                 if (jobRunnable.getJobDefinition().isRemote()) {
                     final JobDefinition definition = jobRunnable.getJobDefinition();
@@ -240,7 +251,7 @@ public class JobService {
      */
     @PreDestroy
     public void shutdownJobs() {
-        if (executionEnabled) {
+        if (isExecutionEnabled()) {
             for (JobRunnable jobRunnable : jobs.values()) {
                 if (!jobRunnable.getJobDefinition().isRemote()) {
                     final String name = jobRunnable.getJobDefinition().getName();
@@ -373,6 +384,11 @@ public class JobService {
             }
         }
         return false;
+    }
+
+    private boolean isJobEnabled(String name) {
+        final StoredJobDefinition semaphore = jobDefinitionRepository.find(name);
+        return !semaphore.isDisabled();
     }
 
 }

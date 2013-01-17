@@ -42,17 +42,9 @@ public class JobDefinitionRepository extends AbstractRepository<StoredJobDefinit
         collection.update(new BasicDBObject(JobDefinitionProperty.NAME.val(), jobDefinition.getName()), obj, true, false, WriteConcern.SAFE);
     }
 
-    public void enableJob(String name) {
-        setPauseProperty(name, true);
-    }
-
-    public void disableJob(String name) {
-        setPauseProperty(name, false);
-    }
-
-    private void setPauseProperty(String name, boolean pause) {
+    public void setJobExecutionEnabled(String name, boolean executionEnabled) {
         collection.update(new BasicDBObject(JobDefinitionProperty.NAME.val(), name),
-                new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobDefinitionProperty.DISABLED.val(), pause)));
+                new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobDefinitionProperty.DISABLED.val(), !executionEnabled)));
     }
 
 }

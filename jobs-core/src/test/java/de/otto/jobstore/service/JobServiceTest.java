@@ -36,6 +36,7 @@ public class JobServiceTest {
         remoteJobExecutorService = mock(RemoteJobExecutorService.class);
         jobService = new JobService(jobDefinitionRepository, jobInfoRepository);
         jobInfoService = new JobInfoService(jobInfoRepository);
+        when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
     }
 
     @Test
@@ -338,10 +339,12 @@ public class JobServiceTest {
 
     @Test(expectedExceptions = JobExecutionDisabledException.class)
     public void testJobExecutedDisabled() throws Exception {
-
+        reset(jobDefinitionRepository);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
+        StoredJobDefinition disabledJob = new StoredJobDefinition(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName(), 0, 0, false);
+        disabledJob.setDisabled(true);
+        when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(disabledJob);
         JobService jobServiceImpl = new JobService(jobDefinitionRepository, jobInfoRepository);
-        jobServiceImpl.setExecutionEnabled(false);
 
         jobServiceImpl.registerJob(createLocalJobRunnable(JOB_NAME_01));
         jobServiceImpl.executeJob(JOB_NAME_01);
