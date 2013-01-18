@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.Date;
 
 public abstract class AbstractRemoteJobRunnable implements JobRunnable {
 
@@ -24,10 +26,13 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
 
     @Override
     public RemoteJobStatus getRemoteStatus(JobExecutionContext context) {
-        RemoteJobStatus status = remoteJobExecutorService.getStatus(
-                URI.create(context.getJobLogger().getAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val())));
-
-        JobInfo jobInfo = jobInfoService.getById(context.getId());
+        final String remoteJobUri = context.getJobLogger().getAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val());
+        if (remoteJobUri == null) {
+            return new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, Collections.<String>emptyList(),
+                    new RemoteJobResult(false, 1, "RemoteJobUri is not set, cannot continue."), new Date().toString());
+        }
+        final RemoteJobStatus status = remoteJobExecutorService.getStatus(URI.create(remoteJobUri));
+        final JobInfo jobInfo = jobInfoService.getById(context.getId());
 
         if (jobInfo != null && status.logLines != null
                 && jobInfo.getLogLines() != null && !jobInfo.getLogLines().isEmpty()) {
