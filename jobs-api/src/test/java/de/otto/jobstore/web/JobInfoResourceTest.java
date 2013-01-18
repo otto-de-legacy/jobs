@@ -4,7 +4,6 @@ import com.mongodb.BasicDBObject;
 import com.sun.jersey.api.uri.UriBuilderImpl;
 import de.otto.jobstore.common.JobExecutionPriority;
 import de.otto.jobstore.common.JobInfo;
-import de.otto.jobstore.common.ResultCode;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.service.JobInfoService;
 import de.otto.jobstore.service.JobService;
@@ -178,7 +177,7 @@ public class JobInfoResourceTest {
         Set<String> names = new HashSet<>();
         names.add("foo");
         when(jobService.listJobNames()).thenReturn(names);
-        when(jobInfoService.getByNameAndTimeRange(anyString(), any(Date.class), any(Date.class), any(ResultCode.class))).
+        when(jobInfoService.getByNameAndTimeRange(anyString(), any(Date.class), any(Date.class), any(Set.class))).
                 thenReturn(createJobs(5, "foo"));
 
         Response response = jobInfoResource.getJobsHistory(5, null);

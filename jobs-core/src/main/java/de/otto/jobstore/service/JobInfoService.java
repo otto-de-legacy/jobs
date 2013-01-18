@@ -5,10 +5,7 @@ import de.otto.jobstore.common.ResultCode;
 import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.repository.JobInfoRepository;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * This service gives access to information on the jobs that have been executed. This allows for example to make
@@ -109,8 +106,8 @@ public class JobInfoService {
      * @param before The date before which the last modified date has to be
      * @return The list of job information
      */
-    public List<JobInfo> getByNameAndTimeRange(String name, Date after, Date before, ResultCode resultCode) {
-        return jobInfoRepository.findByNameAndTimeRange(name, after, before, resultCode);
+    public List<JobInfo> getByNameAndTimeRange(String name, Date after, Date before, Set<ResultCode> resultCodes) {
+        return jobInfoRepository.findByNameAndTimeRange(name, after, before, resultCodes);
     }
 
     /**

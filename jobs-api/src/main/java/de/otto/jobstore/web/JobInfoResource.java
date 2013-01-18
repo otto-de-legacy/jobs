@@ -185,7 +185,7 @@ public final class JobInfoResource {
         final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
         final Date dt = new Date(new Date().getTime() - hours * 60 * 60 * 1000);
         for (String jobName : jobNames) {
-            final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), resultStatus);
+            final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), Collections.singleton(resultStatus));
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<>();
             for (JobInfo jobInfo : jobInfoList) {
                 jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo));

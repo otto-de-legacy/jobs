@@ -152,10 +152,11 @@ public class JobInfoRepository {
      * @param name The name of the jobs to return
      * @param start The date on or after which the jobs were created
      * @param end The date on or before which the jobs were created
-     * @param resultCode Limit to the jobs with the specified result state
+     * @param resultCodes Limit to the jobs with the specified result states
      * @return The list of jobs sorted by creationTime in descending order
      */
-    public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final ResultCode resultCode) {
+    public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Set<ResultCode> resultCodes) {
+        final List<String> resultCodeAsStrings = toStringList(resultCodes);
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
         if (start != null) {
             query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.GTE.op(), start));
@@ -163,9 +164,10 @@ public class JobInfoRepository {
         if (end != null) {
             query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), end));
         }
-        if (resultCode != null) {
-            query.append(JobInfoProperty.RESULT_STATE.val(), resultCode.name());
+        if (resultCodes != null && !resultCodes.isEmpty()) {
+            query.append(JobInfoProperty.RESULT_STATE.val(), new BasicDBObject(MongoOperator.IN.op(), resultCodeAsStrings));
         }
+
         final DBCursor cursor = collection.find(query.get()).
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
         return getAll(cursor);
@@ -690,8 +692,10 @@ public class JobInfoRepository {
 
     private <E extends Enum<E>> List<String> toStringList(Set<E> enumSet) {
         final List<String> strings = new ArrayList<>();
-        for (Enum e : enumSet) {
-            strings.add(e.name());
+        if(enumSet != null){
+            for (Enum e : enumSet) {
+                strings.add(e.name());
+            }
         }
         return strings;
     }

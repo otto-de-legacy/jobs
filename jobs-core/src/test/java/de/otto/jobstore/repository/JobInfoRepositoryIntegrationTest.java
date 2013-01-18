@@ -34,7 +34,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testCreate() throws Exception {
         assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING));
-        Map<String, String> params = new HashMap<String, String>();
+        Map<String, String> params = new HashMap<>();
         params.put("foo", "bar");
         params.put("hugo", "moep");
         String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 500, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, params, null);
@@ -275,12 +275,15 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         List<JobInfo> jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, null);
         assertEquals("all jobs", 3, jobInfos.size());
         // only successful
-        jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, ResultCode.SUCCESSFUL);
+        jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, Collections.singleton(ResultCode.SUCCESSFUL));
         assertEquals("only successful jobs", 2, jobInfos.size());
+        // only successful and failed
+        jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, new HashSet<>(Arrays.asList( new ResultCode[]{ResultCode.SUCCESSFUL, ResultCode.FAILED})));
+        assertEquals("only successful and failed jobs", 3, jobInfos.size());
         // only successful yesterday
            start = new Date(now - DAY_IN_MS - 1000);
         Date end = new Date(now - DAY_IN_MS + 1000);
-        jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, ResultCode.SUCCESSFUL);
+        jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, Collections.singleton(ResultCode.SUCCESSFUL));
         assertEquals("only successful jobs from yesterday", 1, jobInfos.size());
     }
 
