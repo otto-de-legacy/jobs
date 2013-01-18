@@ -1,8 +1,6 @@
 package de.otto.jobstore.web;
 
-import de.otto.jobstore.common.JobExecutionPriority;
-import de.otto.jobstore.common.JobInfo;
-import de.otto.jobstore.common.ResultCode;
+import de.otto.jobstore.common.*;
 import de.otto.jobstore.service.JobInfoService;
 import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.*;
@@ -33,8 +31,6 @@ public final class JobInfoResource {
 
     public static final String OTTO_JOBS_XML = "application/vnd.otto.jobs+xml";
     public static final String OTTO_JOBS_JSON = "application/vnd.otto.jobs+json";
-    public static final String OTTO_JOB_XML = "application/vnd.otto.job+xml";
-    public static final String OTTO_JOB_JSON = "application/vnd.otto.job+json";
 
     private final JobService jobService;
 
@@ -76,6 +72,16 @@ public final class JobInfoResource {
     }
 
     /**
+     * Disables/Enables job execution
+     */
+    @DELETE
+    public Response toggleJobExecution() {
+        final boolean newStatus = !jobService.isExecutionEnabled();
+        jobService.setExecutionEnabled(newStatus);
+        return Response.ok("{\"status\" : " + (newStatus ? "enabled" : "disabled") + "}").build();
+    }
+
+    /**
      * Executes a job and its content location.
      *
      * @param name The name of the job to execute
@@ -85,10 +91,6 @@ public final class JobInfoResource {
     @POST
     @Path("{name}")
     public Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo)  {
-        return executeJob(name, uriInfo, true);
-    }
-
-    private Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo, boolean forceExecution)  {
         try {
             final String jobId = jobService.executeJob(name, JobExecutionPriority.FORCE_EXECUTION);
             final JobInfo jobInfo = jobInfoService.getById(jobId);
@@ -99,16 +101,7 @@ public final class JobInfoResource {
         } catch (JobExecutionNotNecessaryException | JobExecutionDisabledException e) {
             return Response.status(Response.Status.PRECONDITION_FAILED).entity(e.getMessage()).build();
         } catch (JobAlreadyQueuedException e) {
-            if(forceExecution) {
-                // sonderfall: queued job kann nicht geforced werden, also aktuellen Job entfernen und den request nochmal durchführen
-                // ansonsten kann man nie einen job enforcen, wenn jobs queued sind, die möglicherweise nicht enforced sind
-                jobService.removeJobFromQueue(name);
-                return executeJob(name,uriInfo, false);
-            } else {
-                return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
-            }
-            // TODO: Sonderfall umschreiben auf: queuedJob, wenn nicht enforced, enforcen
-
+            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         } catch (JobAlreadyRunningException e) {
             return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         }
@@ -149,6 +142,23 @@ public final class JobInfoResource {
     }
 
     /**
+     * Disables/enables execution of jobs with the given name
+     * @param name The name of the job to enable/disable
+     * @return The current status of the status (enabled true/false)
+     */
+    @DELETE
+    @Path("/{name}")
+    public Response toggleJobEnabled(@PathParam("name") final String name) {
+        try {
+            final boolean newStatus = !jobService.isJobExecutionEnabled(name);
+            jobService.setJobExecutionEnabled(name, newStatus);
+            return Response.ok("{\"status\" : " + (newStatus ? "enabled" : "disabled") + "}").build();
+        } catch (JobNotRegisteredException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
+
+    /**
      * Returns the job with the given name and id
      *
      * @param name The name of the job to return
@@ -157,8 +167,7 @@ public final class JobInfoResource {
      */
     @GET
     @Path("/{name}/{id}")
-    @Produces({ OTTO_JOBS_JSON, OTTO_JOBS_XML
-    /* The next two media types will be removed on 01/12/2012 */ , OTTO_JOB_XML, OTTO_JOB_JSON })
+    @Produces({ OTTO_JOBS_JSON, OTTO_JOBS_XML})
     public Response getJob(@PathParam("name") final String name, @PathParam("id") final String id) {
         final JobInfo jobInfo = jobInfoService.getById(id);
         if (jobInfo == null || !jobInfo.getName().equals(name)) {

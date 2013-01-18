@@ -2,6 +2,7 @@ package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
+import de.otto.jobstore.repository.JobDefinitionRepository;
 import de.otto.jobstore.repository.JobInfoRepository;
 import de.otto.jobstore.service.exception.JobException;
 import org.springframework.test.context.ContextConfiguration;
@@ -29,6 +30,9 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
     @Resource
     private JobInfoService jobInfoService;
 
+    @Resource
+    private JobDefinitionRepository jobDefinitionRepository;
+
     private RemoteJobExecutorService remoteJobExecutorService = mock(RemoteJobExecutorService.class);
     private RemoteJobRunnableMock jobRunnable;
 
@@ -42,6 +46,7 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
     public void setUp() throws Exception {
         jobService.clean();
         jobInfoRepository.clear(true);
+        jobDefinitionRepository.addOrUpdate(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
         reset(remoteJobExecutorService);
     }
 
@@ -122,13 +127,18 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         }
 
         @Override
-        public String getName() {
-            return name;
-        }
+        public JobDefinition getJobDefinition() {
+            return new AbstractLocalJobDefinition() {
+                @Override
+                public String getName() {
+                    return name;
+                }
 
-        @Override
-        public long getMaxExecutionTime() {
-            return 1000;  //To change body of implemented methods use File | Settings | File Templates.
+                @Override
+                public long getTimeoutPeriod() {
+                    return 1000;
+                }
+            };
         }
 
         @Override
@@ -143,34 +153,39 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
     class RemoteJobRunnableMock extends AbstractRemoteJobRunnable {
 
-        final long maxExecutionTime;
+        final long timeoutPeriod;
         final long pollingInterval;
 
         // TODO: (almost) same as in JobServiceTest
-        RemoteJobRunnableMock(RemoteJobExecutorService remoteJobExecutorService, JobInfoService jobInfoService,  long maxExecutionTime, long pollingInterval) {
+        RemoteJobRunnableMock(RemoteJobExecutorService remoteJobExecutorService, JobInfoService jobInfoService,  long timeoutPeriod, long pollingInterval) {
             super(remoteJobExecutorService, jobInfoService);
-            this.maxExecutionTime = maxExecutionTime;
+            this.timeoutPeriod = timeoutPeriod;
             this.pollingInterval = pollingInterval;
         }
 
         @Override
-        public String getName() {
-            return JOB_NAME_3;
+        public JobDefinition getJobDefinition() {
+            return new AbstractRemoteJobDefinition() {
+                @Override
+                public String getName() {
+                    return JOB_NAME_3;
+                }
+
+                @Override
+                public long getTimeoutPeriod() {
+                    return timeoutPeriod;
+                }
+
+                @Override
+                public long getPollingInterval() {
+                    return pollingInterval;
+                }
+            };
         }
 
         @Override
         public Map<String, String> getParameters() {
             return PARAMETERS;
-        }
-
-        @Override
-        public long getMaxExecutionTime() {
-            return maxExecutionTime;
-        }
-
-        @Override
-        public long getPollingInterval() {
-            return pollingInterval;
         }
     }
 }

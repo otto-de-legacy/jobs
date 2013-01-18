@@ -1,9 +1,6 @@
 package de.otto.jobstore.common.example;
 
-import de.otto.jobstore.common.AbstractLocalJobRunnable;
-import de.otto.jobstore.common.JobExecutionContext;
-import de.otto.jobstore.common.JobExecutionPriority;
-import de.otto.jobstore.common.ResultCode;
+import de.otto.jobstore.common.*;
 import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
@@ -18,22 +15,19 @@ public final class StepOneJobRunnableExample extends AbstractLocalJobRunnable {
         this.jobService = jobService;
     }
 
-    /**
-     * @return name of the simple job, might differ from Classname
-     */
     @Override
-    public String getName() {
-        return "STEP_ONE_JOB";
-    }
+    public JobDefinition getJobDefinition() {
+        return new AbstractLocalJobDefinition() {
+            @Override
+            public String getName() {
+                return "STEP_ONE_JOB";
+            }
 
-    @Override
-    public Map<String, String> getParameters() {
-        return null;
-    }
-
-    @Override
-    public long getMaxExecutionTime() {
-        return 1000 * 60 * 5;
+            @Override
+            public long getTimeoutPeriod() {
+                return 1000 * 60 * 5;
+            }
+        };
     }
 
     /**
