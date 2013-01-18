@@ -70,18 +70,23 @@ public class AbstractRemoteJobRunnableTest {
         }
 
         @Override
-        public String getName() {
-            return jobName;
-        }
+        public JobDefinition getJobDefinition() {
+            return new AbstractRemoteJobDefinition() {
+                @Override
+                public String getName() {
+                    return jobName;
+                }
 
-        @Override
-        public long getMaxExecutionTime() {
-            return 0;
-        }
+                @Override
+                public long getTimeoutPeriod() {
+                    return 0;
+                }
 
-        @Override
-        public long getPollingInterval() {
-            return 0;
+                @Override
+                public long getPollingInterval() {
+                    return 0;
+                }
+            };
         }
     }
 

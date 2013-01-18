@@ -1,9 +1,6 @@
 package de.otto.jobstore.common.example;
 
-import de.otto.jobstore.common.AbstractLocalJobRunnable;
-import de.otto.jobstore.common.JobExecutionContext;
-import de.otto.jobstore.common.JobExecutionPriority;
-import de.otto.jobstore.common.ResultCode;
+import de.otto.jobstore.common.*;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
 import java.util.Calendar;
@@ -13,25 +10,24 @@ import java.util.Random;
 
 public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
 
-    /**
-     * @return name of the simple job, might differ from Classname
-     */
     @Override
-    public String getName() {
-        return "SimpleJobRunnableExampleToBeUsed";
+    public JobDefinition getJobDefinition() {
+        return new AbstractLocalJobDefinition() {
+            @Override
+            public String getName() {
+                return "SimpleJobRunnableExampleToBeUsed";
+            }
+
+            @Override
+            public long getTimeoutPeriod() {
+                return 1000 * 60 * 10;
+            }
+        };
     }
 
     @Override
     public Map<String, String> getParameters() {
         return null;
-    }
-
-    /**
-     * Job should be considered timed out after 10 minutes
-     */
-    @Override
-    public long getMaxExecutionTime() {
-        return 1000 * 60 * 10;
     }
 
     /**

@@ -1,5 +1,7 @@
 package de.otto.jobstore.common;
 
+import java.util.Map;
+
 public final class JobExecutionContext {
 
     private final String id;

@@ -3,6 +3,7 @@ package de.otto.jobstore.repository;
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
+import de.otto.jobstore.common.util.InternetUtils;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

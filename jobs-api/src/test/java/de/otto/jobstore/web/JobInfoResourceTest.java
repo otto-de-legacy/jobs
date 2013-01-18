@@ -29,6 +29,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.AssertJUnit.assertTrue;
 
 public class JobInfoResourceTest {
 
@@ -184,6 +185,29 @@ public class JobInfoResourceTest {
         assertEquals(200, response.getStatus());
         Map<String, JobInfoRepresentation> history = (Map<String, JobInfoRepresentation>) response.getEntity();
         assertEquals(1, history.size());
+    }
+
+    @Test
+    public void testTogglingJobEnabled() throws Exception {
+        when(jobService.isJobExecutionEnabled("test")).thenReturn(Boolean.TRUE);
+        Response response = jobInfoResource.toggleJobEnabled("test");
+        assertEquals(200, response.getStatus());
+        assertTrue(((String)response.getEntity()).contains("disabled"));
+    }
+
+    @Test
+    public void testTogglingJobDisabled() throws Exception {
+        when(jobService.isJobExecutionEnabled("test")).thenReturn(Boolean.FALSE);
+        Response response = jobInfoResource.toggleJobEnabled("test");
+        assertEquals(200, response.getStatus());
+        assertTrue(((String)response.getEntity()).contains("enabled"));
+    }
+
+    @Test
+    public void testTogglingJobDisabledNotRegistered() throws Exception {
+        when(jobService.isJobExecutionEnabled("test")).thenThrow(new JobNotRegisteredException(""));
+        Response response = jobInfoResource.toggleJobEnabled("test");
+        assertEquals(404, response.getStatus());
     }
 
     // ~~
