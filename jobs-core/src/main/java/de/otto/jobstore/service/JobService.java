@@ -204,13 +204,13 @@ public class JobService {
      */
     public void executeQueuedJobs() {
         if (isExecutionEnabled()) {
-            LOGGER.info("ltag=JobServiceImpl.executeQueuedJobs");
+            LOGGER.info("ltag=JobService.executeQueuedJobs");
             for (JobInfo jobInfo : jobInfoRepository.findQueuedJobsSortedAscByCreationTime()) {
                 final StoredJobDefinition jobDefinition = jobDefinitionRepository.find(jobInfo.getName());
                 if (jobDefinition.isDisabled()) {
-                    LOGGER.info("ltag=JobServiceImpl.executeQueuedJobs.isPaused jobName={}", jobInfo.getName());
+                    LOGGER.info("ltag=JobService.executeQueuedJobs.isPaused jobName={}", jobInfo.getName());
                 } else if (!jobs.containsKey(jobInfo.getName())) {
-                    LOGGER.info("ltag=JobServiceImpl.executeQueuedJobs.notRegistered jobName={}", jobInfo.getName());
+                    LOGGER.info("ltag=JobService.executeQueuedJobs.notRegistered jobName={}", jobInfo.getName());
                 } else {
                     final JobRunnable runnable = jobs.get(jobInfo.getName());
                     executeQueuedJob(runnable, jobInfo.getId(), jobInfo.getExecutionPriority());
@@ -236,11 +236,11 @@ public class JobService {
                             if (remoteJobStatus != null) {
                                 updateJobStatus(runningJob, runnable, remoteJobStatus);
                             } else {
-                                LOGGER.warn("No remote status got for jobName={}", definition.getName());
+                                LOGGER.warn("ltag=JobService.pollRemoteJobs No remote status got for jobName={}", definition.getName());
                             }
                         }
                     } else {
-                        LOGGER.info("No running instance of jobName={} found, skip status check", definition.getName());
+                        LOGGER.info("ltag=JobService.pollRemoteJobs No running instance of jobName={} found, skip status check", definition.getName());
                     }
                 }
             }

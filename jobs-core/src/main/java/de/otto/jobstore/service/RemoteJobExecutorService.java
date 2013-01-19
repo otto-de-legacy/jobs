@@ -38,7 +38,7 @@ public class RemoteJobExecutorService {
     public URI startJob(final RemoteJob job) throws JobException {
         final String startUrl = jobExecutorUri + job.name + "/start";
         try {
-            LOGGER.info("Going to start job: {} ...", startUrl);
+            LOGGER.info("ltag=RemoteJobExecutorService.startJob Going to start job: {} ...", startUrl);
             final ClientResponse response = client.resource(startUrl)
                     .type(MediaType.APPLICATION_JSON).header("Connection", "close").header("User-Agent", "RemoteJobExecutorService")
                     .post(ClientResponse.class, job.toJsonObject());
@@ -58,7 +58,7 @@ public class RemoteJobExecutorService {
     public void stopJob(URI jobUri) throws JobException {
         final String stopUrl = jobUri + "/stop";
         try {
-            LOGGER.info("Going to stop job: {} ...", stopUrl);
+            LOGGER.info("ltag=RemoteJobExecutorService.stopJob Going to stop job: {} ...", stopUrl);
             client.resource(stopUrl).header("Connection", "close").post();
         } catch (UniformInterfaceException e) {
             if (e.getResponse().getStatus() == 403) {
@@ -73,7 +73,7 @@ public class RemoteJobExecutorService {
             final ClientResponse response = client.resource(jobUri.toString()).
                     accept(MediaType.APPLICATION_JSON).header("Connection", "close").get(ClientResponse.class);
             RemoteJobStatus status = response.getEntity(RemoteJobStatus.class);
-            LOGGER.info("Response from server: {}", status);
+            LOGGER.info("ltag=RemoteJobExecutorService.getStatus Response from server: {}", status);
             if (response.getStatus() == 200) {
                 return status;
             }
