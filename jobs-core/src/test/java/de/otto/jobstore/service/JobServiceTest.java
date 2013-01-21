@@ -465,7 +465,7 @@ public class JobServiceTest {
         ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(job);
-
+        Thread.sleep(100);
         jobService.pollRemoteJobs();
         verify(jobInfoRepository, times(1)).markAsFinished(job.getId(), ResultCode.FAILED, "RemoteJobUri is not set, cannot continue.");
     }
