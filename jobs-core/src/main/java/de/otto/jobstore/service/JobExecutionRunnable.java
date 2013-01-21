@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 
 final class JobExecutionRunnable implements Runnable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JobService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobExecutionRunnable.class);
 
     final JobRunnable jobRunnable;
     final JobInfoRepository jobInfoRepository;
@@ -30,15 +30,15 @@ final class JobExecutionRunnable implements Runnable {
                 if (!jobDefinition.isRemote()) {
                     LOGGER.info("ltag=JobService.JobExecutionRunnable.run finished jobName={} jobId={}", name, context.getId());
                     jobRunnable.afterExecution(context);
-                    jobInfoRepository.markRunningAsFinished(name, context.getResultCode(), context.getResultMessage());
+                    jobInfoRepository.markAsFinished(context.getId(), context.getResultCode(), context.getResultMessage());
                 }
             } else {
                 LOGGER.info("ltag=JobService.JobExecutionRunnable.run skipped jobName={} jobId={}", name, context.getId());
-                jobInfoRepository.markRunningAsFinished(name, ResultCode.NOT_EXECUTED, null);
+                jobInfoRepository.markAsFinished(context.getId(), ResultCode.NOT_EXECUTED);
             }
         } catch (Exception e) {
             LOGGER.error("ltag=JobService.JobExecutionRunnable.run jobName=" + name + " jobId=" + context.getId() + " failed: " + e.getMessage(), e);
-            jobInfoRepository.markRunningAsFinishedWithException(name, e);
+            jobInfoRepository.markAsFinished(context.getId(), e);
         }
     }
 

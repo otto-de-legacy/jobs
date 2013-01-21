@@ -5,6 +5,7 @@ import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.repository.JobDefinitionRepository;
 import de.otto.jobstore.repository.JobInfoRepository;
 import de.otto.jobstore.service.exception.JobException;
+import de.otto.jobstore.service.exception.JobExecutionException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.annotations.BeforeMethod;
@@ -114,8 +115,19 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         JobInfo jobInfo2 = jobInfoRepository.findById(id2);
         assertNotNull(jobInfo2);
         assertEquals(RunningState.QUEUED.name(), jobInfo2.getRunningState());
+    }
 
-
+    @Test
+    public void testExecuteJobFailsWithConnectionException() throws Exception {
+        jobRunnable = new RemoteJobRunnableMock(remoteJobExecutorService, jobInfoService, 0, 0);
+        jobService.registerJob(jobRunnable);
+        reset(remoteJobExecutorService);
+        when(remoteJobExecutorService.startJob(any(RemoteJob.class))).thenThrow(new JobExecutionException("Error connecting to host"));
+        String id = jobService.executeJob(JOB_NAME_3);
+        Thread.sleep(1000);
+        JobInfo jobInfo = jobInfoRepository.findById(id);
+        assertTrue("Expected job to be finished but it is: " + jobInfo.getRunningState(), jobInfo.getRunningState().startsWith("FINISHED"));
+        assertEquals(ResultCode.FAILED, jobInfo.getResultState());
     }
 
     class LocalJobRunnableMock extends AbstractLocalJobRunnable {

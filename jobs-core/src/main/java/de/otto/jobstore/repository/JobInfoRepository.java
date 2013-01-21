@@ -5,8 +5,6 @@ import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.common.util.InternetUtils;
 import org.bson.types.ObjectId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -18,40 +16,21 @@ import java.util.*;
  * The method {@link #cleanupTimedOutJobs} needs to be called regularly to remove possible timed out jobs which would
  * otherwise stop new jobs from being able to execute.
  */
-public class JobInfoRepository {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(JobInfoRepository.class);
+public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     private static final String JOB_NAME_CLEANUP              = "JobInfo_Cleanup";
     private static final String JOB_NAME_TIMED_OUT_CLEANUP    = "JobInfo_TimedOut_Cleanup";
     private static final String JOB_NAME_CLEANUP_NOT_EXECUTED = "JobInfo_NotExecuted_Cleanup";
 
-    private final DBCollection collection;
-
     private int hoursAfterWhichOldJobsAreDeleted         = 7 * 24;
     private int hoursAfterWhichNotExecutedJobsAreDeleted = 2;
 
-
-    public JobInfoRepository(final Mongo mongo, final String dbName, final String collectionName) {
-        this(mongo, dbName, collectionName, null, null);
+    public JobInfoRepository(Mongo mongo, String dbName, String collectionName) {
+        super(mongo, dbName, collectionName);
     }
 
-    public JobInfoRepository(final Mongo mongo, final String dbName, final String collectionName, final String username, final String password) {
-        final DB db = mongo.getDB(dbName);
-        if (username != null && !username.isEmpty()) {
-            if (!db.isAuthenticated()) {
-                final boolean authenticateSuccess = db.authenticate(username, password.toCharArray());
-                if (!authenticateSuccess) {
-                    throw new RuntimeException("The authentication at the database: " + dbName + " on the host: " +
-                            mongo.getAddress() + " with the username: " + username + " and the given password was not successful");
-                } else {
-                    LOGGER.info("Login at database {} on the host {} was successful", dbName, mongo.getAddress());
-                }
-            }
-        }
-        collection = db.getCollection(collectionName);
-        LOGGER.info("Prepare access to MongoDB collection '{}' on {}/{}", new Object[]{collectionName, mongo, dbName});
-        prepareCollection();
+    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password) {
+        super(mongo, dbName, collectionName, username, password);
     }
 
     public int getHoursAfterWhichOldJobsAreDeleted() {
@@ -100,13 +79,13 @@ public class JobInfoRepository {
                          final RunningState runningState, final JobExecutionPriority executionPriority, 
                          final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
-            LOGGER.info("Create job={} in state={} ...", name, runningState);
+            logger.info("Create job={} in state={} ...", name, runningState);
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
             save(jobInfo, WriteConcern.SAFE);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
-            LOGGER.warn("job={} with state={} already exists, creation skipped!", name, runningState);
+            logger.warn("job={} with state={} already exists, creation skipped!", name, runningState);
             return null;
         }
     }
@@ -168,7 +147,6 @@ public class JobInfoRepository {
         if (resultCodes != null && !resultCodes.isEmpty()) {
             query.append(JobInfoProperty.RESULT_STATE.val(), new BasicDBObject(MongoOperator.IN.op(), resultCodeAsStrings));
         }
-
         final DBCursor cursor = collection.find(query.get()).
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
         return getAll(cursor);
@@ -188,7 +166,7 @@ public class JobInfoRepository {
                 new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()).
                         append(JobInfoProperty.START_TIME.val(), dt).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        LOGGER.info("Activate queued job={} ...", name);
+        logger.info("Activate queued job={} ...", name);
         try{
             final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED.name()), update, false, false, WriteConcern.SAFE);
             return result.getN() == 1;
@@ -225,70 +203,41 @@ public class JobInfoRepository {
     }
 
     /**
-     * Marks a running job with the given name as finished.
-     *
-     * @param query The query of to find object to update
-     * @param resultCode The result state of the job
-     * @param resultMessage An optional error message
-     * @return true - The job was marked as requested<br/>
-     *         false - No running job with the given name could be found
-     */
-    private boolean markRunningAsFinished(final DBObject query, final ResultCode resultCode, final String resultMessage) {
-        final Date dt = new Date();
-        final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
-                append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
-                append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
-                append(JobInfoProperty.FINISH_TIME.val(), dt).
-                append(JobInfoProperty.RESULT_STATE.val(), resultCode.name());
-        if (resultMessage != null) {
-            set.append(JobInfoProperty.RESULT_MESSAGE.val(), resultMessage);
-        }
-        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
-        final WriteResult result = collection.update(query, update, false, false, WriteConcern.SAFE);
-        return result.getN() == 1;
-    }
-
-    /**
-     * Marks a running job with the given name as finished.
+     * Marks a job with the given id as finished.
      *
      * @param id The id of the job
      * @param resultCode The result state of the job
+     * @return true - The job was marked as requested<br/>
+     *         false - No running job with the given name could be found
+     */
+    public boolean markAsFinished(final String id, final ResultCode resultCode) {
+        return markAsFinished(id, resultCode, null);
+    }
+
+    /**
+     * Marks a job with the given id as finished.
+     *
+     * @param id The id of the job
+     * @param resultCode The result state of the job
+     * @param resultMessage The resultMessage of the job
+     * @return true - The job was marked as requested<br/>
+     *         false - No running job with the given name could be found
+     */
+    public boolean markAsFinished(final String id, final ResultCode resultCode, final String resultMessage) {
+        return ObjectId.isValid(id) &&
+                markAsFinished(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), resultCode, resultMessage);
+    }
+
+    /**
+     * Marks a job with the given id as finished.
+     *
+     * @param id The id of the job
      * @param t An exception
      * @return true - The job was marked as requested<br/>
      *         false - No running job with the given name could be found
      */
-    public boolean markAsFinishedById(final String id, final ResultCode resultCode, final Throwable t) {
-        return ObjectId.isValid(id) &&
-                markRunningAsFinished(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)),
-                        resultCode, t == null ? null : exceptionToMessage(t));
-    }
-
-    /**
-     * Marks a running job with the given name as finished.
-     *
-     * @param name The name of the job
-     * @param resultCode The result state of the job
-     * @param resultMessage An optional error message
-     * @return true - The job was marked as requested<br/>
-     *         false - No running job with the given name could be found
-     */
-    public boolean markRunningAsFinished(final String name, final ResultCode resultCode, final String resultMessage) {
-        return markRunningAsFinished(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()),
-                resultCode, resultMessage);
-    }
-
-    /**
-     * Marks a running job with the given name as finished with an error and writes
-     * the stack trace of the exception to the error message property of the job.
-     *
-     * @param name The name of the job
-     * @return true - The job was marked as requested<br/>
-     *          false - No running job with the given name could be found
-     */
-    public boolean markRunningAsFinishedWithException(final String name, final Throwable t) {
-        final StringWriter sw = new StringWriter();
-        t.printStackTrace(new PrintWriter(sw));
-        return markRunningAsFinished(name, ResultCode.FAILED, exceptionToMessage(t));
+    public boolean markAsFinished(final String id, final Throwable t) {
+        return markAsFinished(id, ResultCode.FAILED, t == null ? null : exceptionToMessage(t));
     }
 
     /**
@@ -308,17 +257,6 @@ public class JobInfoRepository {
         final WriteResult result = collection.update(new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
                 append(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name()), update, false, false, WriteConcern.SAFE);
         return result.getN() == 1;
-    }
-
-    /**
-     * Marks a job with the given name as finished successfully.
-     *
-     * @param name The name of the job
-     * @return true - The job was marked as requested<br/>
-     *          false - No running job with the given name could be found
-     */
-    public boolean markRunningAsFinishedSuccessfully(final String name) {
-        return markRunningAsFinished(name, ResultCode.SUCCESSFUL, null);
     }
 
     /**
@@ -363,7 +301,7 @@ public class JobInfoRepository {
      */
     public JobInfo findById(final String id) {
         if (ObjectId.isValid(id)) {
-            final DBObject obj = collection.findOne(new BasicDBObject("_id", new ObjectId(id)));
+            final DBObject obj = collection.findOne(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)));
             return fromDbObject(obj);
         } else {
             return null;
@@ -484,7 +422,7 @@ public class JobInfoRepository {
             logLines.add(new LogLine(line, dt).toDbObject());
         }
         final DBObject update = new BasicDBObject().
-                append("$pushAll", new BasicDBObject(JobInfoProperty.LOG_LINES.val(), logLines)).
+                append(MongoOperator.PUSH_ALL.op(), new BasicDBObject(JobInfoProperty.LOG_LINES.val(), logLines)).
                 append(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
         final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update, false, false, WriteConcern.SAFE);
         return result.getN() == 1;
@@ -500,28 +438,7 @@ public class JobInfoRepository {
         if (hasJob(name, RunningState.RUNNING)) {
             final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING);
             if (job.isTimedOut(currentDate)) {
-                markRunningAsFinished(job.getName(), ResultCode.TIMED_OUT, null);
-            }
-        }
-    }
-
-    /**
-     * Clears all elements from the repository
-     *
-     * @param dropCollection Flag if the collection should be dropped
-     */
-    public void clear(final boolean dropCollection) {
-        LOGGER.info("Going to clear all entities on collection: {}", collection.getFullName());
-        if (dropCollection) {
-            collection.drop();
-            prepareCollection();
-        } else {
-            final WriteResult wr = collection.remove(new BasicDBObject());
-            final CommandResult cr = wr.getLastError(WriteConcern.SAFE);
-            if (cr.ok()) {
-                LOGGER.info("Cleared all entities successfully on collection: {}", collection.getFullName());
-            } else {
-                LOGGER.error("Could not clear entities on collection {}: {}", collection.getFullName(), cr.getErrorMessage());
+                markAsFinished(job.getId(), ResultCode.TIMED_OUT);
             }
         }
     }
@@ -549,23 +466,23 @@ public class JobInfoRepository {
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
-            create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
                 if (jobInfo.isTimedOut(currentDate)) {
-                    if (markRunningAsFinished(jobInfo.getName(), ResultCode.TIMED_OUT, null)) {
+                    if (markAsFinished(jobInfo.getId(), ResultCode.TIMED_OUT)) {
                         removedJobs.add(jobInfo.getName() + " - " + jobInfo.getId());
                         ++numberOfRemovedJobs;
                     }
                 }
             }
-            LOGGER.info("Deleted {} timed-out jobs: {}", numberOfRemovedJobs, removedJobs);
+            logger.info("Deleted {} timed-out jobs: {}", numberOfRemovedJobs, removedJobs);
             addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             if (!removedJobs.isEmpty()) {
                 addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "removedJobs", removedJobs.toString());
             }
-            markRunningAsFinishedSuccessfully(JOB_NAME_TIMED_OUT_CLEANUP);
+            markAsFinished(id, ResultCode.SUCCESSFUL);
         }
         return numberOfRemovedJobs;
     }
@@ -576,14 +493,15 @@ public class JobInfoRepository {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            long maxExecutionTime = 5 * 60 * 1000;
-            create(JOB_NAME_CLEANUP, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            Date beforeDate = new Date(currentDate.getTime() - (hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000));
-            LOGGER.info("Going to delete not runnnig jobs before {} ...", beforeDate);
+            final long maxExecutionTime = 5 * 60 * 1000;
+            final String id = create(JOB_NAME_CLEANUP, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final Date beforeDate = new Date(currentDate.getTime() - (Math.min(4, hoursAfterWhichOldJobsAreDeleted) * 60 * 60 * 1000));
+            logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
+            /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotRunning(beforeDate);
-            LOGGER.info("Deleted {} not runnnig jobs.", numberOfRemovedJobs);
+            logger.info("Deleted {} not runnnig jobs.", numberOfRemovedJobs);
             addAdditionalData(JOB_NAME_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
-            markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP);
+            markAsFinished(id, ResultCode.SUCCESSFUL);
         }
         return numberOfRemovedJobs;
     }
@@ -594,31 +512,20 @@ public class JobInfoRepository {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            long maxExecutionTime = 5 * 60 * 1000;
-            create(JOB_NAME_CLEANUP_NOT_EXECUTED, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            Date beforeDate = new Date(currentDate.getTime() - (hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000));
-            LOGGER.info("Going to delete not executed jobs before {} ...", beforeDate);
+            final long maxExecutionTime = 5 * 60 * 1000;
+            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final Date beforeDate = new Date(currentDate.getTime() - (Math.min(1, hoursAfterWhichNotExecutedJobsAreDeleted) * 60 * 60 * 1000));
+            logger.info("Going to delete not executed jobs before {} ...", beforeDate);
+            /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotExecuted(beforeDate);
-            LOGGER.info("Deleted {} not executed jobs.", numberOfRemovedJobs);
+            logger.info("Deleted {} not executed jobs.", numberOfRemovedJobs);
             addAdditionalData(JOB_NAME_CLEANUP_NOT_EXECUTED, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
-            markRunningAsFinishedSuccessfully(JOB_NAME_CLEANUP_NOT_EXECUTED);
+            markAsFinished(id, ResultCode.SUCCESSFUL);
         }
         return numberOfRemovedJobs;
     }
 
     // ~~
-
-    protected void save(JobInfo jobInfo) {
-        WriteResult wr = collection.save(jobInfo.toDbObject());
-        final CommandResult cr = wr.getLastError(WriteConcern.SAFE);
-        if (!cr.ok()) {
-            LOGGER.error("Unable to save job info object id={}: " + wr, jobInfo.getId());
-        }
-    }
-
-    protected void save(JobInfo jobInfo, WriteConcern writeConcern) {
-        collection.save(jobInfo.toDbObject(), writeConcern);
-    }
 
     protected int cleanupNotRunning(Date clearJobsBefore) {
         final WriteResult result = collection.remove(new BasicDBObject().
@@ -637,7 +544,7 @@ public class JobInfoRepository {
         return result.getN();
     }
 
-    private void prepareCollection() {
+    protected void prepareCollection() {
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
         collection.ensureIndex(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1));
         collection.ensureIndex(new BasicDBObject().
@@ -648,26 +555,35 @@ public class JobInfoRepository {
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
     }
 
-    private JobInfo fromDbObject(final DBObject dbObject) {
+    protected JobInfo fromDbObject(final DBObject dbObject) {
         if (dbObject == null) {
             return null;
         }
         return new JobInfo(dbObject);
     }
 
-    private List<JobInfo> getAll(final DBCursor cursor) {
-        final List<JobInfo> elements = new ArrayList<>();
-        while (cursor.hasNext()) {
-            elements.add(fromDbObject(cursor.next()));
+    /**
+     * Marks a running job with the given name as finished.
+     *
+     * @param query The query of to find object to update
+     * @param resultCode The result state of the job
+     * @param resultMessage An optional error message
+     * @return true - The job was marked as requested<br/>
+     *         false - No running job with the given name could be found
+     */
+    private boolean markAsFinished(final DBObject query, final ResultCode resultCode, final String resultMessage) {
+        final Date dt = new Date();
+        final BasicDBObjectBuilder set = new BasicDBObjectBuilder().
+                append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()).
+                append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
+                append(JobInfoProperty.FINISH_TIME.val(), dt).
+                append(JobInfoProperty.RESULT_STATE.val(), resultCode.name());
+        if (resultMessage != null) {
+            set.append(JobInfoProperty.RESULT_MESSAGE.val(), resultMessage);
         }
-        return elements;
-    }
-
-    private JobInfo getFirst(final DBCursor cursor) {
-        if (cursor.hasNext()) {
-            return fromDbObject(cursor.next());
-        }
-        return null;
+        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
+        final WriteResult result = collection.update(query, update, false, false, WriteConcern.SAFE);
+        return result.getN() == 1;
     }
 
     private BasicDBObject createFindByNameAndRunningStateQuery(final String name, final String state) {
@@ -693,8 +609,8 @@ public class JobInfoRepository {
 
     private <E extends Enum<E>> List<String> toStringList(Set<E> enumSet) {
         final List<String> strings = new ArrayList<>();
-        if(enumSet != null){
-            for (Enum e : enumSet) {
+        if (enumSet != null) {
+            for (Enum<E> e : enumSet) {
                 strings.add(e.name());
             }
         }

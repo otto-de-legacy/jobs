@@ -14,6 +14,7 @@ enum MongoOperator {
     NE("$ne"),
     NIN("$nin"),
     PUSH("$push"),
+    PUSH_ALL("$pushAll"),
     SET("$set");
 
     private final String op;

@@ -95,9 +95,9 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testMarkAsFinished() throws Exception {
         assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING));
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getFinishTime());
-        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultCode.SUCCESSFUL, null);
+        jobInfoRepository.markAsFinished(id, ResultCode.SUCCESSFUL);
         assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME, null).get(0).getFinishTime());
     }
 
@@ -106,7 +106,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING));
         String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 5, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getFinishTime());
-        jobInfoRepository.markAsFinishedById(id, ResultCode.SUCCESSFUL, null);
+        jobInfoRepository.markAsFinished(id, ResultCode.SUCCESSFUL);
         assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME, null).get(0).getFinishTime());
     }
 
@@ -159,11 +159,11 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testFindLastBy() {
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         jobInfoRepository.create(TESTVALUE_JOBNAME + 2, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         jobInfoRepository.create(TESTVALUE_JOBNAME + 3, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertEquals(3, jobInfoRepository.findMostRecent().size());
-        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME + 1, ResultCode.SUCCESSFUL, null);
+        jobInfoRepository.markAsFinished(id, ResultCode.SUCCESSFUL);
         jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertEquals(3, jobInfoRepository.findMostRecent().size());
     }
@@ -177,9 +177,9 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testFindLastByFinishDate() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME + 1, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
         assertNull(jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME + 1, EnumSet.of(ResultCode.SUCCESSFUL)));
-        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME + 1, ResultCode.SUCCESSFUL, null);
+        jobInfoRepository.markAsFinished(id, ResultCode.SUCCESSFUL);
         assertNotNull(jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME + 1, EnumSet.of(ResultCode.SUCCESSFUL)));
     }
 
@@ -221,8 +221,8 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testMarkFinishedWithException() throws Exception {
-        jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-        jobInfoRepository.markRunningAsFinishedWithException(TESTVALUE_JOBNAME, new IllegalArgumentException("This is an error", new NullPointerException()));
+        String id = jobInfoRepository.create(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+        jobInfoRepository.markAsFinished(id, new IllegalArgumentException("This is an error", new NullPointerException()));
         JobInfo jobInfo = jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME);
         assertEquals(ResultCode.FAILED, jobInfo.getResultState());
         String runningState = jobInfo.getRunningState();
@@ -291,25 +291,24 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     private void createTestJobInfo(long timestamp, ResultCode resultCode) {
         JobInfo jobInfo1 = new JobInfo(new Date(timestamp), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo1);
-        boolean updated = jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, resultCode, null);
+        boolean updated = jobInfoRepository.markAsFinished(jobInfo1.getId(), resultCode);
         assertTrue(updated);
     }
-
 
     @Test
     public void testFindMostRecentByResultState() throws Exception {
         JobInfo jobInfo = new JobInfo(new Date(System.currentTimeMillis() - DAY_IN_MS), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
-        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultCode.FAILED, null);
+        jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.FAILED);
         JobInfo jobInfo1 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo1);
-        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultCode.SUCCESSFUL, null);
+        jobInfoRepository.markAsFinished(jobInfo1.getId(), ResultCode.SUCCESSFUL);
         JobInfo jobInfo2 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo2);
-        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultCode.TIMED_OUT, null);
+        jobInfoRepository.markAsFinished(jobInfo2.getId(), ResultCode.TIMED_OUT);
         JobInfo jobInfo3 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo3);
-        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultCode.NOT_EXECUTED, null);
+        jobInfoRepository.markAsFinished(jobInfo3.getId(), ResultCode.NOT_EXECUTED);
 
         JobInfo notExecuted = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
                 EnumSet.of(ResultCode.NOT_EXECUTED));
@@ -324,7 +323,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     public void testFindMostRecentByResultStateOnlyNotExecuted() throws Exception {
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
-        jobInfoRepository.markRunningAsFinished(TESTVALUE_JOBNAME, ResultCode.NOT_EXECUTED, null);
+        jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.NOT_EXECUTED);
 
         JobInfo notExecuted = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
                 EnumSet.of(ResultCode.NOT_EXECUTED));
@@ -408,11 +407,11 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         //Two finished jobs
         JobInfo jobInfo = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
-        jobInfoRepository.markAsFinishedById(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
+        jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL);
 
         JobInfo jobInfo1 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo1);
-        jobInfoRepository.markAsFinishedById(jobInfo1.getId(), ResultCode.SUCCESSFUL, null);
+        jobInfoRepository.markAsFinished(jobInfo1.getId(), ResultCode.SUCCESSFUL);
         //One running and one queued job
         JobInfo jobInfo2 = new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo2);

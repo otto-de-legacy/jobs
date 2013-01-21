@@ -259,7 +259,7 @@ public class JobService {
                     final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING);
                     if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
                         LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", name);
-                        jobInfoRepository.markRunningAsFinished(name, ResultCode.FAILED, "shutdownJobs called from executing host");
+                        jobInfoRepository.markAsFinished(runningJob.getId(), ResultCode.FAILED, "shutdownJobs called from executing host");
                     }
                 }
             }
@@ -308,16 +308,16 @@ public class JobService {
             if (remoteJobStatus.result.ok) {
                 try {
                     runnable.afterExecution(context);
-                    jobInfoRepository.markRunningAsFinished(jobInfo.getName(), context.getResultCode(), remoteJobStatus.result.message);
+                    jobInfoRepository.markAsFinished(context.getId(), context.getResultCode(), remoteJobStatus.result.message);
                 } catch (Exception e) {
                     LOGGER.error("ltag=JobService.updateJobStatus.afterExecution jobName=" + jobInfo.getName() + " jobId=" + jobInfo.getId() + " failed: " + e.getMessage(), e);
-                    jobInfoRepository.markRunningAsFinishedWithException(jobInfo.getName(), e);
+                    jobInfoRepository.markAsFinished(context.getId(), e);
                 }
             } else {
                 LOGGER.warn("ltag=JobService.updateJobStatus.resultNotOk jobName={} jobId={} exitCode={} message={}",
                         new Object[]{jobInfo.getName(), jobInfo.getId(), remoteJobStatus.result.exitCode, remoteJobStatus.result.message});
                 jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(remoteJobStatus.result.exitCode));
-                jobInfoRepository.markRunningAsFinished(jobInfo.getName(), ResultCode.FAILED, remoteJobStatus.result.message);
+                jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.FAILED, remoteJobStatus.result.message);
             }
         }
     }

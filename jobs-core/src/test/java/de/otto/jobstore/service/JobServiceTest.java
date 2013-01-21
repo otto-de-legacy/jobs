@@ -6,6 +6,7 @@ import de.otto.jobstore.common.util.InternetUtils;
 import de.otto.jobstore.repository.JobDefinitionRepository;
 import de.otto.jobstore.repository.JobInfoRepository;
 import de.otto.jobstore.service.exception.*;
+import org.bson.types.ObjectId;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -34,7 +35,6 @@ public class JobServiceTest {
         jobInfoRepository = mock(JobInfoRepository.class);
         jobDefinitionRepository = mock(JobDefinitionRepository.class);
         remoteJobExecutorService = mock(RemoteJobExecutorService.class);
-        reset(jobInfoRepository, jobDefinitionRepository,remoteJobExecutorService);
         jobService = new JobService(jobDefinitionRepository, jobInfoRepository);
         jobInfoService = new JobInfoService(jobInfoRepository);
         when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
@@ -88,20 +88,24 @@ public class JobServiceTest {
     @Test
     public void testStopAllJobsJobRunning() throws Exception {
         jobService.registerJob(createLocalJobRunnable(JOB_NAME_01));
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(new JobInfo(JOB_NAME_01, InternetUtils.getHostName(), "bla", 60000L));
+        JobInfo job = new JobInfo(JOB_NAME_01, InternetUtils.getHostName(), "bla", 60000L);
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(job);
 
         jobService.registerJob(createLocalJobRunnable(JOB_NAME_01));
         jobService.shutdownJobs();
-        verify(jobInfoRepository).markRunningAsFinished(JOB_NAME_01, ResultCode.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository).markAsFinished(job.getId(), ResultCode.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
     public void testStopAllJobsJobRunningOnDifferentHost() throws Exception {
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(new JobInfo(JOB_NAME_01, "differentHost", "bla", 60000L));
+        JobInfo jobInfo = new JobInfo(JOB_NAME_01, "differentHost", "bla", 60000L);
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(jobInfo);
 
         jobService.registerJob(createLocalJobRunnable(JOB_NAME_01));
         jobService.shutdownJobs();
-        verify(jobInfoRepository, never()).markRunningAsFinished(JOB_NAME_01, ResultCode.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markAsFinished(jobInfo.getId(), ResultCode.FAILED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -110,16 +114,17 @@ public class JobServiceTest {
         jobService.registerJob(createLocalJobRunnable(JOB_NAME_02));
         jobService.shutdownJobs();
 
-        verify(jobInfoRepository, never()).markRunningAsFinished("jobName", ResultCode.FAILED, "shutdownJobs called from executing host");
-        verify(jobInfoRepository, never()).markRunningAsFinished("jobName2", ResultCode.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository, never()).markAsFinished(anyString(), any(ResultCode.class), anyString());
     }
 
     @Test
     public void testExecuteQueuedJobs() throws Exception {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
+        JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L);
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L), new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
+                Arrays.asList(jobInfo, new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
         LocalMockJobRunnable runnable = new LocalMockJobRunnable(JOB_NAME_01,1000);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(createSimpleJd());
@@ -131,16 +136,17 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
         Thread.sleep(100);
         assertTrue(runnable.isExecuted());
-        verify(jobInfoRepository, times(1)).markRunningAsFinished(JOB_NAME_01, ResultCode.SUCCESSFUL, null);
+        verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
     }
 
     @Test
     public void testExecuteForcedQueuedJobs() throws Exception {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
-        when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS, new HashMap<String, String>())));
+        JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS, new HashMap<String, String>());
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
+        when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(Arrays.asList(jobInfo));
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
-        LocalMockJobRunnable runnable = new LocalMockJobRunnable(JOB_NAME_01,1000);
+        LocalMockJobRunnable runnable = new LocalMockJobRunnable(JOB_NAME_01, 1000);
 
         jobService.registerJob(runnable);
 
@@ -148,17 +154,20 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
         Thread.sleep(100);
         assertTrue(runnable.isExecuted());
-        verify(jobInfoRepository, times(1)).markRunningAsFinished(JOB_NAME_01, ResultCode.SUCCESSFUL, null);
+        verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
     }
 
     @Test
     public void testExecuteQueuedJobsFinishWithException() throws Exception {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
+        JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L);
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L), new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
+                Arrays.asList(jobInfo, new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(createSimpleJd());
+        final JobExecutionException exception = new JobExecutionException("problem while executing");
         JobRunnable runnable = new AbstractLocalJobRunnable() {
 
             @Override
@@ -178,7 +187,7 @@ public class JobServiceTest {
 
             @Override
             public void execute(JobExecutionContext executionContext) throws JobExecutionException {
-                throw new JobExecutionException("problem while executing");
+                throw exception;
             }
         };
         jobService.registerJob(runnable);
@@ -188,7 +197,7 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
         verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
         Thread.sleep(100);
-        verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(), any(Exception.class));
+        verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), exception);
     }
 
     @Test
@@ -308,6 +317,7 @@ public class JobServiceTest {
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
+        final JobExecutionException exception = new JobExecutionException("problem while executing");
         JobRunnable runnable = new AbstractLocalJobRunnable() {
 
             @Override
@@ -327,7 +337,7 @@ public class JobServiceTest {
 
             @Override
             public void execute(JobExecutionContext executionContext) throws JobExecutionException {
-                throw new JobExecutionException("problem while executing");
+                throw exception;
             }
         };
 
@@ -335,7 +345,7 @@ public class JobServiceTest {
         String id = jobService.executeJob(JOB_NAME_01, JobExecutionPriority.IGNORE_PRECONDITIONS);
         assertEquals("1234", id);
         Thread.sleep(100);
-        verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(), any(Exception.class));
+        verify(jobInfoRepository, times(1)).markAsFinished(id, exception);
     }
 
     @Test(expectedExceptions = JobExecutionDisabledException.class)
@@ -396,6 +406,7 @@ public class JobServiceTest {
         jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0));
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
@@ -403,7 +414,7 @@ public class JobServiceTest {
                 new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(false, 1, "foo"), null));
 
         jobService.pollRemoteJobs();
-        verify(jobInfoRepository, times(1)).markRunningAsFinished(JOB_NAME_01, ResultCode.FAILED, "foo");
+        verify(jobInfoRepository, times(1)).markAsFinished(job.getId(), ResultCode.FAILED, "foo");
     }
 
     @Test
@@ -412,6 +423,7 @@ public class JobServiceTest {
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
@@ -420,7 +432,7 @@ public class JobServiceTest {
 
         jobService.pollRemoteJobs();
         Thread.sleep(1000);
-        verify(jobInfoRepository, times(1)).markRunningAsFinished(JOB_NAME_01, ResultCode.SUCCESSFUL, "foo");
+        verify(jobInfoRepository, times(1)).markAsFinished(job.getId(), ResultCode.SUCCESSFUL, "foo");
         assertEquals(ResultCode.SUCCESSFUL, runnable.afterSuccessContext.getResultCode());
     }
 
@@ -431,6 +443,7 @@ public class JobServiceTest {
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
@@ -438,8 +451,8 @@ public class JobServiceTest {
                 new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo"), null));
 
         jobService.pollRemoteJobs();
-        Thread.sleep(1000);
-        verify(jobInfoRepository, times(1)).markRunningAsFinishedWithException(anyString(), any(Throwable.class));
+        Thread.sleep(100);
+        verify(jobInfoRepository, times(1)).markAsFinished(job.getId(), runnable.exception);
         assertEquals(ResultCode.SUCCESSFUL, runnable.afterSuccessContext.getResultCode());
     }
 
@@ -449,12 +462,12 @@ public class JobServiceTest {
         runnable.throwExceptionInAfterExecution = true;
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(job);
 
         jobService.pollRemoteJobs();
-        Thread.sleep(1000);
-        verify(jobInfoRepository, times(1)).markRunningAsFinished(JOB_NAME_01, ResultCode.FAILED, "RemoteJobUri is not set, cannot continue.");
+        verify(jobInfoRepository, times(1)).markAsFinished(job.getId(), ResultCode.FAILED, "RemoteJobUri is not set, cannot continue.");
     }
 
     @Test
@@ -491,6 +504,7 @@ public class JobServiceTest {
         private long pollingInterval;
         public JobExecutionContext afterSuccessContext = null;
         public boolean throwExceptionInAfterExecution = false;
+        public JobExecutionException exception = new JobExecutionException("bar");
 
         // TODO: same as in JobServiceIntegrationTest
         private RemoteMockJobRunnable(String name, RemoteJobExecutorService rjes, JobInfoService jis, long maxExecutionTime, long pollingInterval) {
@@ -529,7 +543,7 @@ public class JobServiceTest {
         public void afterExecution(JobExecutionContext context) throws JobException {
             afterSuccessContext = context;
             if (throwExceptionInAfterExecution) {
-                throw new JobExecutionException("bar");
+                throw exception;
             }
         }
 
