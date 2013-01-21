@@ -30,7 +30,7 @@ public class RemoteJobExecutorService {
 
         // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
         //    see: https://github.com/mitsuhiko/flask/issues/367
-        ClientConfig cc = new DefaultClientConfig();
+        final ClientConfig cc = new DefaultClientConfig();
         cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
         this.client = Client.create(cc);
     }
@@ -72,10 +72,12 @@ public class RemoteJobExecutorService {
         try {
             final ClientResponse response = client.resource(jobUri.toString()).
                     accept(MediaType.APPLICATION_JSON).header("Connection", "close").get(ClientResponse.class);
-            RemoteJobStatus status = response.getEntity(RemoteJobStatus.class);
-            LOGGER.info("ltag=RemoteJobExecutorService.getStatus Response from server: {}", status);
             if (response.getStatus() == 200) {
+                final RemoteJobStatus status = response.getEntity(RemoteJobStatus.class);
+                LOGGER.info("ltag=RemoteJobExecutorService.getStatus Response from server: {}", status);
                 return status;
+            } else {
+                response.close();
             }
             LOGGER.warn("Received unexpected status code {} when trying to retrieve status for remote job from: {}", response.getStatus(), jobUri);
         } catch (UniformInterfaceException | ClientHandlerException e) {
@@ -86,9 +88,10 @@ public class RemoteJobExecutorService {
 
     public boolean isAlive() {
         try {
-            final ClientResponse response = client.resource(jobExecutorUri).header("Connection", "close")
-                                                                           .get(ClientResponse.class);
-            return (response.getStatus() == 200);
+            final ClientResponse response = client.resource(jobExecutorUri).header("Connection", "close").get(ClientResponse.class);
+            final boolean alive = response.getStatus() == 200;
+            response.close();
+            return alive;
         } catch (UniformInterfaceException | ClientHandlerException e) {
             LOGGER.warn("Remote Job Executor is not available from: {}", jobExecutorUri, e);
         }
