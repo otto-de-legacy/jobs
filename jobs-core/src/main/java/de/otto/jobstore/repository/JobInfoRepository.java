@@ -474,6 +474,8 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                     if (markAsFinished(jobInfo.getId(), ResultCode.TIMED_OUT)) {
                         removedJobs.add(jobInfo.getName() + " - " + jobInfo.getId());
                         ++numberOfRemovedJobs;
+                    } else {
+                        logger.error("marking the job " + jobInfo.getName() + ":" + jobInfo.getId() + "as finished was not successful");
                     }
                 }
             }
