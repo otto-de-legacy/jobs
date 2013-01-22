@@ -164,6 +164,19 @@ public final class JobInfo extends AbstractItem {
         return result;
     }
 
+    public List<LogLine> getLastLogLines(int maxLines) {
+        final List<DBObject> logLines = getProperty(JobInfoProperty.LOG_LINES);
+        if (logLines == null) return Collections.emptyList();
+
+        final List<LogLine> result = new ArrayList<>(Math.min(logLines.size(), maxLines));
+        int endPos = logLines.size();
+        int startPos = Math.max(0, endPos - maxLines);
+        for (DBObject logLine : logLines.subList(startPos, endPos)) {
+            result.add(new LogLine(logLine));
+        }
+        return result;
+    }
+
     public Date getLastModifiedTime() {
         return getProperty(JobInfoProperty.LAST_MODIFICATION_TIME);
     }

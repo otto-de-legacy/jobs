@@ -22,15 +22,13 @@ import java.io.StringWriter;
 import java.net.URI;
 import java.util.*;
 
-
-/**
- *
- */
 @Path("/jobs")
 public final class JobInfoResource {
 
-    public static final String OTTO_JOBS_XML = "application/vnd.otto.jobs+xml";
+    public static final String OTTO_JOBS_XML  = "application/vnd.otto.jobs+xml";
     public static final String OTTO_JOBS_JSON = "application/vnd.otto.jobs+json";
+
+    public static final int MAX_LOG_LINES = 100;
 
     private final JobService jobService;
 
@@ -129,7 +127,7 @@ public final class JobInfoResource {
             for (JobInfo jobInfo : jobInfoService.getByName(name, size)) {
                 final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(name).path(jobInfo.getId()).build();
                 final StringWriter writer = new StringWriter();
-                marshaller.marshal(JobInfoRepresentation.fromJobInfo(jobInfo), writer);
+                marshaller.marshal(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES), writer);
                 final Entry entry = abdera.newEntry();
                 entry.addLink(uri.getPath(), "self");
                 entry.setContent(writer.toString(), OTTO_JOBS_XML);
@@ -173,7 +171,7 @@ public final class JobInfoResource {
         if (jobInfo == null || !jobInfo.getName().equals(name)) {
             return Response.status(Response.Status.NOT_FOUND).build();
         } else {
-            return Response.ok(JobInfoRepresentation.fromJobInfo(jobInfo)).build();
+            return Response.ok(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES)).build();
         }
     }
 
@@ -197,7 +195,7 @@ public final class JobInfoResource {
             final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), Collections.singleton(resultStatus));
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<>();
             for (JobInfo jobInfo : jobInfoList) {
-                jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo));
+                jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES));
             }
             jobs.put(jobName, jobInfoRepresentations);
         }

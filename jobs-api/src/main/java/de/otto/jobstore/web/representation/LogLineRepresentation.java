@@ -33,4 +33,12 @@ public final class LogLineRepresentation {
         return new LogLineRepresentation(ll.getLine(), ll.getTimestamp());
     }
 
+    @Override
+    public String toString() {
+        return "LogLineRepresentation{" +
+                "'" + line + '\'' +
+                " from " + timestamp +
+                '}';
+    }
+
 }

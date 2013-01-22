@@ -121,9 +121,11 @@ public final class JobInfoRepresentation {
         return logLines;
     }
 
-    public static JobInfoRepresentation fromJobInfo(JobInfo jobInfo) {
-        final List<LogLineRepresentation> logLines = new ArrayList<>();
-        for (LogLine ll : jobInfo.getLogLines()) {
+    public static JobInfoRepresentation fromJobInfo(JobInfo jobInfo, int maxLogLines) {
+        // Limit to the last recent N loglines
+        final int nrLogLines = Math.min(maxLogLines, jobInfo.getLogLines().size());
+        final List<LogLineRepresentation> logLines = new ArrayList<>(nrLogLines);
+        for (LogLine ll : jobInfo.getLastLogLines(nrLogLines)) {
             logLines.add(LogLineRepresentation.fromLogLine(ll));
         }
         return new JobInfoRepresentation(jobInfo.getId(), jobInfo.getName(), jobInfo.getHost(),
