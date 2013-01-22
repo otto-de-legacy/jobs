@@ -1,6 +1,7 @@
 package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.*;
+import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.common.util.InternetUtils;
 import de.otto.jobstore.repository.JobDefinitionRepository;
 import de.otto.jobstore.repository.JobInfoRepository;
@@ -228,19 +229,16 @@ public class JobService {
                 if (jobRunnable.getJobDefinition().isRemote()) {
                     final JobDefinition definition = jobRunnable.getJobDefinition();
                     final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(definition.getName(), RunningState.RUNNING);
-                    if (runningJob != null) {
-                        if (jobRequiresUpdate(runningJob.getLastModifiedTime(), System.currentTimeMillis(), definition.getPollingInterval())) {
-                            final JobRunnable runnable = jobs.get(definition.getName());
-                            final RemoteJobStatus remoteJobStatus = runnable.getRemoteStatus(
-                                    createJobExecutionContext(runningJob.getId(), runningJob.getName(), runningJob.getExecutionPriority(), null));
-                            if (remoteJobStatus != null) {
-                                updateJobStatus(runningJob, runnable, remoteJobStatus);
-                            } else {
-                                LOGGER.warn("ltag=JobService.pollRemoteJobs No remote status got for jobName={}", definition.getName());
-                            }
+                    if (runningJob != null && jobRequiresUpdate(runningJob.getLastModifiedTime(), System.currentTimeMillis(), definition.getPollingInterval()) &&
+                            runningJob.getAdditionalData().containsKey(JobInfoProperty.REMOTE_JOB_URI.val())) {
+                        final JobRunnable runnable = jobs.get(definition.getName());
+                        final RemoteJobStatus remoteJobStatus = runnable.getRemoteStatus(
+                                createJobExecutionContext(runningJob.getId(), runningJob.getName(), runningJob.getExecutionPriority(), null));
+                        if (remoteJobStatus != null) {
+                            updateJobStatus(runningJob, runnable, remoteJobStatus);
                         }
                     } else {
-                        LOGGER.info("ltag=JobService.pollRemoteJobs No running instance of jobName={} found, skip status check", definition.getName());
+                        LOGGER.info("ltag=JobService.pollRemoteJobs jobName={} " + runningJob == null ? "has no running instance." : "is still fresh.", definition.getName());
                     }
                 }
             }
@@ -296,7 +294,9 @@ public class JobService {
 
     private void updateJobStatus(JobInfo jobInfo, JobRunnable runnable, RemoteJobStatus remoteJobStatus) {
         LOGGER.info("ltag=JobService.updateJobStatus jobName={} jobId={} status={}", new Object[]{jobInfo.getName(), jobInfo.getId(), remoteJobStatus.status});
-        jobInfoRepository.appendLogLines(jobInfo.getName(), remoteJobStatus.logLines);
+        if (remoteJobStatus.logLines != null && !remoteJobStatus.logLines.isEmpty()) {
+            jobInfoRepository.appendLogLines(jobInfo.getName(), remoteJobStatus.logLines);
+        }
         if (remoteJobStatus.message != null && remoteJobStatus.message.length() > 0) {
             jobInfoRepository.setStatusMessage(jobInfo.getName(), remoteJobStatus.message);
         }

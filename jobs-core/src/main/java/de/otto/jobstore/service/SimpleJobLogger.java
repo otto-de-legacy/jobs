@@ -54,7 +54,7 @@ final class SimpleJobLogger implements JobLogger {
 
     @Override
     public String getAdditionalData(String key) {
-        JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(jobName, RunningState.RUNNING);
+        final JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(jobName, RunningState.RUNNING);
         Map<String, String> additionalData = jobInfo.getAdditionalData();
         return (additionalData != null) ? additionalData.get(key) : null;
     }

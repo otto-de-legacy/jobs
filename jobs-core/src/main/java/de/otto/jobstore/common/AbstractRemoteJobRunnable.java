@@ -27,10 +27,6 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     @Override
     public RemoteJobStatus getRemoteStatus(JobExecutionContext context) {
         final String remoteJobUri = context.getJobLogger().getAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val());
-        if (remoteJobUri == null) {
-            return new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, Collections.<String>emptyList(),
-                    new RemoteJobResult(false, 1, "RemoteJobUri is not set, cannot continue."), new Date().toString());
-        }
         final RemoteJobStatus status = remoteJobExecutorService.getStatus(URI.create(remoteJobUri));
         final JobInfo jobInfo = jobInfoService.getById(context.getId());
 

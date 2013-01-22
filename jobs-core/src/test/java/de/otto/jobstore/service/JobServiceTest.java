@@ -457,20 +457,6 @@ public class JobServiceTest {
     }
 
     @Test
-    public void testPollRemoteJobsJobWithoutRemoteJobUri() throws Exception {
-        RemoteMockJobRunnable runnable = new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0);
-        runnable.throwExceptionInAfterExecution = true;
-        jobService.registerJob(runnable);
-        JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
-        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
-                thenReturn(job);
-        Thread.sleep(100);
-        jobService.pollRemoteJobs();
-        verify(jobInfoRepository, times(1)).markAsFinished(job.getId(), ResultCode.FAILED, "RemoteJobUri is not set, cannot continue.");
-    }
-
-    @Test
     public void testJobDoesRequireUpdate() throws Exception {
         Date dt = new Date();
         Date lastModification = new Date(dt.getTime() - 60L * 1000L);
