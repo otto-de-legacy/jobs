@@ -136,7 +136,6 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @return The list of jobs sorted by creationTime in descending order
      */
     public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Set<ResultCode> resultCodes) {
-        final List<String> resultCodeAsStrings = toStringList(resultCodes);
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
         if (start != null) {
             query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.GTE.op(), start));
@@ -145,6 +144,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), end));
         }
         if (resultCodes != null && !resultCodes.isEmpty()) {
+            final List<String> resultCodeAsStrings = toStringList(resultCodes);
             query.append(JobInfoProperty.RESULT_STATE.val(), new BasicDBObject(MongoOperator.IN.op(), resultCodeAsStrings));
         }
         final DBCursor cursor = collection.find(query.get()).
@@ -609,10 +609,10 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         return "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString();
     }
 
-    private <E extends Enum<E>> List<String> toStringList(Set<E> enumSet) {
+    private List<String> toStringList(Set<? extends Enum<?>> enumSet) {
         final List<String> strings = new ArrayList<>();
         if (enumSet != null) {
-            for (Enum<E> e : enumSet) {
+            for (Enum<?> e : enumSet) {
                 strings.add(e.name());
             }
         }
