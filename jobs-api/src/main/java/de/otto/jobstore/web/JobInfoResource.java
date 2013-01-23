@@ -191,8 +191,15 @@ public final class JobInfoResource {
         final Collection<String> jobNames = jobService.listJobNames();
         final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
         final Date dt = new Date(new Date().getTime() - hours * 60 * 60 * 1000);
+
+        // only create a list if we really do not have a null object
+        Set<ResultCode> resultCodes = null;
+        if(resultStatus != null) {
+            resultCodes = Collections.singleton(resultStatus);
+        }
+
         for (String jobName : jobNames) {
-            final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), Collections.singleton(resultStatus));
+            final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), resultCodes);
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<>();
             for (JobInfo jobInfo : jobInfoList) {
                 jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES));
