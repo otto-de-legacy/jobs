@@ -497,7 +497,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             /* register clean up job with max execution time */
             final long maxExecutionTime = 5 * 60 * 1000;
             final String id = create(JOB_NAME_CLEANUP, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            final Date beforeDate = new Date(currentDate.getTime() - (Math.min(4, hoursAfterWhichOldJobsAreDeleted) * 60 * 60 * 1000));
+            final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
             /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotRunning(beforeDate);
@@ -516,7 +516,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             /* register clean up job with max execution time */
             final long maxExecutionTime = 5 * 60 * 1000;
             final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            final Date beforeDate = new Date(currentDate.getTime() - (Math.min(1, hoursAfterWhichNotExecutedJobsAreDeleted) * 60 * 60 * 1000));
+            final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not executed jobs before {} ...", beforeDate);
             /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotExecuted(beforeDate);
