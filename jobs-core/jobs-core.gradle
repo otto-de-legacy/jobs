@@ -16,7 +16,7 @@ task uploadJavadoc(dependsOn: javadoc) << {
                 'scp',
                 '-r',
                 javadoc.destinationDir,
-                'tomcat@docs.lhotse.ov.otto.de:/srv/www/htdocs/jobstore/core'
+                'deploy@docs.lhotse.ov.otto.de:/srv/www/htdocs/jobstore/core'
         )
     }
 }
