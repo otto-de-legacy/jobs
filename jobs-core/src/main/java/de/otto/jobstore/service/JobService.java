@@ -180,8 +180,8 @@ public class JobService {
         final String id;
         final StoredJobDefinition jobDefinition = getJobDefinition(checkJobName(name));
         final JobRunnable runnable = jobs.get(name);
-        if (jobDefinition.isDisabled()) {
-            throw new JobExecutionDisabledException("Execution of jobs with name " + jobDefinition.getName() + " has been paused");
+        if (jobDefinition.isDisabled() || jobDefinition.isAborted()) {
+            throw new JobExecutionDisabledException("Execution of jobs with name " + jobDefinition.getName() + " has been paused or aborted");
         }
         if (!isExecutionEnabled()) {
             throw new JobExecutionDisabledException("Execution of jobs has been disabled");
@@ -217,8 +217,8 @@ public class JobService {
             LOGGER.info("ltag=JobService.executeQueuedJobs");
             for (JobInfo jobInfo : jobInfoRepository.findQueuedJobsSortedAscByCreationTime()) {
                 final StoredJobDefinition jobDefinition = getJobDefinition(jobInfo.getName());
-                if (jobDefinition.isDisabled()) {
-                    LOGGER.info("ltag=JobService.executeQueuedJobs.isPaused jobName={}", jobInfo.getName());
+                if (jobDefinition.isDisabled() || jobDefinition.isAborted()) {
+                    LOGGER.info("ltag=JobService.executeQueuedJobs.isPausedOrAborted jobName={}", jobInfo.getName());
                 } else if (!jobs.containsKey(jobInfo.getName())) {
                     LOGGER.info("ltag=JobService.executeQueuedJobs.notRegistered jobName={}", jobInfo.getName());
                 } else {
@@ -339,8 +339,8 @@ public class JobService {
 
     private JobExecutionContext createJobExecutionContext(String jobId, String jobName, JobExecutionPriority priority, List<String> logLines) {
         final JobLogger jobLogger = new SimpleJobLogger(jobName, jobInfoRepository, logLines);
-        final JobDefinitionQuery jobDefQuery = new JobDefinitionQuery(jobName, jobDefinitionRepository);
-        return new JobExecutionContext(jobId, jobLogger, jobDefQuery, priority);
+        final JobDefinitionCache jobDefCache = new JobDefinitionCache(jobName, jobDefinitionRepository);
+        return new JobExecutionContext(jobId, jobLogger, jobDefCache, priority);
     }
 
     private void executeQueuedJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {

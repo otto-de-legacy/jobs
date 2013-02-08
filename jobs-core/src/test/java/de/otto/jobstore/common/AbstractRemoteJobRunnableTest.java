@@ -38,7 +38,7 @@ public class AbstractRemoteJobRunnableTest {
         when(remoteJobExecutorService.startJob(new RemoteJob(jobName, "4811", parameters))).thenReturn(uri);
         JobRunnable runnable = new RemoteJobRunnable(remoteJobExecutorService, jobInfoService);
         MockJobLogger logger = new MockJobLogger();
-        JobExecutionContext context = new JobExecutionContext("4811", logger, mock(JobDefinitionQuery.class), JobExecutionPriority.CHECK_PRECONDITIONS);
+        JobExecutionContext context = new JobExecutionContext("4811", logger, mock(JobDefinitionCache.class), JobExecutionPriority.CHECK_PRECONDITIONS);
         runnable.execute(context);
 
         assertEquals(uri.toString(), logger.additionalData.get(JobInfoProperty.REMOTE_JOB_URI.val()));
@@ -51,7 +51,7 @@ public class AbstractRemoteJobRunnableTest {
                 thenThrow(new RemoteJobAlreadyRunningException("", uri));
         JobRunnable runnable = new RemoteJobRunnable(remoteJobExecutorService, jobInfoService);
         MockJobLogger logger = new MockJobLogger();
-        JobExecutionContext context = new JobExecutionContext("4711", logger, mock(JobDefinitionQuery.class), JobExecutionPriority.CHECK_PRECONDITIONS);
+        JobExecutionContext context = new JobExecutionContext("4711", logger, mock(JobDefinitionCache.class), JobExecutionPriority.CHECK_PRECONDITIONS);
         runnable.execute(context);
 
         assertEquals(uri.toString(), logger.additionalData.get(JobInfoProperty.REMOTE_JOB_URI.val()));
