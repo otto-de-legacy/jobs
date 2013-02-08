@@ -352,7 +352,7 @@ public class JobServiceTest {
     public void testJobExecutedDisabled() throws Exception {
         reset(jobDefinitionRepository);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
-        StoredJobDefinition disabledJob = new StoredJobDefinition(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName(), 0, 0, false);
+        StoredJobDefinition disabledJob = new StoredJobDefinition(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName(), 0, 0, false, false);
         disabledJob.setDisabled(true);
         when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(disabledJob);
         JobService jobServiceImpl = new JobService(jobDefinitionRepository, jobInfoRepository);
@@ -579,7 +579,7 @@ public class JobServiceTest {
     }
 
     private StoredJobDefinition createSimpleJd() {
-        return new StoredJobDefinition("foo", 0, 0, false) ;
+        return new StoredJobDefinition("foo", 0, 0, false, false) ;
     }
 
 }

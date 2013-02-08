@@ -8,4 +8,8 @@ public abstract class AbstractRemoteJobDefinition implements JobDefinition {
         return true;
     }
 
+    @Override
+    public boolean isAbortable() {
+        return false;
+    }
 }

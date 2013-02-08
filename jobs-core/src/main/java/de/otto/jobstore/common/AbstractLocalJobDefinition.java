@@ -12,4 +12,9 @@ public abstract class AbstractLocalJobDefinition implements JobDefinition {
         return false;
     }
 
+    @Override
+    public boolean isAbortable() {
+        return false;
+    }
+
 }

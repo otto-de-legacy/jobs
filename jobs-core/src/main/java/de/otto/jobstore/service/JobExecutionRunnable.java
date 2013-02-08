@@ -2,6 +2,7 @@ package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.repository.JobInfoRepository;
+import de.otto.jobstore.service.exception.JobExecutionAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,9 @@ final class JobExecutionRunnable implements Runnable {
                 LOGGER.info("ltag=JobService.JobExecutionRunnable.run skipped jobName={} jobId={}", name, context.getId());
                 jobInfoRepository.markAsFinished(context.getId(), ResultCode.NOT_EXECUTED);
             }
+        } catch (JobExecutionAbortedException e) {
+            LOGGER.warn("ltag=JobService.JobExecutionRunnable.run jobName=" + name + " jobId=" + context.getId() + " was aborted");
+            jobInfoRepository.markAsFinished(context.getId(), ResultCode.ABORTED);
         } catch (Exception e) {
             LOGGER.error("ltag=JobService.JobExecutionRunnable.run jobName=" + name + " jobId=" + context.getId() + " failed: " + e.getMessage(), e);
             jobInfoRepository.markAsFinished(context.getId(), e);

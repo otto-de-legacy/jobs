@@ -1,19 +1,19 @@
 package de.otto.jobstore.common;
 
-import java.util.Map;
-
 public final class JobExecutionContext {
 
     private final String id;
     private final JobLogger jobLogger;
     private final JobExecutionPriority executionPriority;
+    private final JobDefinitionQuery jobDefinitionQuery;
 
     private ResultCode resultCode = ResultCode.SUCCESSFUL;
     private String resultMessage;
 
-    public JobExecutionContext(String id, JobLogger jobLogger, JobExecutionPriority executionPriority) {
+    public JobExecutionContext(String id, JobLogger jobLogger, JobDefinitionQuery jobDefinitionQuery, JobExecutionPriority executionPriority) {
         this.id = id;
         this.jobLogger = jobLogger;
+        this.jobDefinitionQuery = jobDefinitionQuery;
         this.executionPriority = executionPriority;
     }
 
@@ -43,6 +43,10 @@ public final class JobExecutionContext {
 
     public void setResultMessage(String resultMessage) {
         this.resultMessage = resultMessage;
+    }
+
+    public boolean isAborted() {
+        return jobDefinitionQuery.isAborted();
     }
 
     @Override

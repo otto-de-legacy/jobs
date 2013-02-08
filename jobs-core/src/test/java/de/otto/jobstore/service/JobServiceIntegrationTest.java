@@ -19,7 +19,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 import static org.testng.AssertJUnit.*;
 
-@ContextConfiguration(locations = {"classpath:spring/lhotse-jobs-context.xml"})
+@ContextConfiguration(locations = {"classpath:spring/jobs-context.xml"})
 public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests {
 
     @Resource(name = "jobServiceWithoutRemoteJobExecutorService")

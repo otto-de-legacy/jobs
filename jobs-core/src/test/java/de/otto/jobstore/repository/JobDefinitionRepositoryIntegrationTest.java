@@ -10,7 +10,7 @@ import javax.annotation.Resource;
 
 import static org.testng.AssertJUnit.*;
 
-@ContextConfiguration(locations = {"classpath:spring/lhotse-jobs-context.xml"})
+@ContextConfiguration(locations = {"classpath:spring/jobs-context.xml"})
 public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpringContextTests {
 
     private static final String JOB_NAME = "test";
@@ -25,7 +25,7 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testAddingNotExistingJobDefinition() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
         jobDefinitionRepository.addOrUpdate(jd);
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertNotNull(retrievedJobDefinition);
@@ -33,12 +33,12 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testUpdatingExistingJobDefinition() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
         jobDefinitionRepository.addOrUpdate(jd);
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertEquals(1L, retrievedJobDefinition.getPollingInterval());
 
-        jd = new StoredJobDefinition(JOB_NAME, 1, 2, true);
+        jd = new StoredJobDefinition(JOB_NAME, 1, 2, true, false);
         jobDefinitionRepository.addOrUpdate(jd);
         retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertEquals(2L, retrievedJobDefinition.getPollingInterval());
@@ -46,7 +46,7 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testDisablingJob() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
         jobDefinitionRepository.save(jd);
         jobDefinitionRepository.setJobExecutionEnabled(JOB_NAME, false);
 
@@ -56,7 +56,7 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testActivatingJob() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
         jd.setDisabled(true);
         jobDefinitionRepository.save(jd);
         jobDefinitionRepository.setJobExecutionEnabled(JOB_NAME, true);
@@ -67,11 +67,11 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testUpdatingPausedJob() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
         jd.setDisabled(true);
         jobDefinitionRepository.save(jd);
 
-        StoredJobDefinition jd2 = new StoredJobDefinition(JOB_NAME, 2, 2, true);
+        StoredJobDefinition jd2 = new StoredJobDefinition(JOB_NAME, 2, 2, true, false);
         jobDefinitionRepository.addOrUpdate(jd2);
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertEquals(2, retrievedJobDefinition.getPollingInterval());

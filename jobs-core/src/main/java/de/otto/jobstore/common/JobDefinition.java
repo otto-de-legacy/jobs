@@ -25,4 +25,12 @@ public interface JobDefinition {
      */
     boolean isRemote();
 
+    /**
+     * Flag if the job can be aborted
+     *
+     * @return true - The job can be aborted</br>
+     *         false - The job cannot be aborted
+     */
+    boolean isAbortable();
+
 }
