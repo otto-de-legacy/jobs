@@ -2,8 +2,8 @@ apply from: 'gradle/libraries.gradle'
 
 allprojects {
     apply plugin: 'idea'
-    version = '0.8.27-SNAPSHOT'
-    //version = '0.8.27'
+    version = '0.8.28-SNAPSHOT'
+    //version = '0.8.29'
     group = 'de.otto'
 }
 
