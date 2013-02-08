@@ -17,6 +17,7 @@ __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
 import io
+import grp
 import os
 import re
 import time
@@ -392,6 +393,7 @@ def ensure_job_instance_directory():
     if not os.path.exists(app.config['JOB_LOG_DIR']):
         os.makedirs(app.config['JOB_LOG_DIR'])
         # TODO: ensure common group 'users' is set
+	os.chown(app.config['JOB_LOG_DIR'], os.getuid(), grp.getgrnam("users").gr_gid)
         os.chmod(app.config['JOB_LOG_DIR'], 00775)  # make it group writable
 
 def exists_job_instance(job_name):
