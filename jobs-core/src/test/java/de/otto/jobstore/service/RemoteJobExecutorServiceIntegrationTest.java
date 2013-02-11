@@ -13,6 +13,10 @@ import javax.annotation.Resource;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static org.testng.AssertJUnit.*;
 
@@ -24,7 +28,7 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
     @Resource
     private RemoteJobExecutorService remoteJobExecutorService;
 
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void testStartingDemoJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         assertNotNull(uri);
@@ -33,7 +37,7 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(enabled = false, expectedExceptions = RemoteJobAlreadyRunningException.class)
+    @Test(enabled = true, expectedExceptions = RemoteJobAlreadyRunningException.class)
     public void testStartingDemoJobWhichIsAlreadyRunning() throws Exception {
         URI uri = null;
         try {
@@ -51,30 +55,52 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
         }
     }
 
-    @Test(enabled = false, expectedExceptions = RemoteJobNotRunningException.class)
+    @Test(enabled = true, expectedExceptions = RemoteJobNotRunningException.class)
     public void testStoppingJobTwice() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         remoteJobExecutorService.stopJob(uri);
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(enabled = false, expectedExceptions = RemoteJobNotRunningException.class)
+    @Test(enabled = true, expectedExceptions = RemoteJobNotRunningException.class)
     public void testStoppingNotExistingJob() throws Exception {
         remoteJobExecutorService.stopJob(URI.create("http://localhost:5000/jobs/" + JOB_NAME + "/12345")); // TODO: configure URL
     }
 
-    @Test(enabled = false)
+
+    class GetRequest implements Runnable {
+
+        private URI uri;
+
+        public GetRequest(URI uri) {
+            this.uri = uri;
+        }
+
+        @Override
+        public void run() {
+            RemoteJobStatus status = remoteJobExecutorService.getStatus(uri);
+            assertNotNull(status);
+            assertEquals(RemoteJobStatus.Status.RUNNING, status.status);
+        }
+    }
+
+    @Test(enabled = true)
     public void testGettingStatusOfRunningJob() throws Exception {
-        URI uri = remoteJobExecutorService.startJob(createRemoteJob());
-        RemoteJobStatus status = remoteJobExecutorService.getStatus(uri);
+        final URI uri = remoteJobExecutorService.startJob(createRemoteJob());
+
+        ExecutorService exec = Executors.newFixedThreadPool(8);
+        for (int i = 0; i < 100; i++) {
+            exec.submit(new GetRequest(uri));
+        }
+        exec.shutdown();
+        exec.awaitTermination(10, TimeUnit.SECONDS);
+
         remoteJobExecutorService.stopJob(uri);
 
-        assertNotNull(status);
-        assertEquals(RemoteJobStatus.Status.RUNNING, status.status);
         //assertNull(status.result);
     }
 
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void testGettingStatusOfFinishedJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         remoteJobExecutorService.stopJob(uri);
@@ -88,7 +114,7 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
 
     private RemoteJob createRemoteJob() {
         Map<String, String> params = new HashMap<String, String>();
-        params.put("sample_file", "/var/log/mongodb.log");
+        params.put("sample_file", "/var/log/mongodb/mongodb.log");
         return new RemoteJob(JOB_NAME, "2311", params);
     }
 
