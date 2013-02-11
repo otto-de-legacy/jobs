@@ -72,11 +72,12 @@ public final class JobInfoResource {
     /**
      * Disables/Enables job execution
      */
-    @DELETE
+    @POST
+    @Path("toggle")
     public Response toggleJobExecution() {
         final boolean newStatus = !jobService.isExecutionEnabled();
         jobService.setExecutionEnabled(newStatus);
-        return Response.ok("{\"status\" : " + (newStatus ? "enabled" : "disabled") + "}").build();
+        return Response.ok(buildStatusJson(newStatus)).build();
     }
 
     /**
@@ -144,13 +145,13 @@ public final class JobInfoResource {
      * @param name The name of the job to enable/disable
      * @return The current status of the status (enabled true/false)
      */
-    @DELETE
-    @Path("/{name}")
+    @POST
+    @Path("/{name}/toggle")
     public Response toggleJobEnabled(@PathParam("name") final String name) {
         try {
             final boolean newStatus = !jobService.isJobExecutionEnabled(name);
             jobService.setJobExecutionEnabled(name, newStatus);
-            return Response.ok("{\"status\" : " + (newStatus ? "enabled" : "disabled") + "}").build();
+            return Response.ok(buildStatusJson(newStatus)).build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -172,6 +173,26 @@ public final class JobInfoResource {
             return Response.status(Response.Status.NOT_FOUND).build();
         } else {
             return Response.ok(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES)).build();
+        }
+    }
+
+    /**
+     * Aborts the execution of a job if it supports this.
+     *
+     * @param name The name of the job
+     * @param id The id of the job
+     * @return
+     */
+    @POST
+    @Path("/{name}/{id}/abort")
+    public Response abortJob(@PathParam("name") final String name, @PathParam("id") final String id) {
+        final JobInfo jobInfo = jobInfoService.getById(id);
+        if (jobInfo == null || !jobInfo.getName().equals(name)) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        } else {
+            //TODO: Return 403 is job is not abortable
+            jobService.abortJob(jobInfo.getId());
+            return Response.ok().build();
         }
     }
 
@@ -207,6 +228,10 @@ public final class JobInfoResource {
             jobs.put(jobName, jobInfoRepresentations);
         }
         return Response.ok(jobs).build();
+    }
+
+    private String buildStatusJson(boolean newStatus) {
+        return "{\"status\" : " + (newStatus ? "enabled" : "disabled") + "}";
     }
 
     private Feed createFeed(final Abdera abdera, String title, final String subTitle, final URI feedLink) {

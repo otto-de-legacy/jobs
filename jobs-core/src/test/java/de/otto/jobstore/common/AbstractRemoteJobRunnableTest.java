@@ -1,5 +1,6 @@
 package de.otto.jobstore.common;
 
+import de.otto.jobstore.TestSetup;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.service.JobInfoService;
 import de.otto.jobstore.service.RemoteJobExecutorService;
@@ -24,6 +25,7 @@ public class AbstractRemoteJobRunnableTest {
 
     private Map<String, String> parameters = new HashMap<>();
     private String jobName = "testJob";
+    private AbstractRemoteJobDefinition jobDefinition = TestSetup.remoteJobDefinition(jobName, 0, 0);
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -36,9 +38,9 @@ public class AbstractRemoteJobRunnableTest {
     public void testRemoteJobSetup() throws Exception {
         URI uri = URI.create("http://www.otto.de");
         when(remoteJobExecutorService.startJob(new RemoteJob(jobName, "4811", parameters))).thenReturn(uri);
-        JobRunnable runnable = new RemoteJobRunnable(remoteJobExecutorService, jobInfoService);
+        JobRunnable runnable = TestSetup.remoteJobRunnable(remoteJobExecutorService, jobInfoService, parameters, jobDefinition);
         MockJobLogger logger = new MockJobLogger();
-        JobExecutionContext context = new JobExecutionContext("4811", logger, mock(JobDefinitionQuery.class), JobExecutionPriority.CHECK_PRECONDITIONS);
+        JobExecutionContext context = new JobExecutionContext("4811", logger, mock(JobInfoCache.class), JobExecutionPriority.CHECK_PRECONDITIONS);
         runnable.execute(context);
 
         assertEquals(uri.toString(), logger.additionalData.get(JobInfoProperty.REMOTE_JOB_URI.val()));
@@ -49,53 +51,19 @@ public class AbstractRemoteJobRunnableTest {
         URI uri = URI.create("http://www.otto.de");
         when(remoteJobExecutorService.startJob(new RemoteJob(jobName, "4711", parameters))).
                 thenThrow(new RemoteJobAlreadyRunningException("", uri));
-        JobRunnable runnable = new RemoteJobRunnable(remoteJobExecutorService, jobInfoService);
+        JobRunnable runnable = TestSetup.remoteJobRunnable(remoteJobExecutorService, jobInfoService, parameters, jobDefinition);
         MockJobLogger logger = new MockJobLogger();
-        JobExecutionContext context = new JobExecutionContext("4711", logger, mock(JobDefinitionQuery.class), JobExecutionPriority.CHECK_PRECONDITIONS);
+        JobExecutionContext context = new JobExecutionContext("4711", logger, mock(JobInfoCache.class), JobExecutionPriority.CHECK_PRECONDITIONS);
         runnable.execute(context);
 
         assertEquals(uri.toString(), logger.additionalData.get(JobInfoProperty.REMOTE_JOB_URI.val()));
         assertEquals(uri.toString(), logger.additionalData.get("resumedAlreadyRunningJob"));
     }
 
-    private class RemoteJobRunnable extends AbstractRemoteJobRunnable {
-
-        private RemoteJobRunnable(RemoteJobExecutorService remoteJobExecutorService, JobInfoService jobInfoService) {
-            super(remoteJobExecutorService, jobInfoService);
-        }
-
-        @Override
-        public Map<String, String> getParameters() {
-            return parameters;
-        }
-
-        @Override
-        public JobDefinition getJobDefinition() {
-            return new AbstractRemoteJobDefinition() {
-                @Override
-                public String getName() {
-                    return jobName;
-                }
-
-                @Override
-                public long getTimeoutPeriod() {
-                    return 0;
-                }
-
-                @Override
-                public long getPollingInterval() {
-                    return 0;
-                }
-            };
-        }
-    }
-
-
     private class MockJobLogger implements JobLogger {
 
         public List<String> logs = new ArrayList<>();
         public Map<String, String> additionalData = new HashMap<>();
-
 
         @Override
         public void addLoggingData(String log) {

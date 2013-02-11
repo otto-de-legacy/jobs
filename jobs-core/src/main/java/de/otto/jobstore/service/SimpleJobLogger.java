@@ -11,15 +11,17 @@ import java.util.Map;
 
 final class SimpleJobLogger implements JobLogger {
 
+    private final String jobId;
     private final String jobName;
     private final JobInfoRepository jobInfoRepository;
     private List<String> logLines;
 
-    SimpleJobLogger(String jobName, JobInfoRepository jobInfoRepository) {
-        this(jobName, jobInfoRepository, new ArrayList<String>());
+    SimpleJobLogger(String jobId, String jobName, JobInfoRepository jobInfoRepository) {
+        this(jobId, jobName, jobInfoRepository, new ArrayList<String>());
     }
 
-    SimpleJobLogger(String jobName, JobInfoRepository jobInfoRepository, List<String> logLines) {
+    SimpleJobLogger(String jobId, String jobName, JobInfoRepository jobInfoRepository, List<String> logLines) {
+        this.jobId = jobId;
         this.jobName = jobName;
         this.jobInfoRepository = jobInfoRepository;
         this.logLines = logLines == null ? new ArrayList<String>() : logLines;
@@ -32,15 +34,6 @@ final class SimpleJobLogger implements JobLogger {
             logLines.add(logLine);
         }
     }
-
-    /*
-    @Override
-    public void setLoggingData(String logLines) {
-        for (String line : logLines) {
-            addLoggingData(line);
-        }
-    }
-    */
 
     @Override
     public List<String> getLoggingData() {

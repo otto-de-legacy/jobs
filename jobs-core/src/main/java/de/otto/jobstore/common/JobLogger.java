@@ -30,4 +30,5 @@ public interface JobLogger {
      * @return value The value to be found.
      */
     public String getAdditionalData(String key);
+
 }
