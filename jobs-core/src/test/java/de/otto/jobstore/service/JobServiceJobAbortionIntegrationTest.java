@@ -1,7 +1,8 @@
 package de.otto.jobstore.service;
 
-import de.otto.jobstore.common.JobDefinitionCache;
+import de.otto.jobstore.common.JobInfoCache;
 import de.otto.jobstore.common.JobInfo;
+import de.otto.jobstore.common.JobInfoCache;
 import de.otto.jobstore.common.JobRunnable;
 import de.otto.jobstore.common.ResultCode;
 import de.otto.jobstore.common.example.SimpleAbortableJob;
@@ -32,7 +33,7 @@ public class JobServiceJobAbortionIntegrationTest extends AbstractTestNGSpringCo
     public void setUp() throws Exception {
         jobDefinitionRepository.clear(false);
         jobService.initialize();
-        JobDefinitionCache.setUpdateInterval(0);
+        JobInfoCache.setUpdateInterval(0);
     }
 
     @Test
@@ -42,8 +43,8 @@ public class JobServiceJobAbortionIntegrationTest extends AbstractTestNGSpringCo
 
         final String name = abortableJob.getJobDefinition().getName();
         String id = jobService.executeJob(name);
-        jobService.setJobAbortionEnabled(name, true);
-        Thread.sleep(500);
+        jobService.abortJob(id);
+        Thread.sleep(1000);
 
         JobInfo abortedJob = jobInfoService.getById(id);
         assertEquals(ResultCode.ABORTED, abortedJob.getResultState());
@@ -56,7 +57,7 @@ public class JobServiceJobAbortionIntegrationTest extends AbstractTestNGSpringCo
 
         final String name = nonAbortableJob.getJobDefinition().getName();
         String id = jobService.executeJob(name);
-        jobService.setJobAbortionEnabled(name, true);
+        jobService.abortJob(id);
         Thread.sleep(500);
 
         JobInfo finishedJob = jobInfoService.getById(id);

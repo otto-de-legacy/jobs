@@ -2,6 +2,7 @@ package de.otto.jobstore.repository;
 
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
+import de.otto.jobstore.common.properties.JobDefinitionProperty;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.common.util.InternetUtils;
 import org.bson.types.ObjectId;
@@ -172,6 +173,13 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             return result.getN() == 1;
         }catch(MongoException.DuplicateKey e){
             return false;
+        }
+    }
+
+    public void abortJob(String id) {
+        if (ObjectId.isValid(id)) {
+            collection.update(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)),
+                    new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.ABORTED.val(), true)), false, false, WriteConcern.SAFE);
         }
     }
 

@@ -5,15 +5,15 @@ public final class JobExecutionContext {
     private final String id;
     private final JobLogger jobLogger;
     private final JobExecutionPriority executionPriority;
-    private final JobDefinitionCache jobDefinitionCache;
+    private final JobInfoCache jobInfoCache;
 
     private volatile ResultCode resultCode = ResultCode.SUCCESSFUL;
     private String resultMessage;
 
-    public JobExecutionContext(String id, JobLogger jobLogger, JobDefinitionCache jobDefinitionQuery, JobExecutionPriority executionPriority) {
+    public JobExecutionContext(String id, JobLogger jobLogger, JobInfoCache jobInfoCache, JobExecutionPriority executionPriority) {
         this.id = id;
         this.jobLogger = jobLogger;
-        this.jobDefinitionCache = jobDefinitionQuery;
+        this.jobInfoCache = jobInfoCache;
         this.executionPriority = executionPriority;
     }
 
@@ -46,7 +46,7 @@ public final class JobExecutionContext {
     }
 
     public boolean isAborted() {
-        return jobDefinitionCache.isAborted();
+        return jobInfoCache.isAborted();
     }
 
     @Override

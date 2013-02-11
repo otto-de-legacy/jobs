@@ -25,7 +25,8 @@ public enum JobInfoProperty implements ItemProperty {
     LAST_MODIFICATION_TIME("lastModificationTime"),
     ADDITIONAL_DATA("additionalData"),
     LOG_LINES("logLines"),
-    REMOTE_JOB_URI("remoteJobUri");
+    REMOTE_JOB_URI("remoteJobUri"),
+    ABORTED("aborted");
 
     private final String value;
 

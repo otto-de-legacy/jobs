@@ -189,6 +189,11 @@ public final class JobInfo extends AbstractItem {
         return getProperty(JobInfoProperty.RUNNING_STATE);
     }
 
+    public boolean isAborted() {
+       final Boolean aborted = getProperty(JobInfoProperty.ABORTED);
+       return aborted == null ? false : aborted;
+    }
+
     public ResultCode getResultState() {
         final String resultState = getProperty(JobInfoProperty.RESULT_STATE);
         if (resultState == null) {
