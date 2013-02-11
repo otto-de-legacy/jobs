@@ -11,6 +11,8 @@ public enum ResultCode {
 
     TIMED_OUT,
 
+    ABORTED,
+
     /** If job gets skipped because preconditions not fulfilled */
     NOT_EXECUTED
 

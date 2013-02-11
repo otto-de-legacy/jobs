@@ -88,7 +88,12 @@ public class JobService {
      * @throws JobNotRegisteredException If the job is not registered with this jobService instance
      */
     public boolean isJobExecutionEnabled(final String name) throws JobNotRegisteredException {
-        return isJobEnabled(checkJobName(name));
+        final StoredJobDefinition jobDefinition = jobDefinitionRepository.find(checkJobName(name));
+        return jobDefinition.isAborted();
+    }
+
+    public boolean isJobAborted(final String name) throws  JobNotRegisteredException {
+        return isJobAborted(checkJobName(name));
     }
 
     /**
@@ -101,6 +106,10 @@ public class JobService {
      */
     public void setJobExecutionEnabled(String name, boolean executionEnabled) throws JobNotRegisteredException {
         jobDefinitionRepository.setJobExecutionEnabled(checkJobName(name), executionEnabled);
+    }
+
+    public void setJobAbortionEnabled(String name, boolean abort) throws JobNotRegisteredException {
+        jobDefinitionRepository.setJobExecutionAborted(checkJobName(name), abort);
     }
 
     /**
@@ -169,7 +178,7 @@ public class JobService {
             JobAlreadyQueuedException, JobAlreadyRunningException, JobExecutionNotNecessaryException,
             JobExecutionDisabledException {
         final String id;
-        final StoredJobDefinition jobDefinition = jobDefinitionRepository.find(checkJobName(name));
+        final StoredJobDefinition jobDefinition = getJobDefinition(checkJobName(name));
         final JobRunnable runnable = jobs.get(name);
         if (jobDefinition.isDisabled()) {
             throw new JobExecutionDisabledException("Execution of jobs with name " + jobDefinition.getName() + " has been paused");
@@ -207,7 +216,7 @@ public class JobService {
         if (isExecutionEnabled()) {
             LOGGER.info("ltag=JobService.executeQueuedJobs");
             for (JobInfo jobInfo : jobInfoRepository.findQueuedJobsSortedAscByCreationTime()) {
-                final StoredJobDefinition jobDefinition = jobDefinitionRepository.find(jobInfo.getName());
+                final StoredJobDefinition jobDefinition = getJobDefinition(jobInfo.getName());
                 if (jobDefinition.isDisabled()) {
                     LOGGER.info("ltag=JobService.executeQueuedJobs.isPaused jobName={}", jobInfo.getName());
                 } else if (!jobs.containsKey(jobInfo.getName())) {
@@ -330,7 +339,8 @@ public class JobService {
 
     private JobExecutionContext createJobExecutionContext(String jobId, String jobName, JobExecutionPriority priority, List<String> logLines) {
         final JobLogger jobLogger = new SimpleJobLogger(jobName, jobInfoRepository, logLines);
-        return new JobExecutionContext(jobId, jobLogger, priority);
+        final JobDefinitionQuery jobDefQuery = new JobDefinitionQuery(jobName, jobDefinitionRepository);
+        return new JobExecutionContext(jobId, jobLogger, jobDefQuery, priority);
     }
 
     private void executeQueuedJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
@@ -388,8 +398,12 @@ public class JobService {
     }
 
     private boolean isJobEnabled(String name) {
-        final StoredJobDefinition semaphore = jobDefinitionRepository.find(name);
+        final StoredJobDefinition semaphore = getJobDefinition(name);
         return !semaphore.isDisabled();
+    }
+
+    private StoredJobDefinition getJobDefinition(String name) {
+        return jobDefinitionRepository.find(name);
     }
 
 }

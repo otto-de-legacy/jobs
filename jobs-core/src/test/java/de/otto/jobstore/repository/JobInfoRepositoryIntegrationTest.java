@@ -17,7 +17,7 @@ import java.util.*;
 
 import static org.testng.AssertJUnit.*;
 
-@ContextConfiguration(locations = {"classpath:spring/lhotse-jobs-context.xml"})
+@ContextConfiguration(locations = {"classpath:spring/jobs-context.xml"})
 public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContextTests {
 
     private static final String TESTVALUE_JOBNAME = "testjob";

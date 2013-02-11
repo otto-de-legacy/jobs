@@ -47,4 +47,9 @@ public class JobDefinitionRepository extends AbstractRepository<StoredJobDefinit
                 new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobDefinitionProperty.DISABLED.val(), !executionEnabled)));
     }
 
+    public void setJobExecutionAborted(String name, boolean abort) {
+        collection.update(new BasicDBObject(JobDefinitionProperty.NAME.val(), name),
+                new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobDefinitionProperty.ABORTED.val(), abort)));
+    }
+
 }
