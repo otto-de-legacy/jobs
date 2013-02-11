@@ -13,7 +13,7 @@ dependencies {
 // ~~~~~~~~~~~
 
 test {
-    exclude "de/otto/jobstore/service/RemoteJobExecutorServiceIntegrationTest.class"
+    exclude "de/otto/jobstore/service/RemoteJobExecutorServiceIntegrationTest*"
 }
 
 task integrationTest(type: Test, dependsOn: 'startJobExec') {
@@ -26,7 +26,7 @@ task integrationTest(type: Test, dependsOn: 'startJobExec') {
 
 
 task prepareJobExec(type: Exec) {
-    commandLine '../jobs-executor/prepare.sh', '0.8.25'
+    commandLine '../jobs-executor/prepare.sh', '0.8.26'
 }
 
 task startJobExec(type: Exec, dependsOn: prepareJobExec) {
