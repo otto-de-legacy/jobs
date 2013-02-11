@@ -4,16 +4,17 @@ import de.otto.jobstore.repository.JobInfoRepository;
 
 public class JobInfoCache {
 
-    private static int UPDATE_INTERVAL = 10000;
     private final String id;
     private final JobInfoRepository jobInfoRepository;
+    private long updateInterval;
     private volatile long lastUpdate = 0;
     private volatile JobInfo jobInfo;
 
-    public JobInfoCache(String id, JobInfoRepository jobDefinitionRepository) {
+    public JobInfoCache(String id, JobInfoRepository jobInfoRepository, long updateInterval) {
         this.id = id;
-        this.jobInfoRepository = jobDefinitionRepository;
+        this.jobInfoRepository = jobInfoRepository;
         this.jobInfo = getJobInfo();
+        this.updateInterval = updateInterval;
     }
 
     public boolean isAborted() {
@@ -22,19 +23,15 @@ public class JobInfoCache {
 
     private JobInfo getJobInfo() {
         final long currentTime = System.currentTimeMillis();
-        if (lastUpdate + UPDATE_INTERVAL < currentTime) {
+        if (lastUpdate + updateInterval < currentTime) {
             synchronized (this) {
-                if (lastUpdate + UPDATE_INTERVAL < currentTime) {
+                if (lastUpdate + updateInterval < currentTime) {
                     lastUpdate = currentTime;
                     jobInfo = jobInfoRepository.findById(id);
                 }
             }
         }
         return jobInfo;
-    }
-
-    public static void setUpdateInterval(int updateInterval) {
-        JobInfoCache.UPDATE_INTERVAL = updateInterval;
     }
 
 }

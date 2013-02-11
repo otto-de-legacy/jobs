@@ -30,6 +30,7 @@ public class JobService {
     private final Set<Set<String>> runningConstraints = new CopyOnWriteArraySet<>();
     private final JobDefinitionRepository jobDefinitionRepository;
     private final JobInfoRepository jobInfoRepository;
+    private long jobInfoCacheUpdateInterval = 10000;
 
     /**
      * Creates a JobService Object.
@@ -40,7 +41,7 @@ public class JobService {
     public JobService(JobDefinitionRepository jobDefinitionRepository, final JobInfoRepository jobInfoRepository) {
         this.jobDefinitionRepository = jobDefinitionRepository;
         this.jobInfoRepository = jobInfoRepository;
-        initialize();
+        this.jobDefinitionRepository.addOrUpdate(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
     }
 
     public boolean isExecutionEnabled() {
@@ -286,10 +287,6 @@ public class JobService {
         return Collections.unmodifiableList(jobNames);
     }
 
-    protected void initialize() {
-        jobDefinitionRepository.addOrUpdate(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
-    }
-
     /**
      * Returns the Set of all constraints
      */
@@ -339,7 +336,7 @@ public class JobService {
 
     private JobExecutionContext createJobExecutionContext(String jobId, String jobName, JobExecutionPriority priority, List<String> logLines) {
         final JobLogger jobLogger = new SimpleJobLogger(jobId, jobName, jobInfoRepository, logLines);
-        final JobInfoCache jobInfoCache = new JobInfoCache(jobId, jobInfoRepository);
+        final JobInfoCache jobInfoCache = new JobInfoCache(jobId, jobInfoRepository, jobInfoCacheUpdateInterval);
         return new JobExecutionContext(jobId, jobLogger, jobInfoCache, priority);
     }
 

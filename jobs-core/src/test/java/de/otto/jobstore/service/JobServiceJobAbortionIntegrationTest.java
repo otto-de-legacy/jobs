@@ -8,8 +8,10 @@ import de.otto.jobstore.common.ResultCode;
 import de.otto.jobstore.common.example.SimpleAbortableJob;
 import de.otto.jobstore.common.example.SimpleJobRunnableExample;
 import de.otto.jobstore.repository.JobDefinitionRepository;
+import de.otto.jobstore.repository.JobInfoRepository;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -21,19 +23,18 @@ import static org.testng.AssertJUnit.assertEquals;
 public class JobServiceJobAbortionIntegrationTest extends AbstractTestNGSpringContextTests {
 
     @Resource
-    private JobService jobService;
-
-    @Resource
     private JobInfoService jobInfoService;
-
     @Resource
     private JobDefinitionRepository jobDefinitionRepository;
+    @Resource
+    private JobInfoRepository jobInfoRepository;
+    private JobService jobService;
 
     @BeforeMethod
     public void setUp() throws Exception {
         jobDefinitionRepository.clear(false);
-        jobService.initialize();
-        JobInfoCache.setUpdateInterval(0);
+        jobService = new JobService(jobDefinitionRepository, jobInfoRepository);
+        ReflectionTestUtils.setField(jobService, "jobInfoCacheUpdateInterval", 0);
     }
 
     @Test

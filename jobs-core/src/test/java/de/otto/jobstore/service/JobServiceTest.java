@@ -465,7 +465,6 @@ public class JobServiceTest {
                 throw jobExecutionException;
             }
         }
-
     }
 
     private JobInfo createJobInfo(String name, JobExecutionPriority executionPriority, RunningState runningState) {
