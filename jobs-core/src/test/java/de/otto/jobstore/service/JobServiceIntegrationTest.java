@@ -1,5 +1,6 @@
 package de.otto.jobstore.service;
 
+import de.otto.jobstore.TestSetup;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.repository.JobDefinitionRepository;
@@ -35,7 +36,7 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
     private JobDefinitionRepository jobDefinitionRepository;
 
     private RemoteJobExecutorService remoteJobExecutorService = mock(RemoteJobExecutorService.class);
-    private RemoteJobRunnableMock jobRunnable;
+    private AbstractRemoteJobRunnable jobRunnable;
 
     private static final String JOB_NAME_1 = "test_job_1";
     private static final String JOB_NAME_2 = "test_job_2";
@@ -53,7 +54,8 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
     @Test
     public void testExecutingRemoteJob() throws Exception {
-        jobRunnable = new RemoteJobRunnableMock(remoteJobExecutorService, jobInfoService, 0, 0);
+        jobRunnable = TestSetup.remoteJobRunnable(remoteJobExecutorService, jobInfoService, PARAMETERS,
+                TestSetup.remoteJobDefinition(JOB_NAME_3, 0, 0));
         jobService.registerJob(jobRunnable);
         reset(remoteJobExecutorService);
         when(remoteJobExecutorService.startJob(any(RemoteJob.class))).thenReturn(REMOTE_JOB_URI);
@@ -119,7 +121,8 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
     @Test
     public void testExecuteJobFailsWithConnectionException() throws Exception {
-        jobRunnable = new RemoteJobRunnableMock(remoteJobExecutorService, jobInfoService, 0, 0);
+        jobRunnable = TestSetup.remoteJobRunnable(remoteJobExecutorService, jobInfoService, PARAMETERS,
+                TestSetup.remoteJobDefinition(JOB_NAME_3, 0, 0));
         jobService.registerJob(jobRunnable);
         reset(remoteJobExecutorService);
         when(remoteJobExecutorService.startJob(any(RemoteJob.class))).thenThrow(new JobExecutionException("Error connecting to host"));
@@ -132,72 +135,23 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
     class LocalJobRunnableMock extends AbstractLocalJobRunnable {
 
-        private final String name;
+        private AbstractLocalJobDefinition localJobDefinition;
 
         LocalJobRunnableMock(String name) {
-            this.name = name;
+            localJobDefinition = TestSetup.localJobDefinition(name, 1000);
         }
 
         @Override
         public JobDefinition getJobDefinition() {
-            return new AbstractLocalJobDefinition() {
-                @Override
-                public String getName() {
-                    return name;
-                }
-
-                @Override
-                public long getTimeoutPeriod() {
-                    return 1000;
-                }
-            };
+            return localJobDefinition;
         }
 
         @Override
         public void execute(JobExecutionContext context) throws JobException {
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-            }
+            } catch (InterruptedException e) {}
         }
     }
 
-    class RemoteJobRunnableMock extends AbstractRemoteJobRunnable {
-
-        final long timeoutPeriod;
-        final long pollingInterval;
-
-        // TODO: (almost) same as in JobServiceTest
-        RemoteJobRunnableMock(RemoteJobExecutorService remoteJobExecutorService, JobInfoService jobInfoService,  long timeoutPeriod, long pollingInterval) {
-            super(remoteJobExecutorService, jobInfoService);
-            this.timeoutPeriod = timeoutPeriod;
-            this.pollingInterval = pollingInterval;
-        }
-
-        @Override
-        public JobDefinition getJobDefinition() {
-            return new AbstractRemoteJobDefinition() {
-                @Override
-                public String getName() {
-                    return JOB_NAME_3;
-                }
-
-                @Override
-                public long getTimeoutPeriod() {
-                    return timeoutPeriod;
-                }
-
-                @Override
-                public long getPollingInterval() {
-                    return pollingInterval;
-                }
-            };
-        }
-
-        @Override
-        public Map<String, String> getParameters() {
-            return PARAMETERS;
-        }
-    }
 }

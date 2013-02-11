@@ -92,7 +92,7 @@ public class JobService {
         return jobDefinition.isAborted();
     }
 
-    public boolean isJobAborted(final String name) throws  JobNotRegisteredException {
+    public boolean isJobAborted(final String name) throws JobNotRegisteredException {
         return isJobAborted(checkJobName(name));
     }
 
