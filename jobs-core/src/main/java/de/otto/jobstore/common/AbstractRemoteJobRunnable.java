@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.Collections;
-import java.util.Date;
 
 public abstract class AbstractRemoteJobRunnable implements JobRunnable {
 
@@ -57,11 +55,13 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     public void execute(JobExecutionContext context) throws JobException {
         final JobLogger jobLogger = context.getJobLogger();
         try {
-            log.info("ltag=AbstractRemoteJobRunnable.execute Trigger remote job jobName={} jobId={} ...", getJobDefinition().getName(), context.getId());
+            log.info("ltag={}.execute Trigger remote job jobName={} jobId={} ...",
+                    this.getClass().getSimpleName(), getJobDefinition().getName(), context.getId());
             final URI uri = remoteJobExecutorService.startJob(new RemoteJob(getJobDefinition().getName(), context.getId(), getParameters()));
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), uri.toString());
         } catch (RemoteJobAlreadyRunningException e) {
-            log.info("ltag=AbstractRemoteJobRunnable.execute Remote job jobName={} jobId={} is already running: " + e.getMessage(), getJobDefinition().getName(), context.getId());
+            log.info("ltag={}.execute Remote job jobName={} jobId={} is already running: {}",
+                    this.getClass().getSimpleName(), getJobDefinition().getName(), context.getId(), e.getMessage());
             jobLogger.insertOrUpdateAdditionalData("resumedAlreadyRunningJob", e.getJobUri().toString());
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), e.getJobUri().toString());
         }
