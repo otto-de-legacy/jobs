@@ -180,7 +180,7 @@ public class JobService {
         final String id;
         final StoredJobDefinition jobDefinition = getJobDefinition(checkJobName(name));
         final JobRunnable runnable = jobs.get(name);
-        if (jobDefinition.isDisabled() || jobDefinition.isAborted()) {
+        if (jobDefinition.isDisabled() || (jobDefinition.isAbortable() && jobDefinition.isAborted())) {
             throw new JobExecutionDisabledException("Execution of jobs with name " + jobDefinition.getName() + " has been paused or aborted");
         }
         if (!isExecutionEnabled()) {
@@ -217,7 +217,7 @@ public class JobService {
             LOGGER.info("ltag=JobService.executeQueuedJobs");
             for (JobInfo jobInfo : jobInfoRepository.findQueuedJobsSortedAscByCreationTime()) {
                 final StoredJobDefinition jobDefinition = getJobDefinition(jobInfo.getName());
-                if (jobDefinition.isDisabled() || jobDefinition.isAborted()) {
+                if (jobDefinition.isDisabled() || (jobDefinition.isAbortable() && jobDefinition.isAborted())) {
                     LOGGER.info("ltag=JobService.executeQueuedJobs.isPausedOrAborted jobName={}", jobInfo.getName());
                 } else if (!jobs.containsKey(jobInfo.getName())) {
                     LOGGER.info("ltag=JobService.executeQueuedJobs.notRegistered jobName={}", jobInfo.getName());
