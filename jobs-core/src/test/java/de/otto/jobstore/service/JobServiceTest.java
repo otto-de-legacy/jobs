@@ -361,7 +361,7 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(1)).appendLogLines(JOB_NAME_01, logLines);
     }
 
-    @Test
+    @Test(enabled = false)
     public void testPollRemoteJobsJobIsFinishedNotSuccessfully() throws Exception {
         jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0));
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
