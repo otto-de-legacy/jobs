@@ -13,7 +13,7 @@ dependencies {
 // ~~~~~~~~~~~
 
 test {
-    exclude "de/otto/jobstore/service/RemoteJobExecutorServiceIntegrationTest*"
+    exclude "**/RemoteJobExecutorServiceIntegrationTest*"
 }
 
 task integrationTest(type: Test, dependsOn: 'startJobExec') {
@@ -21,7 +21,7 @@ task integrationTest(type: Test, dependsOn: 'startJobExec') {
     description "Run integration tests"
     testLogging.showStandardStreams = true
     testReportDir = file('build/reports/integration')
-    include "de/otto/jobstore/service/RemoteJobExecutorServiceIntegrationTest*"
+    include "**/RemoteJobExecutorServiceIntegrationTest*"
 }
 
 

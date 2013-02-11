@@ -13,7 +13,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.26"
+__version__ = "0.8.27"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
