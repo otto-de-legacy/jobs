@@ -2,6 +2,7 @@ package de.otto.jobstore.repository;
 
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
+import de.otto.jobstore.common.properties.JobDefinitionProperty;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.common.util.InternetUtils;
 import org.bson.types.ObjectId;
@@ -175,6 +176,13 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         }
     }
 
+    public void abortJob(String id) {
+        if (ObjectId.isValid(id)) {
+            collection.update(createIdQuery(id),
+                    new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.ABORTED.val(), true)), false, false, WriteConcern.SAFE);
+        }
+    }
+
     /**
      * Updates the host and thread information on the running job with the given name. Host and thread information
      * are determined automatically.
@@ -225,7 +233,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      */
     public boolean markAsFinished(final String id, final ResultCode resultCode, final String resultMessage) {
         return ObjectId.isValid(id) &&
-                markAsFinished(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), resultCode, resultMessage);
+                markAsFinished(createIdQuery(id), resultCode, resultMessage);
     }
 
     /**
@@ -301,8 +309,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      */
     public JobInfo findById(final String id) {
         if (ObjectId.isValid(id)) {
-            final DBObject obj = collection.findOne(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)));
-            return fromDbObject(obj);
+            return fromDbObject(collection.findOne(createIdQuery(id)));
         } else {
             return null;
         }
@@ -445,7 +452,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     public void remove(final String id) {
         if (ObjectId.isValid(id)) {
-            collection.remove(new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id)), WriteConcern.SAFE);
+            collection.remove(createIdQuery(id), WriteConcern.SAFE);
         }
     }
 
@@ -562,6 +569,10 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             return null;
         }
         return new JobInfo(dbObject);
+    }
+
+    private DBObject createIdQuery(String id) {
+        return new BasicDBObject(JobInfoProperty.ID.val(), new ObjectId(id));
     }
 
     /**
