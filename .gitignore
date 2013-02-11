@@ -1,3 +1,6 @@
+*.pyc
+venv
+coverage.xml
 *.iml
 *.iws
 *.ipr
