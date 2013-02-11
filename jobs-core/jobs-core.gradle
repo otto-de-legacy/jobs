@@ -1,3 +1,41 @@
+dependencies {
+    compile libs.mongoDb
+    compile libs.slfApi, libs.slfLog4j
+    compile libs.jerseyClient, libs.jerseyCore, libs.jerseyClientJSON
+
+    testCompile libs.testng, libs.mockito
+    testCompile libs.cobertura
+    testCompile libs.springContext, libs.springCore, libs.springBeans, libs.springTest
+    testCompile libs.jerseyApache
+    testCompile libs.commonsLogging
+}
+
+// ~~~~~~~~~~~
+
+test {
+    exclude "de/otto/jobstore/service/RemoteJobExecutorServiceIntegrationTest.class"
+}
+
+task integrationTest(type: Test, dependsOn: 'startJobExec') {
+    useTestNG()
+    description "Run integration tests"
+    testLogging.showStandardStreams = true
+    testReportDir = file('build/reports/integration')
+    include "de/otto/jobstore/service/RemoteJobExecutorServiceIntegrationTest*"
+}
+
+
+task prepareJobExec(type: Exec) {
+    commandLine '../jobs-executor/prepare.sh', '0.8.25'
+}
+
+task startJobExec(type: Exec, dependsOn: prepareJobExec) {
+    workingDir 'jobs-executor'
+    commandLine './start.sh'
+}
+
+// ~~~~~~~~~~~
+
 uploadArchives {
     configuration = configurations.archives
     repositories {
@@ -19,16 +57,4 @@ task uploadJavadoc(dependsOn: javadoc) << {
                 'deploy@docs.lhotse.ov.otto.de:/srv/www/htdocs/jobstore/core'
         )
     }
-}
-
-dependencies {
-    compile libs.mongoDb
-    compile libs.slfApi, libs.slfLog4j
-    compile libs.jerseyClient, libs.jerseyCore, libs.jerseyClientJSON
-
-    testCompile libs.testng, libs.mockito
-    testCompile libs.cobertura
-    testCompile libs.springContext, libs.springCore, libs.springBeans, libs.springTest
-    testCompile libs.jerseyApache
-    testCompile libs.commonsLogging
 }

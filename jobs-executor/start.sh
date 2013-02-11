@@ -11,4 +11,4 @@ echo "Starting job executor ..."
 # TODO improve by using gunicorn (see http://flask.pocoo.org/docs/deploying/others/)
 #   gunicorn -b 0.0.0.0:5000 jobmonitor:app
 
-python jobmonitor.py
+nohup python jobmonitor.py &
