@@ -36,7 +36,7 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
     private JobDefinitionRepository jobDefinitionRepository;
 
     private RemoteJobExecutorService remoteJobExecutorService = mock(RemoteJobExecutorService.class);
-    private AbstractRemoteJobRunnable jobRunnable;
+    private JobRunnable jobRunnable;
 
     private static final String JOB_NAME_1 = "test_job_1";
     private static final String JOB_NAME_2 = "test_job_2";
@@ -131,6 +131,27 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         JobInfo jobInfo = jobInfoRepository.findById(id);
         assertTrue("Expected job to be finished but it is: " + jobInfo.getRunningState(), jobInfo.getRunningState().startsWith("FINISHED"));
         assertEquals(ResultCode.FAILED, jobInfo.getResultState());
+    }
+
+    @Test
+    public void testIsJobExecutionDisabledReturnsCorrectStatus() throws Exception {
+        jobRunnable = TestSetup.localJobRunnable(JOB_NAME_1, 1000);
+        jobService.registerJob(jobRunnable);
+
+        jobService.setJobExecutionEnabled(JOB_NAME_1, false);
+        assertFalse(jobService.isJobExecutionEnabled(JOB_NAME_1));
+
+        jobService.setJobExecutionEnabled(JOB_NAME_1, true);
+        assertTrue(jobService.isJobExecutionEnabled(JOB_NAME_1));
+    }
+
+    @Test
+    public void testIsExecutionDisabledReturnsCorrectStatus() throws Exception {
+        jobService.setExecutionEnabled(false);
+        assertFalse(jobService.isExecutionEnabled());
+
+        jobService.setExecutionEnabled(true);
+        assertTrue(jobService.isExecutionEnabled());
     }
 
     class LocalJobRunnableMock extends AbstractLocalJobRunnable {
