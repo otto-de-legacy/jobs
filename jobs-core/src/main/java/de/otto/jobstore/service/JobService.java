@@ -40,7 +40,7 @@ public class JobService {
     public JobService(JobDefinitionRepository jobDefinitionRepository, final JobInfoRepository jobInfoRepository) {
         this.jobDefinitionRepository = jobDefinitionRepository;
         this.jobInfoRepository = jobInfoRepository;
-        jobDefinitionRepository.addOrUpdate(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
+        initialize();
     }
 
     public boolean isExecutionEnabled() {
@@ -288,6 +288,10 @@ public class JobService {
         final List<String> jobNames = new ArrayList<>(jobs.keySet());
         Collections.sort(jobNames);
         return Collections.unmodifiableList(jobNames);
+    }
+
+    protected void initialize() {
+        jobDefinitionRepository.addOrUpdate(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
     }
 
     /**

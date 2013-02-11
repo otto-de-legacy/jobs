@@ -4,7 +4,7 @@ import de.otto.jobstore.repository.JobDefinitionRepository;
 
 public class JobDefinitionCache {
 
-    private static int UPDATE_INTERVAL = 30000;
+    private static int UPDATE_INTERVAL = 10000;
     private final String name;
     private final JobDefinitionRepository jobDefinitionRepository;
     private volatile long lastUpdate = 0;
@@ -31,6 +31,10 @@ public class JobDefinitionCache {
             }
         }
         return storedJobDefinition;
+    }
+
+    public static void setUpdateInterval(int updateInterval) {
+        JobDefinitionCache.UPDATE_INTERVAL = updateInterval;
     }
 
 }
