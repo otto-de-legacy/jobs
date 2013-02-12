@@ -134,9 +134,9 @@ public class JobServiceTest {
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_02, 0));
 
         jobService.executeQueuedJobs();
+        Thread.sleep(500);
         verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
         verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
-        Thread.sleep(100);
         assertTrue(runnable.isExecuted());
         verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
     }
@@ -153,8 +153,8 @@ public class JobServiceTest {
         jobService.registerJob(runnable);
 
         jobService.executeQueuedJobs();
+        Thread.sleep(500);
         verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
-        Thread.sleep(100);
         assertTrue(runnable.isExecuted());
         verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
     }
@@ -175,9 +175,9 @@ public class JobServiceTest {
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_02, 0));
 
         jobService.executeQueuedJobs();
+        Thread.sleep(500);
         verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
         verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
-        Thread.sleep(100);
         verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), exception);
     }
 
@@ -285,7 +285,7 @@ public class JobServiceTest {
         jobService.registerJob(runnable);
         String id = jobService.executeJob(JOB_NAME_01, JobExecutionPriority.IGNORE_PRECONDITIONS);
         assertEquals("1234", id);
-        Thread.sleep(100);
+        Thread.sleep(500);
         assertTrue(runnable.isExecuted());
         verify(jobInfoRepository, times(1)).activateQueuedJob(JOB_NAME_01);
     }
@@ -304,7 +304,7 @@ public class JobServiceTest {
         jobService.registerJob(runnable);
         String id = jobService.executeJob(JOB_NAME_01, JobExecutionPriority.IGNORE_PRECONDITIONS);
         assertEquals("1234", id);
-        Thread.sleep(100);
+        Thread.sleep(500);
         verify(jobInfoRepository, times(1)).markAsFinished(id, exception);
     }
 
