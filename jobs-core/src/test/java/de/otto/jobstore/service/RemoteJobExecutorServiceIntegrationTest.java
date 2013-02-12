@@ -28,7 +28,7 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
     @Resource
     private RemoteJobExecutorService remoteJobExecutorService;
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testStartingDemoJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         assertNotNull(uri);
