@@ -73,7 +73,7 @@ public final class JobInfoResource {
      * Disables/Enables job execution
      */
     @POST
-    @Path("toggle")
+    @Path("/toggle")
     public Response toggleJobExecution() {
         final boolean newStatus = !jobService.isExecutionEnabled();
         jobService.setExecutionEnabled(newStatus);
@@ -88,7 +88,7 @@ public final class JobInfoResource {
      * @return The content location of the job
      */
     @POST
-    @Path("{name}")
+    @Path("/{name}")
     public Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo)  {
         try {
             final String jobId = jobService.executeJob(name, JobExecutionPriority.FORCE_EXECUTION);
