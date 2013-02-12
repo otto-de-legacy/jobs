@@ -186,7 +186,7 @@ public class JobInfoResourceTest {
         Map<String, JobInfoRepresentation> history = (Map<String, JobInfoRepresentation>) response.getEntity();
         assertEquals(1, history.size());
     }
-    /*
+
 
     @Test
     public void testTogglingJobEnabled() throws Exception {
@@ -210,7 +210,7 @@ public class JobInfoResourceTest {
         Response response = jobInfoResource.toggleJobEnabled("test");
         assertEquals(404, response.getStatus());
     }
-    */
+
 
     // ~~
 
