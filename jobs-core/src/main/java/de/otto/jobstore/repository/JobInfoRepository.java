@@ -2,7 +2,6 @@ package de.otto.jobstore.repository;
 
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
-import de.otto.jobstore.common.properties.JobDefinitionProperty;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.common.util.InternetUtils;
 import org.bson.types.ObjectId;
@@ -176,6 +175,11 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         }
     }
 
+    /**
+     * Set the aborted property of the job to true
+     *
+     * @param id The id of the Job to abort
+     */
     public void abortJob(String id) {
         if (ObjectId.isValid(id)) {
             collection.update(createIdQuery(id),
@@ -184,30 +188,30 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     }
 
     /**
-     * Updates the host and thread information on the running job with the given name. Host and thread information
+     * Updates the host and thread information on the job with the given id. Host and thread information
      * are determined automatically.
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
      * jobname ist not checked
      *
-     * @param name The name of the job
+     * @param id The id of the job
      */
-    public void updateHostThreadInformation(final String name) {
-        updateHostThreadInformation(name, InternetUtils.getHostName(), Thread.currentThread().getName());
+    public void updateHostThreadInformation(final String id) {
+        updateHostThreadInformation(id, InternetUtils.getHostName(), Thread.currentThread().getName());
     }
 
     /**
-     * Updates the host and thread information on the running job with the given name
+     * Updates the host and thread information on the job with the given id
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
      * jobname ist not checked
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @param host The host to set
      * @param thread The thread to set
      */
-    public void updateHostThreadInformation(final String name, final String host, final String thread) {
+    public void updateHostThreadInformation(final String id, final String host, final String thread) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.HOST.val(), host).append(JobInfoProperty.THREAD.val(), thread));
-        collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
+        collection.update(createIdQuery(id), update);
     }
 
     /**

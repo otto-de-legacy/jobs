@@ -366,7 +366,7 @@ public class JobService {
     private void activateQueuedJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
         final String name = runnable.getJobDefinition().getName();
         if (jobInfoRepository.activateQueuedJob(name)) {
-            jobInfoRepository.updateHostThreadInformation(name);
+            jobInfoRepository.updateHostThreadInformation(id);
             LOGGER.info("ltag=JobService.activateQueuedJob.activate jobInfoName={} jobInfoId={}", name, id);
             executeJob(runnable, id, executionPriority);
         } else {

@@ -125,8 +125,10 @@ public class JobServiceTest {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
         JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L);
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
+        final JobInfo jobInfo2 = new JobInfo(JOB_NAME_02, "bla", "bla", 1000L);
+        ReflectionTestUtils.invokeMethod(jobInfo2, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(jobInfo, new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
+                Arrays.asList(jobInfo, jobInfo2));
         TestSetup.LocalMockJobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01,1000);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(createSimpleJd());
@@ -135,8 +137,8 @@ public class JobServiceTest {
 
         jobService.executeQueuedJobs();
         Thread.sleep(500);
-        verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
-        verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
+        verify(jobInfoRepository, times(1)).updateHostThreadInformation(jobInfo.getId());
+        verify(jobInfoRepository, times(0)).updateHostThreadInformation(jobInfo2.getId());
         assertTrue(runnable.isExecuted());
         verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
     }
@@ -154,7 +156,7 @@ public class JobServiceTest {
 
         jobService.executeQueuedJobs();
         Thread.sleep(500);
-        verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
+        verify(jobInfoRepository, times(1)).updateHostThreadInformation(jobInfo.getId());
         assertTrue(runnable.isExecuted());
         verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
     }
@@ -165,8 +167,10 @@ public class JobServiceTest {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
         JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L);
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
+        final JobInfo jobInfo2 = new JobInfo(JOB_NAME_02, "bla", "bla", 1000L);
+        ReflectionTestUtils.invokeMethod(jobInfo2, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(jobInfo, new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
+                Arrays.asList(jobInfo, jobInfo2));
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(createSimpleJd());
         final JobExecutionException exception = new JobExecutionException("problem while executing");
@@ -176,8 +180,8 @@ public class JobServiceTest {
 
         jobService.executeQueuedJobs();
         Thread.sleep(500);
-        verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
-        verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
+        verify(jobInfoRepository, times(1)).updateHostThreadInformation(jobInfo.getId());
+        verify(jobInfoRepository, times(0)).updateHostThreadInformation(jobInfo2.getId());
         verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), exception);
     }
 
