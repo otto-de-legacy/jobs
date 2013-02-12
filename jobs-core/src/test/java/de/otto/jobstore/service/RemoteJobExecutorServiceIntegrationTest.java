@@ -37,7 +37,7 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(enabled = true, expectedExceptions = RemoteJobAlreadyRunningException.class)
+    @Test(enabled = false, expectedExceptions = RemoteJobAlreadyRunningException.class)
     public void testStartingDemoJobWhichIsAlreadyRunning() throws Exception {
         URI uri = null;
         try {
@@ -55,14 +55,14 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
         }
     }
 
-    @Test(enabled = true, expectedExceptions = RemoteJobNotRunningException.class)
+    @Test(enabled = false, expectedExceptions = RemoteJobNotRunningException.class)
     public void testStoppingJobTwice() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         remoteJobExecutorService.stopJob(uri);
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(enabled = true, expectedExceptions = RemoteJobNotRunningException.class)
+    @Test(enabled = false, expectedExceptions = RemoteJobNotRunningException.class)
     public void testStoppingNotExistingJob() throws Exception {
         remoteJobExecutorService.stopJob(URI.create("http://localhost:5000/jobs/" + JOB_NAME + "/12345")); // TODO: configure URL
     }
@@ -84,7 +84,7 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
         }
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testGettingStatusOfRunningJob() throws Exception {
         final URI uri = remoteJobExecutorService.startJob(createRemoteJob());
 
@@ -100,7 +100,7 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
         //assertNull(status.result);
     }
 
-    @Test(enabled = true)
+    @Test(enabled = false)
     public void testGettingStatusOfFinishedJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         remoteJobExecutorService.stopJob(uri);
