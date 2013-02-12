@@ -285,7 +285,21 @@ public class JobService {
     public Collection<String> listJobNames() {
         final List<String> jobNames = new ArrayList<>(jobs.keySet());
         Collections.sort(jobNames);
-        return Collections.unmodifiableList(jobNames);
+        return jobNames;
+    }
+
+    /**
+     * Returns all registered JobRunnable Objects
+     */
+    public Collection<JobRunnable> listJobRunnables() {
+        final List<JobRunnable> jobRunnables = new ArrayList<>(jobs.values());
+        Collections.sort(jobRunnables, new Comparator<JobRunnable>() {
+            @Override
+            public int compare(JobRunnable o1, JobRunnable o2) {
+                return o1.getJobDefinition().getName().compareTo(o2.getJobDefinition().getName());
+            }
+        });
+        return jobRunnables;
     }
 
     /**

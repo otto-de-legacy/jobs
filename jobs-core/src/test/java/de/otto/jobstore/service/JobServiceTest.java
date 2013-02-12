@@ -445,6 +445,16 @@ public class JobServiceTest {
         assertFalse(requiresUpdate);
     }
 
+    @Test
+    public void testListJobRunnables() throws Exception {
+        jobService.registerJob(TestSetup.localJobRunnable("job1", 1));
+        jobService.registerJob(TestSetup.localJobRunnable("job2", 2));
+
+        final Collection<JobRunnable> jobRunnables = jobService.listJobRunnables();
+        assertEquals(2, jobRunnables.size());
+        assertEquals("job1", jobRunnables.iterator().next().getJobDefinition().getName());
+    }
+
     private class RemoteMockJobRunnable extends AbstractRemoteJobRunnable {
 
         public JobExecutionContext afterSuccessContext = null;
