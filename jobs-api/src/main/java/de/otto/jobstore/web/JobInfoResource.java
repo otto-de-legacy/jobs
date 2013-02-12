@@ -71,7 +71,7 @@ public final class JobInfoResource {
 
     /**
      * Disables/Enables job execution
-     */
+
     @POST
     @Path("/toggle")
     public Response toggleJobExecution() {
@@ -79,6 +79,7 @@ public final class JobInfoResource {
         jobService.setExecutionEnabled(newStatus);
         return Response.ok(buildStatusJson(newStatus)).build();
     }
+     */
 
     /**
      * Executes a job and its content location.
@@ -144,7 +145,7 @@ public final class JobInfoResource {
      * Disables/enables execution of jobs with the given name
      * @param name The name of the job to enable/disable
      * @return The current status of the status (enabled true/false)
-     */
+
     @POST
     @Path("/{name}/toggle")
     public Response toggleJobEnabled(@PathParam("name") final String name) {
@@ -156,6 +157,7 @@ public final class JobInfoResource {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
     }
+     */
 
     /**
      * Returns the job with the given name and id
@@ -182,7 +184,7 @@ public final class JobInfoResource {
      * @param name The name of the job
      * @param id The id of the job
      * @return
-     */
+
     @POST
     @Path("/{name}/{id}/abort")
     public Response abortJob(@PathParam("name") final String name, @PathParam("id") final String id) {
@@ -195,6 +197,7 @@ public final class JobInfoResource {
             return Response.ok().build();
         }
     }
+     */
 
     /**
      * <b>INTERNAL API, DO NOT USE</b>
