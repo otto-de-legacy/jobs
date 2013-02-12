@@ -1,8 +1,8 @@
 apply plugin: 'maven'
 
 group       = 'de.otto'
-//version     = '0.8.27-SNAPSHOT'
-version  = '0.8.27'
+version     = '0.8.27-SNAPSHOT'
+//version  = '0.8.27'
 
 description = 'Job Executor'
 
