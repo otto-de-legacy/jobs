@@ -13,7 +13,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.27"
+__version__ = "0.8.28"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -66,6 +66,10 @@ app.config.from_envvar('JOBMONITOR_SETTINGS', silent=True)
 
 # (3) prepare mapping of unix process ids (key) to timestamps (value)
 ps_map = LRUCacheDict(max_size=1000, expiration=24*60*60)
+
+# (4) global lock acting as semaphore to avoid concurrent access to zdaemon
+lock = threading.Lock()
+
 
 # Hold all information of a result for a job instance
 class JobResult:
@@ -288,6 +292,7 @@ def get_job_status(job_name, job_filepath, job_id = None):
     job_process_id = None
     job_finishtime = None
     exit_code = 0
+    lock.acquire() # no concurrent access to zdaemon
     with settings(host_string=app.config['JOB_HOSTNAME'], user=app.config['JOB_USERNAME'], warn_only=True):
         cmd_result = run("zdaemon -C %s status" % job_filepath)
         # Be aware of the fact that zdaemon will restart a malicious job and therefore report it as running!
@@ -312,6 +317,7 @@ def get_job_status(job_name, job_filepath, job_id = None):
             is_ok = (exit_code == 0)
         # some debug info
         log.info('%s running? %s [exit_code=%s] [pid=%s] [finishtime=%s]' % (job_name, job_active, exit_code, job_process_id, job_finishtime))
+    lock.release()
     # ~~
     return JobResult(job_name, job_active, job_process_id, job_finishtime, is_ok, exit_code, return_msg)
 
