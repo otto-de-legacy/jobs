@@ -235,7 +235,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         String id = createJobInfo(TESTVALUE_JOBNAME, 1234, RunningState.RUNNING);
         JobInfo jobInfo = jobInfoRepository.findById(id);
         assertNotNull(jobInfo);
-        assertEquals(new Long(1234), jobInfo.getMaxExecutionTime());
+        assertEquals(new Long(1234), jobInfo.getTimeoutPeriod());
     }
 
     @Test
@@ -434,16 +434,16 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         assertEquals("foo", jobInfo.getStatusMessage());
     }
 
-    private String createJobInfo(String name, long maxExecutionTime, RunningState runningState) {
-        return createJobInfo(name, maxExecutionTime, runningState, null);
+    private String createJobInfo(String name, long timeoutPeriod, RunningState runningState) {
+        return createJobInfo(name, timeoutPeriod, runningState, null);
     }
 
-    private String createJobInfo(String name, long maxExecutionTime, RunningState runningState, Map<String, String> params) {
-        return jobInfoRepository.create(name, TESTVALUE_HOST, TESTVALUE_THREAD, maxExecutionTime, runningState, JobExecutionPriority.CHECK_PRECONDITIONS, params, null);
+    private String createJobInfo(String name, long timeoutPeriod, RunningState runningState, Map<String, String> params) {
+        return jobInfoRepository.create(name, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, runningState, JobExecutionPriority.CHECK_PRECONDITIONS, params, null);
     }
 
-    private JobInfo newJobInfo(long maxExecutionTime, RunningState runningState) {
-        return new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, maxExecutionTime, runningState);
+    private JobInfo newJobInfo(long timeoutPeriod, RunningState runningState) {
+        return new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, runningState);
     }
 
     private void createTestJobInfo(long timestamp, ResultCode resultCode) {

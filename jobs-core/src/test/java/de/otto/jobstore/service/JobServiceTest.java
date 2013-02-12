@@ -451,9 +451,9 @@ public class JobServiceTest {
         public boolean throwExceptionInAfterExecution = false;
         private AbstractRemoteJobDefinition remoteJobDefinition;
 
-        private RemoteMockJobRunnable(String name, RemoteJobExecutorService rjes, JobInfoService jis, long maxExecutionTime, long pollingInterval) {
+        private RemoteMockJobRunnable(String name, RemoteJobExecutorService rjes, JobInfoService jis, long timeoutPeriod, long pollingInterval) {
             super(rjes, jis);
-            remoteJobDefinition = TestSetup.remoteJobDefinition(name, maxExecutionTime, pollingInterval);
+            remoteJobDefinition = TestSetup.remoteJobDefinition(name, timeoutPeriod, pollingInterval);
         }
 
         @Override

@@ -21,6 +21,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     private static final String JOB_NAME_CLEANUP              = "JobInfo_Cleanup";
     private static final String JOB_NAME_TIMED_OUT_CLEANUP    = "JobInfo_TimedOut_Cleanup";
     private static final String JOB_NAME_CLEANUP_NOT_EXECUTED = "JobInfo_NotExecuted_Cleanup";
+    private static final long FIVE_MINUTES = 5 * 60 * 1000;
 
     private int hoursAfterWhichOldJobsAreDeleted         = 7 * 24;
     private int hoursAfterWhichNotExecutedJobsAreDeleted = 2;
@@ -50,17 +51,17 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * Creates a new job with the given parameters. Host and thread executing the job are determined automatically.
      *
      * @param name The name of the job
-     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param timeoutPeriod Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
      * @param runningState The state with which the job is started
      * @param executionPriority The priority with which the job is to be executed
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    public String create(final String name, final long maxExecutionTime, final RunningState runningState,
+    public String create(final String name, final long timeoutPeriod, final RunningState runningState,
                          final JobExecutionPriority executionPriority, final Map<String, String> parameters, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxExecutionTime, runningState, executionPriority, parameters, additionalData);
+        return create(name, host, thread, timeoutPeriod, runningState, executionPriority, parameters, additionalData);
     }
 
     /**
@@ -69,18 +70,18 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param name The name of the job
      * @param host The host, on which the job is running
      * @param thread The thread, which runs the job
-     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param timeoutPeriod Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
      * @param runningState The state with which the job is started
      * @param executionPriority The priority with which the job is to be executed
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    public String create(final String name, final String host, final String thread, final long maxExecutionTime,
+    public String create(final String name, final String host, final String thread, final long timeoutPeriod,
                          final RunningState runningState, final JobExecutionPriority executionPriority, 
                          final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
             logger.info("Create job={} in state={} ...", name, runningState);
-            final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, executionPriority, additionalData);
+            final JobInfo jobInfo = new JobInfo(name, host, thread, timeoutPeriod, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
             save(jobInfo, WriteConcern.SAFE);
             return jobInfo.getId();
@@ -446,11 +447,9 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param currentDate The current date
      */
     public void removeJobIfTimedOut(final String name, final Date currentDate) {
-        if (hasJob(name, RunningState.RUNNING)) {
-            final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING);
-            if (job.isTimedOut(currentDate)) {
-                markAsFinished(job.getId(), ResultCode.TIMED_OUT);
-            }
+        final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING);
+        if (job != null && job.isTimedOut(currentDate)) {
+            markAsFinished(job.getId(), ResultCode.TIMED_OUT);
         }
     }
 
@@ -477,7 +476,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
-            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
@@ -506,8 +505,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final long maxExecutionTime = 5 * 60 * 1000;
-            final String id = create(JOB_NAME_CLEANUP, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
             /* ... good bye ... */
@@ -525,8 +523,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final long maxExecutionTime = 5 * 60 * 1000;
-            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not executed jobs before {} ...", beforeDate);
             /* ... good bye ... */

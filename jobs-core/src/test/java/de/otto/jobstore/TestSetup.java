@@ -36,7 +36,7 @@ public class TestSetup {
         };
     }
 
-    public static AbstractLocalJobDefinition localJobDefinition(final String name, final long maxExecutionTime) {
+    public static AbstractLocalJobDefinition localJobDefinition(final String name, final long timeoutPeriod) {
         return new AbstractLocalJobDefinition() {
             @Override
             public String getName() {
@@ -45,12 +45,12 @@ public class TestSetup {
 
             @Override
             public long getTimeoutPeriod() {
-                return maxExecutionTime;
+                return timeoutPeriod;
             }
         };
     }
 
-    public static AbstractRemoteJobDefinition remoteJobDefinition(final String name, final long maxExecutionTime, final long pollingInterval) {
+    public static AbstractRemoteJobDefinition remoteJobDefinition(final String name, final long timeoutPeriod, final long pollingInterval) {
         return new AbstractRemoteJobDefinition() {
             @Override
             public String getName() {
@@ -59,7 +59,7 @@ public class TestSetup {
 
             @Override
             public long getTimeoutPeriod() {
-                return maxExecutionTime;
+                return timeoutPeriod;
             }
 
             @Override
