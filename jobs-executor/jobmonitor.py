@@ -12,7 +12,7 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.23"
+__version__ = "0.8.26"
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
@@ -298,6 +298,7 @@ def get_job_status(job_name, job_filepath, job_id = None):
             log.warn("Problem while checking job status: %s" % cmd_result)
         else:
             job_active = is_ok and "program running" in cmd_result
+            log.info("     zdaemon_exitcode=%d is_ok=%s result=%s" % (zdaemon_exit_code, is_ok, cmd_result))
         if job_active:
             job_process_id = extract_process_id(cmd_result)
         # get finish time (via zdaemon log file and associated job_id)

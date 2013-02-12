@@ -1,0 +1,66 @@
+Live Full Search Update Merkwürdigkeiten
+jobexec@search-live-111
+
+$ grep "2013-02-11" jobmonitor.log| grep POST | grep Full
+
+[2013-02-11 01:16:51] [werkzeug] [INFO] 10.185.4.73 - - [11/Feb/2013 01:16:51] "POST /jobs/FHFullSearchUpdate/start HTTP/1.1" 201 -
+[2013-02-11 01:29:50] [werkzeug] [INFO] 10.185.4.73 - - [11/Feb/2013 01:29:50] "POST /jobs/FHFullSearchUpdate/start HTTP/1.1" 303 -
+[2013-02-11 01:57:50] [werkzeug] [INFO] 10.185.4.70 - - [11/Feb/2013 01:57:50] "POST /jobs/FHFullSearchUpdate/start HTTP/1.1" 303 -
+[2013-02-11 02:25:50] [werkzeug] [INFO] 10.185.4.72 - - [11/Feb/2013 02:25:50] "POST /jobs/FHFullSearchUpdate/start HTTP/1.1" 303 -
+
+
+$ grep "2013-02-11" jobmonitor.log| grep POST | grep Incremental
+
+[2013-02-11 01:14:51] [werkzeug] [INFO] 10.185.4.72 - - [11/Feb/2013 01:14:51] "POST /jobs/FHIncrementalSearchUpdate/start HTTP/1.1" 201 -
+(1) Full
+[2013-02-11 01:27:51] [werkzeug] [INFO] 10.185.4.71 - - [11/Feb/2013 01:27:51] "POST /jobs/FHIncrementalSearchUpdate/start HTTP/1.1" 201 -
+(2) Full
+[2013-02-11 01:55:52] [werkzeug] [INFO] 10.185.4.70 - - [11/Feb/2013 01:55:52] "POST /jobs/FHIncrementalSearchUpdate/start HTTP/1.1" 201 -
+(3) Full
+[2013-02-11 02:23:51] [werkzeug] [INFO] 10.185.4.72 - - [11/Feb/2013 02:23:51] "POST /jobs/FHIncrementalSearchUpdate/start HTTP/1.1" 201 -
+(4) Full
+[2013-02-11 04:02:40] [werkzeug] [INFO] 10.185.4.69 - - [11/Feb/2013 04:02:40] "POST /jobs/FHIncrementalSearchUpdate/start HTTP/1.1" 201 -
+
+
+$ grep 5365 zdaemon-FHFullSearchUpdate.log
+
+2013-02-11T01:16:50 INFO root spawned process pid=5365
+2013-02-11T03:59:03 INFO root pid 5365: exit status 0; exiting now
+
+
+
+$ grep "pid=5365" today.log |grep "=-1"
+
+[2013-02-11 01:27:36] [jobmonitor] [INFO] FHFullSearchUpdate running? False [exit_code=-1] [pid=5365] [finishtime=None]
+[2013-02-11 01:55:39] [jobmonitor] [INFO] FHFullSearchUpdate running? False [exit_code=-1] [pid=5365] [finishtime=None]
+[2013-02-11 02:23:43] [jobmonitor] [INFO] FHFullSearchUpdate running? False [exit_code=-1] [pid=5365] [finishtime=None]
+
+==
+[2013-02-11 01:27:36] [paramiko.transport] [INFO] Secsh channel 87511 opened.
+[2013-02-11 01:27:36] [paramiko.transport] [INFO] Secsh channel 87512 opened.
+[2013-02-11 01:27:36] [paramiko.transport] [INFO] Secsh channel 87513 opened.
+[2013-02-11 01:27:36] [paramiko.transport] [INFO] Secsh channel 87514 opened.
+[2013-02-11 01:27:36] [jobmonitor] [INFO] FHFullSearchUpdate running? True [exit_code=0] [pid=5365] [finishtime=None]
+[2013-02-11 01:27:36] [jobmonitor] [INFO] FHFullSearchUpdate running? True [exit_code=0] [pid=5365] [finishtime=None]
+[2013-02-11 01:27:36] [werkzeug] [INFO] 10.185.4.71 - - [11/Feb/2013 01:27:36] "GET /jobs/FHFullSearchUpdate/2013-02-11_011650 HTTP/1.1" 200 -
+[2013-02-11 01:27:36] [werkzeug] [INFO] 10.185.4.72 - - [11/Feb/2013 01:27:36] "GET /jobs/FHFullSearchUpdate/2013-02-11_011650 HTTP/1.1" 200 -
+[2013-02-11 01:27:36] [paramiko.transport] [INFO] Secsh channel 87515 opened.
+[2013-02-11 01:27:36] [jobmonitor] [INFO] FHFullSearchUpdate running? True [exit_code=0] [pid=5365] [finishtime=None]
+[2013-02-11 01:27:36] [werkzeug] [INFO] 10.185.4.73 - - [11/Feb/2013 01:27:36] "GET /jobs/FHFullSearchUpdate/2013-02-11_011650 HTTP/1.1" 200 -
+[2013-02-11 01:27:36] [jobmonitor] [INFO] FHFullSearchUpdate running? False [exit_code=-1] [pid=5365] [finishtime=None]
+==
+[2013-02-11 01:55:39] [paramiko.transport] [INFO] Secsh channel 87540 opened.
+[2013-02-11 01:55:39] [paramiko.transport] [INFO] Secsh channel 87541 opened.
+[2013-02-11 01:55:39] [jobmonitor] [INFO] FHFullSearchUpdate running? True [exit_code=0] [pid=5365] [finishtime=None]
+[2013-02-11 01:55:39] [werkzeug] [INFO] 10.185.4.69 - - [11/Feb/2013 01:55:39] "GET /jobs/FHFullSearchUpdate/2013-02-11_011650 HTTP/1.1" 200 -
+[2013-02-11 01:55:39] [paramiko.transport] [INFO] Secsh channel 87542 opened.
+[2013-02-11 01:55:39] [jobmonitor] [INFO] FHFullSearchUpdate running? False [exit_code=-1] [pid=5365] [finishtime=None]
+==
+[2013-02-11 02:23:42] [paramiko.transport] [INFO] Secsh channel 87562 opened.
+[2013-02-11 02:23:42] [paramiko.transport] [INFO] Secsh channel 87563 opened.
+[2013-02-11 02:23:43] [jobmonitor] [INFO] FHFullSearchUpdate running? True [exit_code=0] [pid=5365] [finishtime=None]
+[2013-02-11 02:23:43] [paramiko.transport] [INFO] Secsh channel 87564 opened.
+[2013-02-11 02:23:43] [werkzeug] [INFO] 10.185.4.73 - - [11/Feb/2013 02:23:43] "GET /jobs/FHFullSearchUpdate/2013-02-11_011650 HTTP/1.1" 200 -
+[2013-02-11 02:23:43] [jobmonitor] [INFO] FHFullSearchUpdate running? False [exit_code=-1] [pid=5365] [finishtime=None]
+==
+

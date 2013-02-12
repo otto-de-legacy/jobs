@@ -1,3 +1,6 @@
+*.pyc
+venv
+coverage.xml
 *.iml
 *.iws
 *.ipr
@@ -13,4 +16,5 @@ build
 jobs-executor/instances/*
 instances/*.conf
 job-executor/coverage.xml
+jobs-core/jobs-executor
 *.log

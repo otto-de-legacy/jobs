@@ -57,13 +57,4 @@ public final class StoredJobDefinition extends AbstractItem implements JobDefini
         return disabled == null ? false : disabled;
     }
 
-    public void setAborted(boolean aborted) {
-        addProperty(JobDefinitionProperty.ABORTED, aborted);
-    }
-
-    public boolean isAborted() {
-        final Boolean aborted = getProperty(JobDefinitionProperty.ABORTED);
-        return aborted == null ? false : aborted;
-    }
-
 }

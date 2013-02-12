@@ -12,8 +12,7 @@ public enum JobDefinitionProperty implements ItemProperty {
     POLLING_INTERVAL("pollingInterval"),
     REMOTE("remote"),
     DISABLED("disabled"),
-    ABORTABLE("abortable"),
-    ABORTED("aborted");
+    ABORTABLE("abortable");
 
     private final String value;
 

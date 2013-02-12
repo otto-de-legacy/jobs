@@ -1,0 +1,87 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+    Starts multiple processes. Modeled after zedshaw / lamson
+
+    :copyright: (c) 2011 by it-agile GmbH
+"""
+
+import sys
+import os
+import signal
+import subprocess
+
+poser_pid = './poser.pid'
+
+
+class Poser(object):
+
+    def __init__(self):
+        self.loop = xrange(1, 2)
+
+    def create_range(self, args):
+        return xrange(int(args[0]), int(args[1]))
+
+    def collect_calls(self, args):
+        calls = []
+        for arg in args:
+            if '...' in arg:
+                args = arg.split('...')
+                self.loop = self.create_range(args)
+                calls.append((self.create_range(args).__iter__(),
+                                  lambda x: str(x.next())))
+            else:
+                calls.append((arg, lambda x: x))
+        return calls
+
+    def create_call_arguments(self, calls):
+        return [function(call) for (call, function) in calls]
+
+    def kill_all(self, pids):
+        for pid in pids:
+            try:
+                os.kill(int(pid), signal.SIGKILL)
+            except OSError:
+                pass  # probably already closed
+
+    def save_pids(self, pids):
+        with open(poser_pid, 'a') as f:
+            for pid in pids:
+                f.write('%i\n' % (pid))
+
+    def run_calls(self, calls):
+        pids = []
+        try:
+            for l in self.loop:
+                p = subprocess.Popen(self.create_call_arguments(calls))
+                pids.append(p.pid)
+            self.save_pids(pids)
+        except Exception as e:
+            self.kill_all(pids)
+            raise e
+
+    def kill_previous_processes(self):
+        if os.path.exists(poser_pid):
+            my_process = []
+            with open(poser_pid, 'r') as f:
+                pid = f.readline()
+                while pid:
+                    my_process.append(pid)
+                    pid = f.readline()
+            self.kill_all(my_process)
+            os.unlink(poser_pid)
+
+    def check_params(self, args):
+        if args and args[0] == '--append':
+            return False, args[1:]
+        return True, args
+
+    def run(self, args):
+        should_kill_previous_processes, args = self.check_params(args)
+        if should_kill_previous_processes:
+            self.kill_previous_processes()
+        calls = self.collect_calls(args)
+        if calls:
+            self.run_calls(calls)
+
+Poser().run(sys.argv[1:])
