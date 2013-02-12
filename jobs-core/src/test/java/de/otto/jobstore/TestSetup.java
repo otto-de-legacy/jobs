@@ -75,8 +75,8 @@ public class TestSetup {
         private JobException exception;
         private AbstractLocalJobDefinition localJobDefinition;
 
-        private LocalMockJobRunnable(String name, long maxExecutionTime, JobException exception) {
-            localJobDefinition = localJobDefinition(name, maxExecutionTime);
+        private LocalMockJobRunnable(String name, long timeoutPeriod, JobException exception) {
+            localJobDefinition = localJobDefinition(name, timeoutPeriod);
             this.exception = exception;
         }
 
