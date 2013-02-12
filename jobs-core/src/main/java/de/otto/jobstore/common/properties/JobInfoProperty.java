@@ -20,8 +20,7 @@ public enum JobInfoProperty implements ItemProperty {
     RESULT_MESSAGE("resultMessage"),
     RUNNING_STATE("runningState"),
     RESULT_STATE("resultState"),
-    @Deprecated
-    MAX_EXECUTION_TIME("maxExecutionTime"),
+    TIMEOUT_PERIOD("maxExecutionTime"),
     LAST_MODIFICATION_TIME("lastModificationTime"),
     ADDITIONAL_DATA("additionalData"),
     LOG_LINES("logLines"),

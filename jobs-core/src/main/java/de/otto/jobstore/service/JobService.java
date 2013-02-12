@@ -263,7 +263,8 @@ public class JobService {
                     final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING);
                     if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
                         LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", name);
-                        jobInfoRepository.markAsFinished(runningJob.getId(), ResultCode.FAILED, "shutdownJobs called from executing host");
+                        abortJob(runningJob.getId());
+                        jobInfoRepository.markAsFinished(runningJob.getId(), ResultCode.ABORTED, "shutdownJobs called from executing host");
                     }
                 }
             }
@@ -284,7 +285,21 @@ public class JobService {
     public Collection<String> listJobNames() {
         final List<String> jobNames = new ArrayList<>(jobs.keySet());
         Collections.sort(jobNames);
-        return Collections.unmodifiableList(jobNames);
+        return jobNames;
+    }
+
+    /**
+     * Returns all registered JobRunnable Objects
+     */
+    public Collection<JobRunnable> listJobRunnables() {
+        final List<JobRunnable> jobRunnables = new ArrayList<>(jobs.values());
+        Collections.sort(jobRunnables, new Comparator<JobRunnable>() {
+            @Override
+            public int compare(JobRunnable o1, JobRunnable o2) {
+                return o1.getJobDefinition().getName().compareTo(o2.getJobDefinition().getName());
+            }
+        });
+        return jobRunnables;
     }
 
     /**
@@ -301,10 +316,10 @@ public class JobService {
     private void updateJobStatus(JobInfo jobInfo, JobRunnable runnable, RemoteJobStatus remoteJobStatus) {
         LOGGER.info("ltag=JobService.updateJobStatus jobName={} jobId={} status={}", new Object[]{jobInfo.getName(), jobInfo.getId(), remoteJobStatus.status});
         if (remoteJobStatus.logLines != null && !remoteJobStatus.logLines.isEmpty()) {
-            jobInfoRepository.appendLogLines(jobInfo.getName(), remoteJobStatus.logLines);
+            jobInfoRepository.appendLogLines(jobInfo.getId(), remoteJobStatus.logLines);
         }
         if (remoteJobStatus.message != null && remoteJobStatus.message.length() > 0) {
-            jobInfoRepository.setStatusMessage(jobInfo.getName(), remoteJobStatus.message);
+            jobInfoRepository.setStatusMessage(jobInfo.getId(), remoteJobStatus.message);
         }
         if (remoteJobStatus.status == RemoteJobStatus.Status.FINISHED) {
             LOGGER.info("ltag=JobService.updateJobStatus.statusFinish jobName={} result={}", jobInfo.getName(), remoteJobStatus.result);
@@ -322,7 +337,7 @@ public class JobService {
             } else {
                 LOGGER.warn("ltag=JobService.updateJobStatus.resultNotOk jobName={} jobId={} exitCode={} message={}",
                         new Object[]{jobInfo.getName(), jobInfo.getId(), remoteJobStatus.result.exitCode, remoteJobStatus.result.message});
-                jobInfoRepository.addAdditionalData(jobInfo.getName(), "exitCode", String.valueOf(remoteJobStatus.result.exitCode));
+                jobInfoRepository.addAdditionalData(jobInfo.getId(), "exitCode", String.valueOf(remoteJobStatus.result.exitCode));
                 jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.FAILED, remoteJobStatus.result.message);
             }
         }
@@ -365,7 +380,7 @@ public class JobService {
     private void activateQueuedJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
         final String name = runnable.getJobDefinition().getName();
         if (jobInfoRepository.activateQueuedJob(name)) {
-            jobInfoRepository.updateHostThreadInformation(name);
+            jobInfoRepository.updateHostThreadInformation(id);
             LOGGER.info("ltag=JobService.activateQueuedJob.activate jobInfoName={} jobInfoId={}", name, id);
             executeJob(runnable, id, executionPriority);
         } else {

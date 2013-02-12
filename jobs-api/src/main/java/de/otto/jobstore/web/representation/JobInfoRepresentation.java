@@ -36,7 +36,7 @@ public final class JobInfoRepresentation {
 
     private ResultCode resultState;
 
-    private Long maxExecutionTime;
+    private Long timeoutPeriod;
 
     private Date lastModifiedTime;
 
@@ -47,7 +47,7 @@ public final class JobInfoRepresentation {
     public JobInfoRepresentation() {}
 
     private JobInfoRepresentation(String id, String name, String host, String thread, Date creationTime, Date startTime, Date finishTime,
-                                  String errorMessage, String runningState, ResultCode resultState, Long maxExecutionTime,
+                                  String errorMessage, String runningState, ResultCode resultState, Long timeoutPeriod,
                                   Date lastModifiedTime, Map<String, String> additionalData, List<LogLineRepresentation> logLines) {
         this.id = id;
         this.name = name;
@@ -59,7 +59,7 @@ public final class JobInfoRepresentation {
         this.errorMessage = errorMessage;
         this.runningState = runningState;
         this.resultState = resultState;
-        this.maxExecutionTime = maxExecutionTime;
+        this.timeoutPeriod = timeoutPeriod;
         this.lastModifiedTime = lastModifiedTime;
         this.additionalData = additionalData;
         this.logLines = logLines;
@@ -105,8 +105,8 @@ public final class JobInfoRepresentation {
         return resultState;
     }
 
-    public Long getMaxExecutionTime() {
-        return maxExecutionTime;
+    public Long getTimeoutPeriod() {
+        return timeoutPeriod;
     }
 
     public Date getLastModifiedTime() {
@@ -131,7 +131,7 @@ public final class JobInfoRepresentation {
         return new JobInfoRepresentation(jobInfo.getId(), jobInfo.getName(), jobInfo.getHost(),
                 jobInfo.getThread(), jobInfo.getCreationTime(), jobInfo.getStartTime(), jobInfo.getFinishTime(),
                 jobInfo.getResultMessage(), jobInfo.getRunningState(), jobInfo.getResultState(),
-                jobInfo.getMaxExecutionTime(), jobInfo.getLastModifiedTime(), jobInfo.getAdditionalData(),
+                jobInfo.getTimeoutPeriod(), jobInfo.getLastModifiedTime(), jobInfo.getAdditionalData(),
                 logLines);
     }
 

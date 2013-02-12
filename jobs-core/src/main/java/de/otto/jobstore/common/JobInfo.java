@@ -14,23 +14,23 @@ public final class JobInfo extends AbstractItem {
         super(dbObject);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxExecutionTime) {
-        this(name, host, thread, maxExecutionTime, RunningState.QUEUED);
+    public JobInfo(String name, String host, String thread, Long timeoutPeriod) {
+        this(name, host, thread, timeoutPeriod, RunningState.QUEUED);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state) {
-        this(name, host, thread, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+    public JobInfo(String name, String host, String thread, Long timeoutPeriod, RunningState state) {
+        this(name, host, thread, timeoutPeriod, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long maxExecutionTime, RunningState state) {
-        this(dt, name, host, thread, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+    public JobInfo(Date dt, String name, String host, String thread, Long timeoutPeriod, RunningState state) {
+        this(dt, name, host, thread, timeoutPeriod, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
-        this(new Date(), name, host, thread, maxExecutionTime, state, executionPriority, additionalData);
+    public JobInfo(String name, String host, String thread, Long timeoutPeriod, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
+        this(new Date(), name, host, thread, timeoutPeriod, state, executionPriority, additionalData);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
+    public JobInfo(Date dt, String name, String host, String thread, Long timeoutPeriod, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
@@ -41,7 +41,7 @@ public final class JobInfo extends AbstractItem {
         addProperty(JobInfoProperty.EXECUTION_PRIORITY, executionPriority.name());
         addProperty(JobInfoProperty.RUNNING_STATE, state.name());
         setLastModifiedTime(dt);
-        addProperty(JobInfoProperty.MAX_EXECUTION_TIME, maxExecutionTime);
+        addProperty(JobInfoProperty.TIMEOUT_PERIOD, timeoutPeriod);
         if (additionalData != null) {
             addProperty(JobInfoProperty.ADDITIONAL_DATA, new BasicDBObject(additionalData));
         }
@@ -76,12 +76,12 @@ public final class JobInfo extends AbstractItem {
         addProperty(JobInfoProperty.PARAMETERS, parameters);
     }
 
-    public Long getMaxExecutionTime() {
-        return getProperty(JobInfoProperty.MAX_EXECUTION_TIME);
+    public Long getTimeoutPeriod() {
+        return getProperty(JobInfoProperty.TIMEOUT_PERIOD);
     }
 
     public Date getJobExpireTime() {
-        return new Date(getLastModifiedTime().getTime() + getMaxExecutionTime());
+        return new Date(getLastModifiedTime().getTime() + getTimeoutPeriod());
     }
 
     public JobExecutionPriority getExecutionPriority() {
@@ -220,7 +220,7 @@ public final class JobInfo extends AbstractItem {
                 "\", \"thread\":\"" + getThread() +
                 "\", \"creationTime\":\"" + getCreationTime() +
                 "\", \"startTime\":\"" + getStartTime() +
-                "\", \"timeout\":\"" + getMaxExecutionTime() +
+                "\", \"timeout\":\"" + getTimeoutPeriod() +
                 "\", \"finishTime\":\"" + getFinishTime() +
                 "\", \"lastModifiedTime\":\"" + getLastModifiedTime() +
                 "\", \"additionalData\":\"" + getAdditionalData().toString() +

@@ -30,7 +30,7 @@ final class SimpleJobLogger implements JobLogger {
     @Override
     public void addLoggingData(String logLine) {
         if (logLine != null && logLine.trim().length() > 0) {
-            jobInfoRepository.addLogLine(jobName, logLine);
+            jobInfoRepository.addLogLine(jobId, logLine);
             logLines.add(logLine);
         }
     }
@@ -42,14 +42,14 @@ final class SimpleJobLogger implements JobLogger {
 
     @Override
     public void insertOrUpdateAdditionalData(String key, String value) {
-        jobInfoRepository.addAdditionalData(jobName, key, value);
+        jobInfoRepository.addAdditionalData(jobId, key, value);
     }
 
     @Override
     public String getAdditionalData(String key) {
-        final JobInfo jobInfo = jobInfoRepository.findByNameAndRunningState(jobName, RunningState.RUNNING);
+        final JobInfo jobInfo = jobInfoRepository.findById(jobId);
         Map<String, String> additionalData = jobInfo.getAdditionalData();
-        return (additionalData != null) ? additionalData.get(key) : null;
+        return additionalData == null ? null : additionalData.get(key);
     }
 
 }

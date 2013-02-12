@@ -32,7 +32,7 @@ public class JobInfoServiceTest {
 
         JobInfo jobInfo = jobInfoService.getMostRecentExecuted("test");
         assertEquals("test", jobInfo.getName());
-        assertEquals(Long.valueOf(1234L), jobInfo.getMaxExecutionTime());
+        assertEquals(Long.valueOf(1234L), jobInfo.getTimeoutPeriod());
     }
 
     @Test
@@ -42,7 +42,7 @@ public class JobInfoServiceTest {
 
         JobInfo jobInfo = jobInfoService.getMostRecentSuccessful("test");
         assertEquals("test", jobInfo.getName());
-        assertEquals(Long.valueOf(1234L), jobInfo.getMaxExecutionTime());
+        assertEquals(Long.valueOf(1234L), jobInfo.getTimeoutPeriod());
     }
 
     @Test

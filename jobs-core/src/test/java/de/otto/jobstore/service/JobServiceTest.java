@@ -96,7 +96,7 @@ public class JobServiceTest {
 
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
         jobService.shutdownJobs();
-        verify(jobInfoRepository).markAsFinished(job.getId(), ResultCode.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository).markAsFinished(job.getId(), ResultCode.ABORTED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -125,8 +125,10 @@ public class JobServiceTest {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
         JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L);
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
+        final JobInfo jobInfo2 = new JobInfo(JOB_NAME_02, "bla", "bla", 1000L);
+        ReflectionTestUtils.invokeMethod(jobInfo2, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(jobInfo, new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
+                Arrays.asList(jobInfo, jobInfo2));
         TestSetup.LocalMockJobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01,1000);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(createSimpleJd());
@@ -135,8 +137,8 @@ public class JobServiceTest {
 
         jobService.executeQueuedJobs();
         Thread.sleep(500);
-        verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
-        verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
+        verify(jobInfoRepository, times(1)).updateHostThreadInformation(jobInfo.getId());
+        verify(jobInfoRepository, times(0)).updateHostThreadInformation(jobInfo2.getId());
         assertTrue(runnable.isExecuted());
         verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
     }
@@ -154,7 +156,7 @@ public class JobServiceTest {
 
         jobService.executeQueuedJobs();
         Thread.sleep(500);
-        verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
+        verify(jobInfoRepository, times(1)).updateHostThreadInformation(jobInfo.getId());
         assertTrue(runnable.isExecuted());
         verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL, null);
     }
@@ -165,8 +167,10 @@ public class JobServiceTest {
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
         JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L);
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
+        final JobInfo jobInfo2 = new JobInfo(JOB_NAME_02, "bla", "bla", 1000L);
+        ReflectionTestUtils.invokeMethod(jobInfo2, "addProperty", JobInfoProperty.ID, new ObjectId());
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(jobInfo, new JobInfo(JOB_NAME_02, "bla", "bla", 1000L)));
+                Arrays.asList(jobInfo, jobInfo2));
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(createSimpleJd());
         final JobExecutionException exception = new JobExecutionException("problem while executing");
@@ -176,8 +180,8 @@ public class JobServiceTest {
 
         jobService.executeQueuedJobs();
         Thread.sleep(500);
-        verify(jobInfoRepository, times(1)).updateHostThreadInformation(JOB_NAME_01);
-        verify(jobInfoRepository, times(0)).updateHostThreadInformation(JOB_NAME_02);
+        verify(jobInfoRepository, times(1)).updateHostThreadInformation(jobInfo.getId());
+        verify(jobInfoRepository, times(0)).updateHostThreadInformation(jobInfo2.getId());
         verify(jobInfoRepository, times(1)).markAsFinished(jobInfo.getId(), exception);
     }
 
@@ -352,13 +356,16 @@ public class JobServiceTest {
         jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0));
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
-                thenReturn(job);
+        final ObjectId id = new ObjectId();
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, id);
+        when(jobInfoRepository.findById(id.toString())).thenReturn(job);
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(job);
+
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class)))
                 .thenReturn(new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines, null, null));
         jobService.pollRemoteJobs();
-        verify(jobInfoRepository, times(1)).appendLogLines(JOB_NAME_01, logLines);
+        verify(jobInfoRepository, times(1)).appendLogLines(job.getId(), logLines);
     }
 
     @Test(enabled = false)
@@ -383,9 +390,10 @@ public class JobServiceTest {
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
-        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
-                thenReturn(job);
+        final ObjectId id = new ObjectId();
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, id);
+        when(jobInfoRepository.findById(id.toString())).thenReturn(job);
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
                 new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo"), null));
@@ -403,9 +411,10 @@ public class JobServiceTest {
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
-        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
-                thenReturn(job);
+        final ObjectId id = new ObjectId();
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, id);
+        when(jobInfoRepository.findById(id.toString())).thenReturn(job);
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
                 new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo"), null));
@@ -436,15 +445,25 @@ public class JobServiceTest {
         assertFalse(requiresUpdate);
     }
 
+    @Test
+    public void testListJobRunnables() throws Exception {
+        jobService.registerJob(TestSetup.localJobRunnable("job1", 1));
+        jobService.registerJob(TestSetup.localJobRunnable("job2", 2));
+
+        final Collection<JobRunnable> jobRunnables = jobService.listJobRunnables();
+        assertEquals(2, jobRunnables.size());
+        assertEquals("job1", jobRunnables.iterator().next().getJobDefinition().getName());
+    }
+
     private class RemoteMockJobRunnable extends AbstractRemoteJobRunnable {
 
         public JobExecutionContext afterSuccessContext = null;
         public boolean throwExceptionInAfterExecution = false;
         private AbstractRemoteJobDefinition remoteJobDefinition;
 
-        private RemoteMockJobRunnable(String name, RemoteJobExecutorService rjes, JobInfoService jis, long maxExecutionTime, long pollingInterval) {
+        private RemoteMockJobRunnable(String name, RemoteJobExecutorService rjes, JobInfoService jis, long timeoutPeriod, long pollingInterval) {
             super(rjes, jis);
-            remoteJobDefinition = TestSetup.remoteJobDefinition(name, maxExecutionTime, pollingInterval);
+            remoteJobDefinition = TestSetup.remoteJobDefinition(name, timeoutPeriod, pollingInterval);
         }
 
         @Override

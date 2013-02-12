@@ -2,7 +2,6 @@ package de.otto.jobstore.repository;
 
 import com.mongodb.*;
 import de.otto.jobstore.common.*;
-import de.otto.jobstore.common.properties.JobDefinitionProperty;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.common.util.InternetUtils;
 import org.bson.types.ObjectId;
@@ -22,6 +21,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     private static final String JOB_NAME_CLEANUP              = "JobInfo_Cleanup";
     private static final String JOB_NAME_TIMED_OUT_CLEANUP    = "JobInfo_TimedOut_Cleanup";
     private static final String JOB_NAME_CLEANUP_NOT_EXECUTED = "JobInfo_NotExecuted_Cleanup";
+    private static final long FIVE_MINUTES = 5 * 60 * 1000;
 
     private int hoursAfterWhichOldJobsAreDeleted         = 7 * 24;
     private int hoursAfterWhichNotExecutedJobsAreDeleted = 2;
@@ -51,17 +51,17 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * Creates a new job with the given parameters. Host and thread executing the job are determined automatically.
      *
      * @param name The name of the job
-     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param timeoutPeriod Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
      * @param runningState The state with which the job is started
      * @param executionPriority The priority with which the job is to be executed
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    public String create(final String name, final long maxExecutionTime, final RunningState runningState,
+    public String create(final String name, final long timeoutPeriod, final RunningState runningState,
                          final JobExecutionPriority executionPriority, final Map<String, String> parameters, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxExecutionTime, runningState, executionPriority, parameters, additionalData);
+        return create(name, host, thread, timeoutPeriod, runningState, executionPriority, parameters, additionalData);
     }
 
     /**
@@ -70,18 +70,18 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param name The name of the job
      * @param host The host, on which the job is running
      * @param thread The thread, which runs the job
-     * @param maxExecutionTime Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
+     * @param timeoutPeriod Sets the time after which a job is considered to be dead (lastModifiedTime + timeout).
      * @param runningState The state with which the job is started
      * @param executionPriority The priority with which the job is to be executed
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    public String create(final String name, final String host, final String thread, final long maxExecutionTime,
+    public String create(final String name, final String host, final String thread, final long timeoutPeriod,
                          final RunningState runningState, final JobExecutionPriority executionPriority, 
                          final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
             logger.info("Create job={} in state={} ...", name, runningState);
-            final JobInfo jobInfo = new JobInfo(name, host, thread, maxExecutionTime, runningState, executionPriority, additionalData);
+            final JobInfo jobInfo = new JobInfo(name, host, thread, timeoutPeriod, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
             save(jobInfo, WriteConcern.SAFE);
             return jobInfo.getId();
@@ -176,6 +176,11 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         }
     }
 
+    /**
+     * Set the aborted property of the job to true
+     *
+     * @param id The id of the Job to abort
+     */
     public void abortJob(String id) {
         if (ObjectId.isValid(id)) {
             collection.update(createIdQuery(id),
@@ -184,30 +189,30 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     }
 
     /**
-     * Updates the host and thread information on the running job with the given name. Host and thread information
+     * Updates the host and thread information on the job with the given id. Host and thread information
      * are determined automatically.
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
      * jobname ist not checked
      *
-     * @param name The name of the job
+     * @param id The id of the job
      */
-    public void updateHostThreadInformation(final String name) {
-        updateHostThreadInformation(name, InternetUtils.getHostName(), Thread.currentThread().getName());
+    public void updateHostThreadInformation(final String id) {
+        updateHostThreadInformation(id, InternetUtils.getHostName(), Thread.currentThread().getName());
     }
 
     /**
-     * Updates the host and thread information on the running job with the given name
+     * Updates the host and thread information on the job with the given id
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
      * jobname ist not checked
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @param host The host to set
      * @param thread The thread to set
      */
-    public void updateHostThreadInformation(final String name, final String host, final String thread) {
+    public void updateHostThreadInformation(final String id, final String host, final String thread) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.HOST.val(), host).append(JobInfoProperty.THREAD.val(), thread));
-        collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
+        collection.update(createIdQuery(id), update);
     }
 
     /**
@@ -268,37 +273,37 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     }
 
     /**
-     * Adds additional data to a running job with the given name. If information with the given key already exists
+     * Adds additional data to a running job with the given id. If information with the given key already exists
      * it is overwritten. The lastModified date of the job is set to the current date.
      *
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
      * jobname ist not checked.
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @param key The key of the data to save
      * @param value The information to save
      */
-    public void addAdditionalData(final String name, final String key, final String value) {
+    public void addAdditionalData(final String id, final String key, final String value) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObjectBuilder().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
                         append(JobInfoProperty.ADDITIONAL_DATA.val() + "." + key, value).get());
-        collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
+        collection.update(createIdQuery(id), update);
     }
 
     /**
      * Sets a status message.
      *
-     * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
-     * jobname ist not checked
+     * The processing of this method is performed asynchronously. Thus the existence of a job with the given
+     * id is not checked
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @param message The message to set
      */
-    public void setStatusMessage(final String name, String message) {
+    public void setStatusMessage(final String id, String message) {
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObjectBuilder().append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), new Date()).
                         append(JobInfoProperty.STATUS_MESSAGE.val(), message).get());
-        collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update);
+        collection.update(createIdQuery(id), update);
     }
 
     /**
@@ -401,28 +406,28 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * The processing of this method is performed asynchronously. Thus the existance of a running job with the given
      * jobname ist not checked
      *
-     * @param jobName The name of the job
+     * @param jobId The id of the job
      * @param line The log line to add
      */
-    public void addLogLine(final String jobName, final String line) {
+    public void addLogLine(final String jobId, final String line) {
         final Date dt = new Date();
         final LogLine logLine = new LogLine(line, dt);
         final DBObject update = new BasicDBObject().
                 append(MongoOperator.PUSH.op(), new BasicDBObject(JobInfoProperty.LOG_LINES.val(), logLine.toDbObject())).
                 append(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        collection.update(createFindByNameAndRunningStateQuery(jobName, RunningState.RUNNING.name()), update);
+        collection.update(createIdQuery(jobId), update);
     }
 
     /**
-     * Appends the log lines of the running job with the supplies name
+     * Appends the log lines of the job with the supplied id
      * to the already existing log lines.
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @param lines the log lines to add
      * @return true - The data was successfully added to the job<br/>
      *         false - No running job with the given name could be found
      */
-    public boolean appendLogLines(final String name, final List<String> lines) {
+    public boolean appendLogLines(final String id, final List<String> lines) {
         final Date dt = new Date();
         final List<DBObject> logLines = new ArrayList<>();
         for (String line : lines) {
@@ -431,7 +436,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         final DBObject update = new BasicDBObject().
                 append(MongoOperator.PUSH_ALL.op(), new BasicDBObject(JobInfoProperty.LOG_LINES.val(), logLines)).
                 append(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.RUNNING.name()), update, false, false, WriteConcern.SAFE);
+        final WriteResult result = collection.update(createIdQuery(id), update, false, false, WriteConcern.SAFE);
         return result.getN() == 1;
     }
 
@@ -442,11 +447,9 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param currentDate The current date
      */
     public void removeJobIfTimedOut(final String name, final Date currentDate) {
-        if (hasJob(name, RunningState.RUNNING)) {
-            final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING);
-            if (job.isTimedOut(currentDate)) {
-                markAsFinished(job.getId(), ResultCode.TIMED_OUT);
-            }
+        final JobInfo job = findByNameAndRunningState(name, RunningState.RUNNING);
+        if (job != null && job.isTimedOut(currentDate)) {
+            markAsFinished(job.getId(), ResultCode.TIMED_OUT);
         }
     }
 
@@ -473,7 +476,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
-            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, 5 * 60 * 1000, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
@@ -487,9 +490,9 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                 }
             }
             logger.info("Deleted {} timed-out jobs: {}", numberOfRemovedJobs, removedJobs);
-            addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+            addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             if (!removedJobs.isEmpty()) {
-                addAdditionalData(JOB_NAME_TIMED_OUT_CLEANUP, "removedJobs", removedJobs.toString());
+                addAdditionalData(id, "removedJobs", removedJobs.toString());
             }
             markAsFinished(id, ResultCode.SUCCESSFUL);
         }
@@ -502,14 +505,13 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final long maxExecutionTime = 5 * 60 * 1000;
-            final String id = create(JOB_NAME_CLEANUP, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
             /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotRunning(beforeDate);
             logger.info("Deleted {} not runnnig jobs.", numberOfRemovedJobs);
-            addAdditionalData(JOB_NAME_CLEANUP, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+            addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markAsFinished(id, ResultCode.SUCCESSFUL);
         }
         return numberOfRemovedJobs;
@@ -521,14 +523,13 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final long maxExecutionTime = 5 * 60 * 1000;
-            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, maxExecutionTime, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not executed jobs before {} ...", beforeDate);
             /* ... good bye ... */
             numberOfRemovedJobs = cleanupNotExecuted(beforeDate);
             logger.info("Deleted {} not executed jobs.", numberOfRemovedJobs);
-            addAdditionalData(JOB_NAME_CLEANUP_NOT_EXECUTED, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+            addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
             markAsFinished(id, ResultCode.SUCCESSFUL);
         }
         return numberOfRemovedJobs;
