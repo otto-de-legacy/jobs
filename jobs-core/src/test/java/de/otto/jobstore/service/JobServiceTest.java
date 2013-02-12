@@ -96,7 +96,7 @@ public class JobServiceTest {
 
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
         jobService.shutdownJobs();
-        verify(jobInfoRepository).markAsFinished(job.getId(), ResultCode.FAILED, "shutdownJobs called from executing host");
+        verify(jobInfoRepository).markAsFinished(job.getId(), ResultCode.ABORTED, "shutdownJobs called from executing host");
     }
 
     @Test
@@ -352,13 +352,16 @@ public class JobServiceTest {
         jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0));
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
-                thenReturn(job);
+        final ObjectId id = new ObjectId();
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, id);
+        when(jobInfoRepository.findById(id.toString())).thenReturn(job);
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(job);
+
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class)))
                 .thenReturn(new RemoteJobStatus(RemoteJobStatus.Status.RUNNING, logLines, null, null));
         jobService.pollRemoteJobs();
-        verify(jobInfoRepository, times(1)).appendLogLines(JOB_NAME_01, logLines);
+        verify(jobInfoRepository, times(1)).appendLogLines(job.getId(), logLines);
     }
 
     @Test(enabled = false)
@@ -383,9 +386,10 @@ public class JobServiceTest {
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
-        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
-                thenReturn(job);
+        final ObjectId id = new ObjectId();
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, id);
+        when(jobInfoRepository.findById(id.toString())).thenReturn(job);
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
                 new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo"), null));
@@ -403,9 +407,10 @@ public class JobServiceTest {
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
-        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
-        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
-                thenReturn(job);
+        final ObjectId id = new ObjectId();
+        ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, id);
+        when(jobInfoRepository.findById(id.toString())).thenReturn(job);
+        when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).thenReturn(job);
         List<String> logLines = Arrays.asList("test", "test1");
         when(remoteJobExecutorService.getStatus(any(URI.class))).thenReturn(
                 new RemoteJobStatus(RemoteJobStatus.Status.FINISHED, logLines, new RemoteJobResult(true, 0, "foo"), null));
