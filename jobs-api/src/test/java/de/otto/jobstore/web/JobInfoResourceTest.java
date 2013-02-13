@@ -187,6 +187,7 @@ public class JobInfoResourceTest {
         assertEquals(1, history.size());
     }
 
+
     @Test
     public void testTogglingJobEnabled() throws Exception {
         when(jobService.isJobExecutionEnabled("test")).thenReturn(Boolean.TRUE);
@@ -209,6 +210,7 @@ public class JobInfoResourceTest {
         Response response = jobInfoResource.toggleJobEnabled("test");
         assertEquals(404, response.getStatus());
     }
+
 
     // ~~
 
