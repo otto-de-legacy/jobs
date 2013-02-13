@@ -34,12 +34,19 @@ public class JobDefinitionRepository extends AbstractRepository<StoredJobDefinit
     }
 
     public void addOrUpdate(StoredJobDefinition jobDefinition) {
-        final DBObject obj = new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject()
-                .append(JobDefinitionProperty.NAME.val(), jobDefinition.getName())
-                .append(JobDefinitionProperty.POLLING_INTERVAL.val(), jobDefinition.getPollingInterval())
-                .append(JobDefinitionProperty.TIMEOUT_PERIOD.val(), jobDefinition.getTimeoutPeriod())
-                .append(JobDefinitionProperty.REMOTE.val(), jobDefinition.isRemote()));
+        final DBObject obj = new BasicDBObject(MongoOperator.SET.op(), buildUpdateObject(jobDefinition));
         collection.update(new BasicDBObject(JobDefinitionProperty.NAME.val(), jobDefinition.getName()), obj, true, false, WriteConcern.SAFE);
+    }
+
+    private BasicDBObject buildUpdateObject(StoredJobDefinition jobDefinition) {
+        final BasicDBObject basicDBObject = new BasicDBObject();
+        final DBObject jobDefObj = jobDefinition.toDbObject();
+        for (JobDefinitionProperty property : JobDefinitionProperty.values()) {
+            if (!property.isDynamic()) {
+                basicDBObject.append(property.val(), jobDefObj.get(property.val()));
+            }
+        }
+        return basicDBObject;
     }
 
     public void setJobExecutionEnabled(String name, boolean executionEnabled) {

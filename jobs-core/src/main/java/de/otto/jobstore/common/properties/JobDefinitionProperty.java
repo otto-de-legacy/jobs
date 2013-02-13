@@ -11,17 +11,27 @@ public enum JobDefinitionProperty implements ItemProperty {
     TIMEOUT_PERIOD("timeoutPeriod"),
     POLLING_INTERVAL("pollingInterval"),
     REMOTE("remote"),
-    DISABLED("disabled"),
+    DISABLED("disabled", true),
     ABORTABLE("abortable");
 
     private final String value;
+    private final boolean dynamic;
+
+    private JobDefinitionProperty(String value, boolean dynamic) {
+        this.value = value;
+        this.dynamic = dynamic;
+    }
 
     private JobDefinitionProperty(String value) {
         this.value = value;
+        this.dynamic = false;
     }
 
     public String val() {
         return value;
     }
 
+    public boolean isDynamic() {
+        return dynamic;
+    }
 }
