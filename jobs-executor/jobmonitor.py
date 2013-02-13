@@ -13,7 +13,8 @@
    own log file in the TRANSCRIPT_DIR.
 """
 
-__version__ = "0.8.31"
+import version
+__version__ = version.version
 __author__  = "Niko Schmuck"
 __credits__ = ["Ilja Pavkovic", "Sebastian Schroeder"]
 
