@@ -26,6 +26,7 @@ import java.util.*;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.AssertJUnit.assertEquals;
@@ -189,28 +190,25 @@ public class JobInfoResourceTest {
 
 
     @Test
-    public void testTogglingJobEnabled() throws Exception {
-        when(jobService.isJobExecutionEnabled("test")).thenReturn(Boolean.TRUE);
-        Response response = jobInfoResource.toggleJobEnabled("test");
-        assertEquals(200, response.getStatus());
-        assertTrue(((String)response.getEntity()).contains("disabled"));
-    }
-
-    @Test
-    public void testTogglingJobDisabled() throws Exception {
-        when(jobService.isJobExecutionEnabled("test")).thenReturn(Boolean.FALSE);
-        Response response = jobInfoResource.toggleJobEnabled("test");
+    public void testEnablingJob() throws Exception {
+        Response response = jobInfoResource.enableJob("test");
         assertEquals(200, response.getStatus());
         assertTrue(((String)response.getEntity()).contains("enabled"));
     }
 
     @Test
-    public void testTogglingJobDisabledNotRegistered() throws Exception {
-        when(jobService.isJobExecutionEnabled("test")).thenThrow(new JobNotRegisteredException(""));
-        Response response = jobInfoResource.toggleJobEnabled("test");
-        assertEquals(404, response.getStatus());
+    public void testDisablingJob() throws Exception {
+        Response response = jobInfoResource.disableJob("test");
+        assertEquals(200, response.getStatus());
+        assertTrue(((String)response.getEntity()).contains("disabled"));
     }
 
+    @Test
+    public void testDisablingNotRegisteredJob() throws Exception {
+        doThrow(new JobNotRegisteredException("")).when(jobService).setJobExecutionEnabled("test", false);
+        Response response = jobInfoResource.disableJob("test");
+        assertEquals(404, response.getStatus());
+    }
 
     // ~~
 
