@@ -263,7 +263,7 @@ public final class JobInfoResource {
     }
 
     private String buildStatusJson(boolean newStatus) {
-        return "{\"status\" : " + (newStatus ? "enabled" : "disabled") + "}";
+        return "{\"status\" : " + (newStatus ? "\"enabled\"" : "\"disabled\"") + "}";
     }
 
     private Feed createFeed(final Abdera abdera, String title, final String subTitle, final URI feedLink) {
