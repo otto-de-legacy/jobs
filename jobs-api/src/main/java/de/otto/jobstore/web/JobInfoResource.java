@@ -221,10 +221,24 @@ public final class JobInfoResource {
         if (jobInfo == null || !jobInfo.getName().equals(name)) {
             return Response.status(Response.Status.NOT_FOUND).build();
         } else {
-            //TODO: Return 403 is job is not abortable
-            jobService.abortJob(jobInfo.getId());
-            return Response.ok().build();
+            if (isJobAbortable(jobInfo)) {
+                jobService.abortJob(jobInfo.getId());
+                return Response.ok().build();
+            } else {
+                return Response.status(Response.Status.FORBIDDEN).entity("Job does not support being aborted.").build();
+            }
         }
+    }
+
+    private boolean isJobAbortable(JobInfo jobInfo) {
+        JobDefinition jobDefinition = null;
+        for (JobRunnable jobRunnable : jobService.listJobRunnables()) {
+            if (jobInfo.getName().equals(jobRunnable.getJobDefinition().getName())) {
+                jobDefinition = jobRunnable.getJobDefinition();
+                break;
+            }
+        }
+        return jobDefinition != null && jobDefinition.isAbortable();
     }
 
 
