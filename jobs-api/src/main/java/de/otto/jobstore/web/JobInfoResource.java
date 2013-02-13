@@ -70,16 +70,28 @@ public final class JobInfoResource {
     }
 
     /**
-     * Disables/Enables job execution
+     * Enables job execution
      */
     @POST
-    @Path("/toggle")
-    public Response toggleJobExecution() {
-        final boolean newStatus = !jobService.isExecutionEnabled();
-        jobService.setExecutionEnabled(newStatus);
-        return Response.ok(buildStatusJson(newStatus)).build();
+    @Path("/enable")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response enableJobExecution() {
+        final boolean executionEnabled = true;
+        jobService.setExecutionEnabled(executionEnabled);
+        return Response.ok(buildStatusJson(executionEnabled)).build();
     }
 
+    /**
+     * Enables job execution
+     */
+    @POST
+    @Path("/disable")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response disableJobExecution() {
+        final boolean executionEnabled = false;
+        jobService.setExecutionEnabled(executionEnabled);
+        return Response.ok(buildStatusJson(executionEnabled)).build();
+    }
 
     /**
      * Executes a job and its content location.
@@ -142,17 +154,34 @@ public final class JobInfoResource {
     }
 
     /**
-     * Disables/enables execution of jobs with the given name
+     * Enables execution of jobs with the given name
      * @param name The name of the job to enable/disable
      * @return The current status of the status (enabled true/false)
      */
     @POST
-    @Path("/{name}/toggle")
-    public Response toggleJobEnabled(@PathParam("name") final String name) {
+    @Path("/{name}/enable")
+    public Response enableJob(@PathParam("name") final String name) {
         try {
-            final boolean newStatus = !jobService.isJobExecutionEnabled(name);
-            jobService.setJobExecutionEnabled(name, newStatus);
-            return Response.ok(buildStatusJson(newStatus)).build();
+            final boolean executionEnabled = true;
+            jobService.setJobExecutionEnabled(name, executionEnabled);
+            return Response.ok(buildStatusJson(executionEnabled)).build();
+        } catch (JobNotRegisteredException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
+
+    /**
+     * Disables execution of jobs with the given name
+     * @param name The name of the job to enable/disable
+     * @return The current status of the status (enabled true/false)
+     */
+    @POST
+    @Path("/{name}/disable")
+    public Response disableJob(@PathParam("name") final String name) {
+        try {
+            final boolean executionEnabled = false;
+            jobService.setJobExecutionEnabled(name, executionEnabled);
+            return Response.ok(buildStatusJson(executionEnabled)).build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
