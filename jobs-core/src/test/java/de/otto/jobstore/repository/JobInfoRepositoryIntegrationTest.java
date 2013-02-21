@@ -176,6 +176,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         createJobInfo(TESTVALUE_JOBNAME, 1000, RunningState.RUNNING);
         createJobInfo(TESTVALUE_JOBNAME, 1000, RunningState.QUEUED);
         assertEquals(2, jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, new Date(new Date().getTime() - 60 * 1000), null, null).size());
+        assertEquals(2, jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, new Date(new Date().getTime() - 60 * 1000), new Date(), null).size());
     }
 
     @Test
