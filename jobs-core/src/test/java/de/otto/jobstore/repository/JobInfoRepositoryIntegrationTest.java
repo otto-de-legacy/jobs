@@ -1,5 +1,6 @@
 package de.otto.jobstore.repository;
 
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import de.otto.jobstore.common.*;
@@ -14,6 +15,7 @@ import org.testng.annotations.Test;
 
 import javax.annotation.Resource;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static org.testng.AssertJUnit.*;
 import static org.testng.AssertJUnit.assertEquals;
@@ -452,4 +454,18 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         assertTrue(jobInfoRepository.markAsFinished(jobInfo.getId(), resultCode));
     }
 
+    @Test
+    public void testBDBObject() {
+        Date start = new Date(new Date().getTime()- TimeUnit.HOURS.toMillis(12));
+        Date end = new Date();
+        List<JobInfo> jobInfoList = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, end, Arrays.asList(ResultCode.values()));
+
+        BasicDBList list = new BasicDBList();
+        list.add(new BasicDBObject(MongoOperator.GTE.op(), start));
+        list.add(new BasicDBObject(MongoOperator.LTE.op(), end));
+        BasicDBObject dbObject = new BasicDBObject(JobInfoProperty.CREATION_TIME.val(),list);
+
+        assertNotNull(dbObject);
+
+    }
 }

@@ -136,14 +136,20 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param resultCodes Limit to the jobs with the specified result states
      * @return The list of jobs sorted by creationTime in descending order
      */
-    public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Set<ResultCode> resultCodes) {
+    public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Collection<ResultCode> resultCodes) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
-        if (start != null) {
-            query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.GTE.op(), start));
+
+        BasicDBList creationTimeQuery = new BasicDBList();
+        if(start != null) {
+            creationTimeQuery.add(new BasicDBObject(MongoOperator.GTE.op(), start));
         }
         if (end != null) {
-            query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), end));
+            creationTimeQuery.add(new BasicDBObject(MongoOperator.LTE.op(), end));
         }
+        if(!creationTimeQuery.isEmpty()) {
+            query.append(JobInfoProperty.CREATION_TIME.val(), creationTimeQuery);
+        }
+
         if (resultCodes != null && !resultCodes.isEmpty()) {
             final List<String> resultCodeAsStrings = toStringList(resultCodes);
             query.append(JobInfoProperty.RESULT_STATE.val(), new BasicDBObject(MongoOperator.IN.op(), resultCodeAsStrings));
@@ -621,7 +627,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         return "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString();
     }
 
-    private List<String> toStringList(Set<? extends Enum<?>> enumSet) {
+    private List<String> toStringList(Collection<? extends Enum<?>> enumSet) {
         final List<String> strings = new ArrayList<>();
         if (enumSet != null) {
             for (Enum<?> e : enumSet) {
