@@ -139,15 +139,15 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Collection<ResultCode> resultCodes) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
 
-        BasicDBList creationTimeQuery = new BasicDBList();
+        BasicDBObjectBuilder creationTimeQuery = new BasicDBObjectBuilder();
         if(start != null) {
-            creationTimeQuery.add(new BasicDBObject(MongoOperator.GTE.op(), start));
+            creationTimeQuery.append(MongoOperator.GTE.op(), start);
         }
         if (end != null) {
-            creationTimeQuery.add(new BasicDBObject(MongoOperator.LTE.op(), end));
+            creationTimeQuery.append(MongoOperator.LTE.op(), end);
         }
         if(!creationTimeQuery.isEmpty()) {
-            query.append(JobInfoProperty.CREATION_TIME.val(), creationTimeQuery);
+            query.append(JobInfoProperty.CREATION_TIME.val(), creationTimeQuery.get());
         }
 
         if (resultCodes != null && !resultCodes.isEmpty()) {
@@ -158,7 +158,6 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
         return getAll(cursor);
     }
-
     /**
      * Sets the status of the queued job with the given name to running. The lastModified date of the job is set
      * to the current date.
