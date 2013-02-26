@@ -7,10 +7,17 @@ public interface JobDefinition {
      */
     String getName();
 
+
     /**
-     * The time after which a job is considered to be timed out (in milliseconds).
+     * The time after which a job is considered to be timed out because it has not updated anymore  (in milliseconds).
      */
-    long getTimeoutPeriod();
+    long getMaxIdleTime();
+
+
+    /**
+     * The time after which a job is considered to be timed out because its total runningtime has exceeded (in milliseconds).
+     */
+    long getMaxExecutionTime();
 
     /**
      * The interval after which the job should be polled for new information (in milliseconds).

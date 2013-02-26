@@ -44,7 +44,12 @@ public class TestSetup {
             }
 
             @Override
-            public long getTimeoutPeriod() {
+            public long getMaxIdleTime() {
+                return timeoutPeriod;
+            }
+
+            @Override
+            public long getMaxExecutionTime() {
                 return timeoutPeriod;
             }
         };
@@ -58,7 +63,12 @@ public class TestSetup {
             }
 
             @Override
-            public long getTimeoutPeriod() {
+            public long getMaxExecutionTime() {
+                return timeoutPeriod;
+            }
+
+            @Override
+            public long getMaxIdleTime() {
                 return timeoutPeriod;
             }
 

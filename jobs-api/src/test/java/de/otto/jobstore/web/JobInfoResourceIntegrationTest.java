@@ -67,7 +67,12 @@ public class JobInfoResourceIntegrationTest extends AbstractTestNGSpringContextT
                     }
 
                     @Override
-                    public long getTimeoutPeriod() {
+                    public long getMaxExecutionTime() {
+                        return 0;
+                    }
+
+                    @Override
+                    public long getMaxIdleTime() {
                         return 0;
                     }
 

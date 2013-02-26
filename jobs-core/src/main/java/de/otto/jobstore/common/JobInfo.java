@@ -14,23 +14,23 @@ public final class JobInfo extends AbstractItem {
         super(dbObject);
     }
 
-    public JobInfo(String name, String host, String thread, Long timeoutPeriod) {
-        this(name, host, thread, timeoutPeriod, RunningState.QUEUED);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime) {
+        this(name, host, thread, maxIdleTime, maxExecutionTime, RunningState.QUEUED);
     }
 
-    public JobInfo(String name, String host, String thread, Long timeoutPeriod, RunningState state) {
-        this(name, host, thread, timeoutPeriod, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime , RunningState state) {
+        this(name, host, thread, maxIdleTime, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long timeoutPeriod, RunningState state) {
-        this(dt, name, host, thread, timeoutPeriod, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime , RunningState state) {
+        this(dt, name, host, thread, maxIdleTime, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(String name, String host, String thread, Long timeoutPeriod, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
-        this(new Date(), name, host, thread, timeoutPeriod, state, executionPriority, additionalData);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
+        this(new Date(), name, host, thread, maxIdleTime, maxExecutionTime, state, executionPriority, additionalData);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long timeoutPeriod, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
+    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
@@ -41,7 +41,8 @@ public final class JobInfo extends AbstractItem {
         addProperty(JobInfoProperty.EXECUTION_PRIORITY, executionPriority.name());
         addProperty(JobInfoProperty.RUNNING_STATE, state.name());
         setLastModifiedTime(dt);
-        addProperty(JobInfoProperty.TIMEOUT_PERIOD, timeoutPeriod);
+        addProperty(JobInfoProperty.MAX_IDLE_TIME, maxIdleTime);
+        addProperty(JobInfoProperty.MAX_EXECUTION_TIME, maxExecutionTime);
         if (additionalData != null) {
             addProperty(JobInfoProperty.ADDITIONAL_DATA, new BasicDBObject(additionalData));
         }
@@ -76,13 +77,56 @@ public final class JobInfo extends AbstractItem {
         addProperty(JobInfoProperty.PARAMETERS, parameters);
     }
 
-    public Long getTimeoutPeriod() {
-        return getProperty(JobInfoProperty.TIMEOUT_PERIOD);
+    public Long getMaxIdleTime() {
+        final Long maxIdleTime = getProperty(JobInfoProperty.MAX_IDLE_TIME);
+        //TODO This is only for backward compability for the time, the new version of this library is running, with formerly started jobs
+        if(maxIdleTime == null){
+            return getProperty(JobInfoProperty.TIMEOUT_PERIOD);
+        }
+        return maxIdleTime;
     }
 
-    public Date getJobExpireTime() {
-        return new Date(getLastModifiedTime().getTime() + getTimeoutPeriod());
+    public Long getMaxExecutionTime() {
+        final Long maxExecutionTime = getProperty(JobInfoProperty.MAX_EXECUTION_TIME);
+        //TODO This is only for backward compability for the time, the new version of this library is running, with formerly started jobs
+        if(maxExecutionTime == null){
+            return Long.valueOf(1000*60*60*2);
+        }
+        return maxExecutionTime;
     }
+
+    private Date getJobIdleExceededTime() {
+        return new Date(getLastModifiedTime().getTime() + getMaxIdleTime());
+    }
+
+    private Date getJobExpireTime() {
+        return new Date(getStartTime().getTime() + getMaxExecutionTime());
+    }
+
+    public boolean isTimedOut() {
+        return isTimedOut(new Date());
+    }
+
+    public boolean isTimedOut(Date currentDate) {
+        if(isStarted()){
+            return getJobExpireTime().before(currentDate);
+        } else {
+            return false;
+        }
+    }
+
+    public boolean isIdleTimeExceeded() {
+        return isIdleTimeExceeded(new Date());
+    }
+
+    public boolean isIdleTimeExceeded(Date currentDate) {
+        return getJobIdleExceededTime().before(currentDate);
+    }
+
+    public boolean isStarted() {
+        return getStartTime() != null;
+    }
+
 
     public JobExecutionPriority getExecutionPriority() {
         final String priority = getProperty(JobInfoProperty.EXECUTION_PRIORITY);
@@ -203,13 +247,7 @@ public final class JobInfo extends AbstractItem {
         }
     }
 
-    public boolean isTimedOut() {
-        return isTimedOut(new Date());
-    }
 
-    public boolean isTimedOut(Date currentDate) {
-        return getJobExpireTime().before(currentDate);
-    }
 
     @Override
     public String toString() {
@@ -220,7 +258,8 @@ public final class JobInfo extends AbstractItem {
                 "\", \"thread\":\"" + getThread() +
                 "\", \"creationTime\":\"" + getCreationTime() +
                 "\", \"startTime\":\"" + getStartTime() +
-                "\", \"timeout\":\"" + getTimeoutPeriod() +
+                "\", \"maxIdleTime\":\"" + getMaxIdleTime() +
+                "\", \"maxExecutionTime\":\"" + getMaxExecutionTime() +
                 "\", \"finishTime\":\"" + getFinishTime() +
                 "\", \"lastModifiedTime\":\"" + getLastModifiedTime() +
                 "\", \"additionalData\":\"" + getAdditionalData().toString() +

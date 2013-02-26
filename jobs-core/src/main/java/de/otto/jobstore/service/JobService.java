@@ -369,7 +369,7 @@ public class JobService {
     private String queueJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, String exceptionMessage)
             throws JobAlreadyQueuedException{
         final JobDefinition jobDefinition = runnable.getJobDefinition();
-        final String id = jobInfoRepository.create(jobDefinition.getName(), jobDefinition.getTimeoutPeriod(),
+        final String id = jobInfoRepository.create(jobDefinition.getName(), jobDefinition.getMaxIdleTime(), jobDefinition.getMaxExecutionTime(),
                 RunningState.QUEUED, jobExecutionPriority, runnable.getParameters(), null);
         if (id == null) {
             throw new JobAlreadyQueuedException(exceptionMessage);

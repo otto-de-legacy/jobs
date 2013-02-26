@@ -17,7 +17,12 @@ public class SimpleAbortableJob extends AbstractLocalJobRunnable {
             }
 
             @Override
-            public long getTimeoutPeriod() {
+            public long getMaxExecutionTime() {
+                return 1000;
+            }
+
+            @Override
+            public long getMaxIdleTime() {
                 return 1000;
             }
 

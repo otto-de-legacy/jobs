@@ -238,7 +238,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         String id = createJobInfo(TESTVALUE_JOBNAME, 1234, RunningState.RUNNING);
         JobInfo jobInfo = jobInfoRepository.findById(id);
         assertNotNull(jobInfo);
-        assertEquals(new Long(1234), jobInfo.getTimeoutPeriod());
+        assertEquals(new Long(1234), jobInfo.getMaxIdleTime());
     }
 
     @Test
@@ -260,7 +260,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testCleanupOldJobs() throws Exception {
         jobInfoRepository.setHoursAfterWhichOldJobsAreDeleted(1);
-        JobInfo jobInfo = new JobInfo(new Date(new Date().getTime() - DAY_IN_MS * 12), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.FINISHED);
+        JobInfo jobInfo = new JobInfo(new Date(new Date().getTime() - DAY_IN_MS * 12), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.FINISHED);
         jobInfoRepository.save(jobInfo);
         assertEquals(1L, jobInfoRepository.count());
         jobInfoRepository.cleanupOldJobs();
@@ -294,7 +294,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testFindMostRecentByResultState() throws Exception {
-        JobInfo jobInfo = new JobInfo(new Date(System.currentTimeMillis() - DAY_IN_MS), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
+        JobInfo jobInfo = new JobInfo(new Date(System.currentTimeMillis() - DAY_IN_MS), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
         jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.FAILED);
         JobInfo jobInfo1 = newJobInfo(1000L, RunningState.RUNNING);
@@ -369,6 +369,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
                 .append("forceExecution", false)
                 .append("lastModificationTime", new Date())
                 .append("maxExecutionTime", 300000L)
+                .append("maxIdleTime", 3000000000000L)
                 .append("name", "ProductRelationFeedImportJob")
                 .append("runningState", "QUEUED")
                 .append("thread", "productSystemScheduler-3");
@@ -378,6 +379,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
                 .append("forceExecution", false)
                 .append("lastModificationTime", new Date(new GregorianCalendar(2012, 11, 13, 8, 59, 0).getTimeInMillis()))
                 .append("maxExecutionTime", 300000L)
+                .append("maxIdleTime", 3000000000000L)
                 .append("name", "ProductRelationFeedImportJob")
                 .append("runningState", "RUNNING")
                 .append("startTime", new Date(new GregorianCalendar(2012, 11, 13, 8, 23, 53).getTimeInMillis()))
@@ -386,8 +388,39 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         jobInfoRepository.save(new JobInfo(runningJob));
         assertEquals(2, jobInfoRepository.count());
         assertEquals(1, jobInfoRepository.cleanupTimedOutJobs());
-        JobInfo timedOutJob = jobInfoRepository.findById("60c99099e4b048a05ee9a024");
-        assertEquals(ResultCode.TIMED_OUT, timedOutJob.getResultState());
+        assertEquals(null, jobInfoRepository.findById("50c99099e4b048a05ee9a024").getResultState());
+        assertEquals(ResultCode.TIMED_OUT, jobInfoRepository.findById("60c99099e4b048a05ee9a024").getResultState());
+    }
+
+    @Test
+    public void testCleanupIdledOutJob() throws Exception {
+        DBObject queuedJob = new BasicDBObject()
+                .append("_id", new ObjectId("50c99099e4b048a05ee9a024"))
+                .append("creationTime", new Date())
+                .append("forceExecution", false)
+                .append("lastModificationTime", new Date())
+                .append("maxIdleTime", 300000L)
+                .append("maxExecutionTime", 3000000000000L)
+                .append("name", "ProductRelationFeedImportJob")
+                .append("runningState", "QUEUED")
+                .append("thread", "productSystemScheduler-3");
+        DBObject runningJob = new BasicDBObject()
+                .append("_id", new ObjectId("60c99099e4b048a05ee9a024"))
+                .append("creationTime", new Date(new GregorianCalendar(2012, 11, 13, 8, 23, 53).getTimeInMillis()))
+                .append("forceExecution", false)
+                .append("lastModificationTime", new Date(new GregorianCalendar(2012, 11, 13, 8, 59, 0).getTimeInMillis()))
+                .append("maxIdleTime", 300000L)
+                .append("maxExecutionTime", 3000000000000L)
+                .append("name", "ProductRelationFeedImportJob")
+                .append("runningState", "RUNNING")
+                .append("startTime", new Date(new GregorianCalendar(2012, 11, 13, 8, 23, 53).getTimeInMillis()))
+                .append("thread", "productSystemScheduler-3");
+        jobInfoRepository.save(new JobInfo(queuedJob));
+        jobInfoRepository.save(new JobInfo(runningJob));
+        assertEquals(2, jobInfoRepository.count());
+        assertEquals(1, jobInfoRepository.cleanupTimedOutJobs());
+        assertEquals(null, jobInfoRepository.findById("50c99099e4b048a05ee9a024").getResultState());
+        assertEquals(ResultCode.TIMED_OUT, jobInfoRepository.findById("60c99099e4b048a05ee9a024").getResultState());
     }
 
     @Test
@@ -442,15 +475,15 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     }
 
     private String createJobInfo(String name, long timeoutPeriod, RunningState runningState, Map<String, String> params) {
-        return jobInfoRepository.create(name, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, runningState, JobExecutionPriority.CHECK_PRECONDITIONS, params, null);
+        return jobInfoRepository.create(name, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, timeoutPeriod, runningState, JobExecutionPriority.CHECK_PRECONDITIONS, params, null);
     }
 
     private JobInfo newJobInfo(long timeoutPeriod, RunningState runningState) {
-        return new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, runningState);
+        return new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, timeoutPeriod, runningState);
     }
 
     private void createTestJobInfo(long timestamp, ResultCode resultCode) {
-        JobInfo jobInfo = new JobInfo(new Date(timestamp), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, RunningState.RUNNING);
+        JobInfo jobInfo = new JobInfo(new Date(timestamp), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
         assertTrue(jobInfoRepository.markAsFinished(jobInfo.getId(), resultCode));
     }
