@@ -2,11 +2,13 @@ package de.otto.jobstore.web;
 
 
 import de.otto.jobstore.common.*;
+import de.otto.jobstore.repository.JobDefinitionRepository;
 import de.otto.jobstore.service.JobInfoService;
 import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.JobException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import javax.annotation.Resource;
@@ -27,9 +29,14 @@ public class JobInfoResourceIntegrationTest extends AbstractTestNGSpringContextT
     @Resource
     private JobInfoService jobInfoService;
 
+    @BeforeMethod
+    public void setUp() throws Exception {
+        jobService.clean();
+    }
+
     @Test
     public void testThatAbortedJobHasAbortFlag() throws Exception {
-        JobRunnable jobRunnable = mockRunnable();
+        JobRunnable jobRunnable = mockRunnable(true);
         jobService.registerJob(jobRunnable);
         final String id = jobService.executeJob(jobRunnable.getJobDefinition().getName());
 
@@ -39,7 +46,17 @@ public class JobInfoResourceIntegrationTest extends AbstractTestNGSpringContextT
         assertTrue(jobInfo.isAborted());
     }
 
-    private AbstractLocalJobRunnable mockRunnable() {
+    @Test
+    public void testAbortingNotAbortableJobResultsInError() throws Exception {
+        JobRunnable jobRunnable = mockRunnable(false);
+        jobService.registerJob(jobRunnable);
+        final String id = jobService.executeJob(jobRunnable.getJobDefinition().getName());
+
+        final Response response = jobInfoResource.abortJob(jobRunnable.getJobDefinition().getName(), id);
+        assertEquals(403, response.getStatus());
+    }
+
+    private AbstractLocalJobRunnable mockRunnable(final boolean abortable) {
         return new AbstractLocalJobRunnable() {
             @Override
             public JobDefinition getJobDefinition() {
@@ -52,6 +69,11 @@ public class JobInfoResourceIntegrationTest extends AbstractTestNGSpringContextT
                     @Override
                     public long getTimeoutPeriod() {
                         return 0;
+                    }
+
+                    @Override
+                    public boolean isAbortable() {
+                        return abortable;
                     }
                 };
             }

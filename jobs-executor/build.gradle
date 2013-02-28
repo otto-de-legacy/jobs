@@ -1,11 +1,18 @@
 apply plugin: 'maven'
 
-group       = 'de.otto'
-version     = '0.8.27-SNAPSHOT'
+file("version.py").withReader { reader ->
+    def userProps = new java.util.Properties()
+    userProps.load(reader)
+    project.version = userProps.getProperty('version')
+}
 
+// ~~ global settings
+
+group       = 'de.otto'
 description = 'Job Executor'
 
 
+// ~~ custom tasks
 
 task customZip(type: Zip) {
     from ('.') {

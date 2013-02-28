@@ -1,6 +1,6 @@
 package de.otto.jobstore.common;
 
-public final class JobExecutionContext {
+public class JobExecutionContext {
 
     private final String id;
     private final JobLogger jobLogger;

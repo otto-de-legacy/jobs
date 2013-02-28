@@ -136,14 +136,20 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param resultCodes Limit to the jobs with the specified result states
      * @return The list of jobs sorted by creationTime in descending order
      */
-    public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Set<ResultCode> resultCodes) {
+    public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Collection<ResultCode> resultCodes) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
-        if (start != null) {
-            query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.GTE.op(), start));
+
+        BasicDBObjectBuilder creationTimeQuery = new BasicDBObjectBuilder();
+        if(start != null) {
+            creationTimeQuery.append(MongoOperator.GTE.op(), start);
         }
         if (end != null) {
-            query.append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LTE.op(), end));
+            creationTimeQuery.append(MongoOperator.LTE.op(), end);
         }
+        if(!creationTimeQuery.isEmpty()) {
+            query.append(JobInfoProperty.CREATION_TIME.val(), creationTimeQuery.get());
+        }
+
         if (resultCodes != null && !resultCodes.isEmpty()) {
             final List<String> resultCodeAsStrings = toStringList(resultCodes);
             query.append(JobInfoProperty.RESULT_STATE.val(), new BasicDBObject(MongoOperator.IN.op(), resultCodeAsStrings));
@@ -152,7 +158,6 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
         return getAll(cursor);
     }
-
     /**
      * Sets the status of the queued job with the given name to running. The lastModified date of the job is set
      * to the current date.
@@ -621,7 +626,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         return "Problem: " + t.getMessage() + ", Stack-Trace: " + sw.toString();
     }
 
-    private List<String> toStringList(Set<? extends Enum<?>> enumSet) {
+    private List<String> toStringList(Collection<? extends Enum<?>> enumSet) {
         final List<String> strings = new ArrayList<>();
         if (enumSet != null) {
             for (Enum<?> e : enumSet) {
