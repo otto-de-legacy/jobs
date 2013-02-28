@@ -11,9 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PreDestroy;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 /**
  *  This service allows to handle multiple jobs and their associated runnables. A job has to be registered before it
@@ -269,6 +267,12 @@ public class JobService {
                 }
             }
         }
+
+        try {
+            jobExecutorService.awaitTermination(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            LOGGER.warn("could not terminate all running threads");
+        }
     }
 
     /**
@@ -343,9 +347,14 @@ public class JobService {
         }
     }
 
+
+
+    private ExecutorService jobExecutorService = Executors.newCachedThreadPool();
+
     private void executeJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
         final JobDefinition definition = runnable.getJobDefinition();
-        Executors.newSingleThreadExecutor().execute(new JobExecutionRunnable(
+
+        jobExecutorService.execute(new JobExecutionRunnable(
                 runnable, jobInfoRepository, createJobExecutionContext(id, definition.getName(), executionPriority, null)));
     }
 
