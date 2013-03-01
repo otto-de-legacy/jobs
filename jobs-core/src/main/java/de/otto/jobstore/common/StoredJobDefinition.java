@@ -14,24 +14,38 @@ public final class StoredJobDefinition extends AbstractItem implements JobDefini
         super(dbObject);
     }
 
-    public StoredJobDefinition(String name, long timeoutPeriod, long pollingInterval, boolean remote, boolean abortable) {
+    public StoredJobDefinition(String name, long maxIdleTime, long pollingInterval, boolean remote, boolean abortable) {
         addProperty(JobDefinitionProperty.NAME, name);
-        addProperty(JobDefinitionProperty.TIMEOUT_PERIOD, timeoutPeriod);
+        addProperty(JobDefinitionProperty.MAX_IDLE_TIME, maxIdleTime);
         addProperty(JobDefinitionProperty.POLLING_INTERVAL, pollingInterval);
         addProperty(JobDefinitionProperty.REMOTE, remote);
         addProperty(JobDefinitionProperty.ABORTABLE, abortable);
     }
 
     public StoredJobDefinition(JobDefinition jd) {
-        this(jd.getName(), jd.getTimeoutPeriod(), jd.getPollingInterval(), jd.isRemote(), jd.isAbortable());
+        this(jd.getName(), jd.getMaxIdleTime(), jd.getPollingInterval(), jd.isRemote(), jd.isAbortable());
     }
 
     public String getName() {
         return getProperty(JobDefinitionProperty.NAME);
     }
 
-    public long getTimeoutPeriod() {
-        return getProperty(JobDefinitionProperty.TIMEOUT_PERIOD);
+
+
+    public long getMaxIdleTime() {
+        Long maxIdleTime = getProperty(JobDefinitionProperty.MAX_IDLE_TIME);
+        if(maxIdleTime == null){
+            maxIdleTime = getProperty(JobDefinitionProperty.TIMEOUT_PERIOD);
+        }
+        return maxIdleTime;
+    }
+
+    public long getMaxExecutionTime() {
+        Long maxExecutionTime = getProperty(JobDefinitionProperty.MAX_EXECUTION_TIME);
+        if(maxExecutionTime == null){
+            maxExecutionTime = Long.valueOf(1000*60*60*2);
+        }
+        return maxExecutionTime;
     }
 
     public long getPollingInterval() {

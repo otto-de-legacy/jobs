@@ -212,7 +212,6 @@ public final class JobInfoResource {
      *
      * @param name The name of the job
      * @param id The id of the job
-     * @return
      */
     @POST
     @Path("/{name}/{id}/abort")

@@ -2,7 +2,7 @@ apply from: 'gradle/libraries.gradle'
 
 allprojects {
     apply plugin: 'idea'
-    version = '0.9.6'
+    version = '0.10.2'
     group = 'de.otto'
 }
 

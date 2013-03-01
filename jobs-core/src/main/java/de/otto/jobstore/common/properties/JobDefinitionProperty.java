@@ -8,7 +8,10 @@ package de.otto.jobstore.common.properties;
 public enum JobDefinitionProperty implements ItemProperty {
 
     NAME("name"),
+    @Deprecated
     TIMEOUT_PERIOD("timeoutPeriod"),
+    MAX_IDLE_TIME("maxIdleTime"),
+    MAX_EXECUTION_TIME("maxExecutionTime"),
     POLLING_INTERVAL("pollingInterval"),
     REMOTE("remote"),
     DISABLED("disabled", true),

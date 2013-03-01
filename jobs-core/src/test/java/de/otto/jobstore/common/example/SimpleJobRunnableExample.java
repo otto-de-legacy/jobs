@@ -19,7 +19,12 @@ public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
             }
 
             @Override
-            public long getTimeoutPeriod() {
+            public long getMaxExecutionTime() {
+                return 1000 * 60 * 10;
+            }
+
+            @Override
+            public long getMaxIdleTime() {
                 return 1000 * 60 * 10;
             }
         };

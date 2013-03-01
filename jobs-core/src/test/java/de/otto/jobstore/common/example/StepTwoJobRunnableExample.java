@@ -21,7 +21,12 @@ public final class StepTwoJobRunnableExample extends AbstractLocalJobRunnable {
             }
 
             @Override
-            public long getTimeoutPeriod() {
+            public long getMaxExecutionTime() {
+                return 1000 * 60 * 20;
+            }
+
+            @Override
+            public long getMaxIdleTime() {
                 return 1000 * 60 * 20;
             }
         };

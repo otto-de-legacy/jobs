@@ -28,27 +28,27 @@ public class JobInfoServiceTest {
 
     @Test
     public void testGetMostRecentExecuted() throws Exception {
-        when(jobInfoRepository.findMostRecentFinished("test")).thenReturn(new JobInfo("test", "host", "thread", 1234L));
+        when(jobInfoRepository.findMostRecentFinished("test")).thenReturn(new JobInfo("test", "host", "thread", 1234L, 1234L));
 
         JobInfo jobInfo = jobInfoService.getMostRecentExecuted("test");
         assertEquals("test", jobInfo.getName());
-        assertEquals(Long.valueOf(1234L), jobInfo.getTimeoutPeriod());
+        assertEquals(Long.valueOf(1234L), jobInfo.getMaxIdleTime());
     }
 
     @Test
     public void testGetMostRecentSuccessful() throws Exception {
         when(jobInfoRepository.findMostRecentByNameAndResultState("test",
-               EnumSet.of(ResultCode.SUCCESSFUL))).thenReturn(new JobInfo("test", "host", "thread", 1234L));
+               EnumSet.of(ResultCode.SUCCESSFUL))).thenReturn(new JobInfo("test", "host", "thread", 1234L, 1234L));
 
         JobInfo jobInfo = jobInfoService.getMostRecentSuccessful("test");
         assertEquals("test", jobInfo.getName());
-        assertEquals(Long.valueOf(1234L), jobInfo.getTimeoutPeriod());
+        assertEquals(Long.valueOf(1234L), jobInfo.getMaxIdleTime());
     }
 
     @Test
     public void testGetMostRecentExecutedList() throws Exception {
         when(jobInfoRepository.distinctJobNames()).thenReturn(Arrays.asList("test", "test2"));
-        when(jobInfoRepository.findMostRecentFinished("test")).thenReturn(new JobInfo("test", "host", "thread", 1234L));
+        when(jobInfoRepository.findMostRecentFinished("test")).thenReturn(new JobInfo("test", "host", "thread", 1234L, 1234L));
         when(jobInfoRepository.findMostRecentFinished("test2")).thenReturn(null);
 
         List<JobInfo> jobInfoList = jobInfoService.getMostRecentExecuted();
