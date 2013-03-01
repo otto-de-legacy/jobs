@@ -9,6 +9,7 @@ import de.otto.jobstore.service.exception.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.*;
 import java.util.concurrent.*;
@@ -249,11 +250,18 @@ public class JobService {
         }
     }
 
+    @PostConstruct
+    public void startup() {
+        shutdown = false;
+    }
+
     /**
      * Stops all jobs registered with this JobService and running on this host.
      */
     @PreDestroy
     public void shutdownJobs() {
+        shutdown = true;
+
         if (isExecutionEnabled()) {
             for (JobRunnable jobRunnable : jobs.values()) {
                 if (!jobRunnable.getJobDefinition().isRemote()) {
@@ -351,6 +359,8 @@ public class JobService {
 
     private ExecutorService jobExecutorService = Executors.newCachedThreadPool();
 
+    private volatile boolean shutdown = false;
+
     private void executeJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
         final JobDefinition definition = runnable.getJobDefinition();
 
@@ -419,6 +429,8 @@ public class JobService {
     }
 
     private boolean isJobEnabled(String name) {
+        if(shutdown) return false;
+
         final StoredJobDefinition semaphore = getJobDefinition(name);
         return !semaphore.isDisabled();
     }
