@@ -260,8 +260,6 @@ public class JobService {
      */
     @PreDestroy
     public void shutdownJobs() {
-        shutdown = true;
-
         if (isExecutionEnabled()) {
             for (JobRunnable jobRunnable : jobs.values()) {
                 if (!jobRunnable.getJobDefinition().isRemote()) {
@@ -275,6 +273,8 @@ public class JobService {
                 }
             }
         }
+
+        shutdown = true;
 
         try {
             jobExecutorService.awaitTermination(30, TimeUnit.SECONDS);
