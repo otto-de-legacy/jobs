@@ -129,27 +129,27 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     }
 
     /**
-     * Returns a list of jobs with the given name which have a creation timestamp which is in between the supplied
+     * Returns a list of jobs with the given name which have a last modified timestamp which is in between the supplied
      * dates. If the start and end parameter are null, the result list will contain all jobs with the supplied name.
      *
      * @param name The name of the jobs to return
-     * @param start The date on or after which the jobs were created
-     * @param end The date on or before which the jobs were created
+     * @param start The date on or after which the jobs were last modified
+     * @param end The date on or before which the jobs were last modified
      * @param resultCodes Limit to the jobs with the specified result states
      * @return The list of jobs sorted by creationTime in descending order
      */
     public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Collection<ResultCode> resultCodes) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
 
-        BasicDBObjectBuilder creationTimeQuery = new BasicDBObjectBuilder();
+        BasicDBObjectBuilder betweenTimeQuery = new BasicDBObjectBuilder();
         if(start != null) {
-            creationTimeQuery.append(MongoOperator.GTE.op(), start);
+            betweenTimeQuery.append(MongoOperator.GTE.op(), start);
         }
         if (end != null) {
-            creationTimeQuery.append(MongoOperator.LTE.op(), end);
+            betweenTimeQuery.append(MongoOperator.LTE.op(), end);
         }
-        if(!creationTimeQuery.isEmpty()) {
-            query.append(JobInfoProperty.CREATION_TIME.val(), creationTimeQuery.get());
+        if(!betweenTimeQuery.isEmpty()) {
+            query.append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), betweenTimeQuery.get());
         }
 
         if (resultCodes != null && !resultCodes.isEmpty()) {
