@@ -40,6 +40,7 @@ public class JobServiceTest {
         jobService = new JobService(jobDefinitionRepository, jobInfoRepository);
         jobInfoService = new JobInfoService(jobInfoRepository);
         when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
+        jobService.startup();
     }
 
     @Test
