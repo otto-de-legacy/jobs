@@ -24,7 +24,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Path("/jobs")
-public final class JobInfoResource {
+public class JobInfoResource {
 
     public static final String OTTO_JOBS_XML  = "application/vnd.otto.jobs+xml";
     public static final String OTTO_JOBS_JSON = "application/vnd.otto.jobs+json";
