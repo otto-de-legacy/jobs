@@ -260,23 +260,21 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testCleanupOldJobs() throws Exception {
         jobInfoRepository.setHoursAfterWhichOldJobsAreDeleted(1);
-        JobInfo jobInfo = new JobInfo(new Date(new Date().getTime() - DAY_IN_MS * 12), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.FINISHED);
+        JobInfo jobInfo = new JobInfo(new Date(new Date().getTime() - TimeUnit.DAYS.toMillis(12)), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.FINISHED);
         jobInfoRepository.save(jobInfo);
         assertEquals(1L, jobInfoRepository.count());
         jobInfoRepository.cleanupOldJobs();
         assertNull(jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME)); //Job should be gone
     }
 
-    final long DAY_IN_MS = 1000 * 60 * 60 * 24;
-
     @Test
     public void findByTimeRangeAndFilter() throws Exception {
         final long now = System.currentTimeMillis();
-        createTestJobInfo(now - 3 * DAY_IN_MS, ResultCode.SUCCESSFUL);
-        createTestJobInfo(now - 2 * DAY_IN_MS, ResultCode.FAILED);
-        createTestJobInfo(now - 1 * DAY_IN_MS, ResultCode.SUCCESSFUL);
+        createTestJobInfo(now - TimeUnit.DAYS.toMillis(3), ResultCode.SUCCESSFUL);
+        createTestJobInfo(now - TimeUnit.DAYS.toMillis(2), ResultCode.FAILED);
+        createTestJobInfo(now - TimeUnit.DAYS.toMillis(1), ResultCode.SUCCESSFUL);
         // all
-        Date start = new Date(now - 4 * DAY_IN_MS);
+        Date start = new Date(now - TimeUnit.DAYS.toMillis(4));
         List<JobInfo> jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, null);
         assertEquals("all jobs", 3, jobInfos.size());
         // only successful
@@ -286,15 +284,14 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, new HashSet<>(Arrays.asList( new ResultCode[]{ResultCode.SUCCESSFUL, ResultCode.FAILED})));
         assertEquals("only successful and failed jobs", 3, jobInfos.size());
         // only successful yesterday
-           start = new Date(now - DAY_IN_MS - 1000);
-        Date end = new Date(now - DAY_IN_MS + 1000);
+        start = new Date(now - TimeUnit.DAYS.toMillis(1) - 1000);
         jobInfos = jobInfoRepository.findByNameAndTimeRange(TESTVALUE_JOBNAME, start, null, Collections.singleton(ResultCode.SUCCESSFUL));
         assertEquals("only successful jobs from yesterday", 1, jobInfos.size());
     }
 
     @Test
     public void testFindMostRecentByResultState() throws Exception {
-        JobInfo jobInfo = new JobInfo(new Date(System.currentTimeMillis() - DAY_IN_MS), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.RUNNING);
+        JobInfo jobInfo = new JobInfo(new Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1)), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
         jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.FAILED);
         JobInfo jobInfo1 = newJobInfo(1000L, RunningState.RUNNING);
@@ -482,10 +479,17 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         return new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, timeoutPeriod, runningState);
     }
 
-    private void createTestJobInfo(long timestamp, ResultCode resultCode) {
+    private JobInfo createTestJobInfo(long timestamp, ResultCode resultCode) {
         JobInfo jobInfo = new JobInfo(new Date(timestamp), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
         assertTrue(jobInfoRepository.markAsFinished(jobInfo.getId(), resultCode));
+
+        // reload from Mongo, keep last modified in old state
+        jobInfo = jobInfoRepository.findById(jobInfo.getId());
+        jobInfo.setLastModifiedTime(new Date(timestamp));
+        jobInfoRepository.save(jobInfo);
+
+        return jobInfo;
     }
 
     @Test

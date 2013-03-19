@@ -21,9 +21,10 @@ import javax.xml.bind.Marshaller;
 import java.io.StringWriter;
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Path("/jobs")
-public final class JobInfoResource {
+public class JobInfoResource {
 
     public static final String OTTO_JOBS_XML  = "application/vnd.otto.jobs+xml";
     public static final String OTTO_JOBS_JSON = "application/vnd.otto.jobs+json";
@@ -256,7 +257,7 @@ public final class JobInfoResource {
                                    @QueryParam("resultStatus") final ResultCode resultStatus) {
         final Collection<String> jobNames = jobService.listJobNames();
         final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
-        final Date dt = new Date(new Date().getTime() - hours * 60 * 60 * 1000);
+        final Date dt = new Date(new Date().getTime() - TimeUnit.HOURS.toMillis(hours));
 
         // only create a list if we really do not have a null object
         Set<ResultCode> resultCodes = null;
