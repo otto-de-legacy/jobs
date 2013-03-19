@@ -28,7 +28,6 @@ import static org.testng.AssertJUnit.assertTrue;
 public class JobServiceTest {
 
     private JobService jobService;
-    private JobService jobService2;
     private JobInfoRepository jobInfoRepository;
     private JobDefinitionRepository jobDefinitionRepository;
     private RemoteJobExecutorService remoteJobExecutorService;
@@ -44,11 +43,11 @@ public class JobServiceTest {
         jobDefinitionRepository = mock(JobDefinitionRepository.class);
         remoteJobExecutorService = mock(RemoteJobExecutorService.class);
         jobService = new JobService(jobDefinitionRepository, jobInfoRepository);
-        jobService2 = new JobService(jobDefinitionRepository, jobInfoRepository);
         jobInfoService = new JobInfoService(jobInfoRepository);
         when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
+        jobService.awaitTerminationSeconds=1;
+        jobService.desynchronize = false;
         jobService.startup();
-        jobService2.startup();
     }
 
     @Test
@@ -96,10 +95,6 @@ public class JobServiceTest {
         jobService.registerJob(job1);
         jobService.registerJob(job2);
         jobService.addRunningConstraint(constraint);
-
-        jobService2.registerJob(job1);
-        jobService2.registerJob(job2);
-        jobService2.addRunningConstraint(constraint);
 
         // first do nothing, second should throw exception
         final AtomicInteger countUpdateHostThreadInformation = new AtomicInteger(0);
@@ -180,14 +175,10 @@ public class JobServiceTest {
 
             public void thread1() throws Exception {
                 jobService.executeQueuedJob(job1,"id1", JobExecutionPriority.CHECK_PRECONDITIONS);
-                //assertTick(1);
             }
 
             public void thread2() throws Exception {
                 jobService.executeQueuedJob(job2,"id2", JobExecutionPriority.CHECK_PRECONDITIONS);
-
-                //waitForTick(1);
-
             }
 
         });
@@ -318,15 +309,17 @@ public class JobServiceTest {
                 Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, 1000L)));
         when(jobInfoRepository.hasJob(JOB_NAME_02, RunningState.RUNNING)).thenReturn(Boolean.TRUE);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
+        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
 
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_02, 0));
         Set<String> constraint = new HashSet<>();
-        constraint.add(JOB_NAME_01); constraint.add(JOB_NAME_02);
+        constraint.add(JOB_NAME_01);
+        constraint.add(JOB_NAME_02);
         jobService.addRunningConstraint(constraint);
         jobService.executeQueuedJobs();
 
-        verify(jobInfoRepository, times(0)).activateQueuedJob(anyString());
+        verify(jobInfoRepository, times(0)).updateHostThreadInformation(anyString());
     }
 
     @Test

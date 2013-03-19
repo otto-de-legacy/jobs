@@ -31,6 +31,11 @@ public class JobService {
     private final JobInfoRepository jobInfoRepository;
     private long jobInfoCacheUpdateInterval = 10000;
 
+    protected int     awaitTerminationSeconds = 30;
+    protected boolean desynchronize = true;
+
+    private volatile boolean shutdown = false;
+
     /**
      * Creates a JobService Object.
      *
@@ -212,11 +217,13 @@ public class JobService {
 
         if (isExecutionEnabled()) {
 
+            if(desynchronize) {
             try {
                 // desynchronize with other systems in environment, wait up to 3 seconds
                 Thread.sleep(1 + ThreadLocalRandom.current().nextLong(TimeUnit.SECONDS.toMillis(3)));
             } catch(InterruptedException e) {
                 // this is ok, we don't need to take care about Interruption here
+            }
             }
 
             LOGGER.info("ltag=JobService.executeQueuedJobs");
@@ -240,11 +247,13 @@ public class JobService {
     public void pollRemoteJobs() {
         if (isExecutionEnabled()) {
 
+            if(desynchronize) {
             try {
                 // desynchronize with other systems in environment, wait up to 3 seconds
                 Thread.sleep(1 + ThreadLocalRandom.current().nextLong(TimeUnit.SECONDS.toMillis(3)));
             } catch(InterruptedException e) {
                 // this is ok, we don't need to take care about Interruption here
+            }
             }
 
             for (JobRunnable jobRunnable : jobs.values()) {
@@ -294,7 +303,7 @@ public class JobService {
         shutdown = true;
 
         try {
-            jobExecutorService.awaitTermination(30, TimeUnit.SECONDS);
+            jobExecutorService.awaitTermination(awaitTerminationSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             LOGGER.warn("could not terminate all running threads");
         }
@@ -372,11 +381,7 @@ public class JobService {
         }
     }
 
-
-
     private ExecutorService jobExecutorService = Executors.newCachedThreadPool();
-
-    private volatile boolean shutdown = false;
 
     private void executeJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
         final JobDefinition definition = runnable.getJobDefinition();
@@ -393,7 +398,8 @@ public class JobService {
 
     /**
      * paradigma:
-     * - sofort als running markieren.
+     * - prüfen, ob ein Job mit selben Namen schon laeuft
+     * - neue Job sofort als running markieren
      * - Danach auf running constraints pruefen
      * - wenn running constraints verletzt, dann job wieder zurueck auf queued
      *
@@ -403,6 +409,10 @@ public class JobService {
      */
     protected boolean executeQueuedJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
         final String name = runnable.getJobDefinition().getName();
+        if(jobInfoRepository.hasJob(name, RunningState.RUNNING)) {
+            LOGGER.info("ltag=JobService.executeQueuedJob.alreadyRunning jobInfoName={} jobInfoId={}", name, id);
+            return false;
+        }
         if (!jobInfoRepository.activateQueuedJob(name)) {
             LOGGER.info("ltag=JobService.executeQueuedJob.activateQueuedJobFailed jobInfoName={} jobInfoId={}", name, id);
             return false;
