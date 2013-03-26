@@ -6,6 +6,12 @@ allprojects {
     group = 'de.otto'
 }
 
+idea {
+  project {
+    languageLevel = '1.7'
+  }
+}
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'maven'
