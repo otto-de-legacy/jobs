@@ -139,6 +139,10 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @return The list of jobs sorted by creationTime in descending order
      */
     public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Collection<ResultCode> resultCodes) {
+            return findByNameAndTimeRange(name, start, end, resultCodes, true);
+    }
+
+    private List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Collection<ResultCode> resultCodes, boolean excludeLogLines) {
         final BasicDBObjectBuilder query = new BasicDBObjectBuilder().append(JobInfoProperty.NAME.val(), name);
 
         BasicDBObjectBuilder betweenTimeQuery = new BasicDBObjectBuilder();
@@ -156,8 +160,15 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             final List<String> resultCodeAsStrings = toStringList(resultCodes);
             query.append(JobInfoProperty.RESULT_STATE.val(), new BasicDBObject(MongoOperator.IN.op(), resultCodeAsStrings));
         }
-        final DBCursor cursor = collection.find(query.get()).
+
+        BasicDBObject keys = new BasicDBObject();
+        if(excludeLogLines) {
+            keys.put(JobInfoProperty.LOG_LINES.val(), 0);
+        }
+
+        final DBCursor cursor = collection.find(query.get(), keys).
                 sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val()));
+        logger.info("findByNameAndTimeRange executing cursor {} ", cursor);
         return getAll(cursor);
     }
     /**
