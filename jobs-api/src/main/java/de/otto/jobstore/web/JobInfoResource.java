@@ -245,33 +245,40 @@ public class JobInfoResource {
     /**
      * <b>INTERNAL API, DO NOT USE</b>
      * Returns a map with the distinct job names as the key and the jobs with the given name as their values.
+     * Without given jobNames, jobs will NOT be returned. We need to rewrite the interface.
      *
      * @param hours The hours the jobs go back into the past
-     * @param resultStatus Filter the jobs by their result status (default null == unfiltered)
+     * @param resultCodes Filter the jobs by their result status (default null == unfiltered)
+     * @param jobNames Filter the jobs by their name (default null == all jobs)
      * @return The map of distinct names with their jobs as values
      */
     @GET
     @Path("/history")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getJobsHistory(@QueryParam("hours") @DefaultValue("12") final int hours,
-                                   @QueryParam("resultStatus") final ResultCode resultStatus) {
-        final Collection<String> jobNames = jobService.listJobNames();
-        final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
+                                   @QueryParam("resultCode") final Set<ResultCode> resultCodes,
+                                   @QueryParam("jobName") final Set<String> jobNames) {
+        final Collection<String> allJobNames = jobService.listJobNames();
         final Date dt = new Date(new Date().getTime() - TimeUnit.HOURS.toMillis(hours));
 
-        // only create a list if we really do not have a null object
-        Set<ResultCode> resultCodes = null;
-        if(resultStatus != null) {
-            resultCodes = Collections.singleton(resultStatus);
-        }
-
-        for (String jobName : jobNames) {
-            final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), resultCodes);
+        final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
+        for (String jobName : allJobNames) {
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<>();
-            for (JobInfo jobInfo : jobInfoList) {
-                jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES));
+
+            if (jobNames == null) {
+                // without jobNames we return a list with empty result, values must be get after first call
+                jobs.put(jobName, jobInfoRepresentations);
+            } else {
+                // otherwise only add if in list of jobs
+                if (jobNames.contains(jobName)) {
+                    final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), resultCodes);
+
+                    for (JobInfo jobInfo : jobInfoList) {
+                        jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES));
+                    }
+                }
+                jobs.put(jobName, jobInfoRepresentations);
             }
-            jobs.put(jobName, jobInfoRepresentations);
         }
         return Response.ok(jobs).build();
     }

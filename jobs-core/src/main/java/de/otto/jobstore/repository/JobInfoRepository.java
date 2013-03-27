@@ -139,7 +139,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @return The list of jobs sorted by creationTime in descending order
      */
     public List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Collection<ResultCode> resultCodes) {
-            return findByNameAndTimeRange(name, start, end, resultCodes, true);
+            return findByNameAndTimeRange(name, start, end, resultCodes, false);
     }
 
     private List<JobInfo> findByNameAndTimeRange(final String name, final Date start, final Date end, final Collection<ResultCode> resultCodes, boolean excludeLogLines) {
