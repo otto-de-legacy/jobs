@@ -249,7 +249,7 @@ public class JobInfoResource {
      *
      * @param hours The hours the jobs go back into the past
      * @param resultCodes Filter the jobs by their result status (default null == unfiltered)
-     * @param jobNames Filter the jobs by their name (default null == all jobs)
+     * @param jobNames Filter the jobs by their name (default null == all jobs, but without jobs itself)
      * @return The map of distinct names with their jobs as values
      */
     @GET
@@ -276,8 +276,8 @@ public class JobInfoResource {
                     for (JobInfo jobInfo : jobInfoList) {
                         jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES));
                     }
+                    jobs.put(jobName, jobInfoRepresentations);
                 }
-                jobs.put(jobName, jobInfoRepresentations);
             }
         }
         return Response.ok(jobs).build();
