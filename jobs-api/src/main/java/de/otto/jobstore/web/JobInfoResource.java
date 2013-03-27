@@ -265,7 +265,7 @@ public class JobInfoResource {
         for (String jobName : allJobNames) {
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<>();
 
-            if (jobNames == null) {
+            if (jobNames == null || jobNames.isEmpty()) {
                 // without jobNames we return a list with empty result, values must be get after first call
                 jobs.put(jobName, jobInfoRepresentations);
             } else {
