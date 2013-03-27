@@ -7,13 +7,18 @@ import de.otto.jobstore.common.util.InternetUtils;
 import de.otto.jobstore.repository.JobDefinitionRepository;
 import de.otto.jobstore.repository.JobInfoRepository;
 import de.otto.jobstore.service.exception.*;
+import edu.umd.cs.mtc.MultithreadedTestCase;
+import edu.umd.cs.mtc.TestFramework;
 import org.bson.types.ObjectId;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
@@ -40,6 +45,8 @@ public class JobServiceTest {
         jobService = new JobService(jobDefinitionRepository, jobInfoRepository);
         jobInfoService = new JobInfoService(jobInfoRepository);
         when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
+        jobService.awaitTerminationSeconds=1;
+        jobService.desynchronize = false;
         jobService.startup();
     }
 
@@ -66,6 +73,116 @@ public class JobServiceTest {
         constraint.add(JOB_NAME_02);
         assertTrue(jobService.addRunningConstraint(constraint));
         assertFalse(jobService.addRunningConstraint(constraint));
+    }
+
+    private synchronized void printIt(String msg) {
+        System.out.println(Thread.currentThread().getName()+":"+ msg);
+    }
+
+    @Test
+    public void testMultipleThreadsOnRunningConstraints() throws Throwable {
+
+        final JobRunnable job1 = TestSetup.localJobRunnable(JOB_NAME_01, 0);
+        final JobRunnable job2 = TestSetup.localJobRunnable(JOB_NAME_02, 0);
+
+        Set<String> constraint = new HashSet<>();
+        constraint.add(job1.getJobDefinition().getName());
+        constraint.add(job2.getJobDefinition().getName());
+
+        StoredJobDefinition jd = createSimpleJd();
+        when(jobDefinitionRepository.find(anyString())).thenReturn(jd);
+
+        jobService.registerJob(job1);
+        jobService.registerJob(job2);
+        jobService.addRunningConstraint(constraint);
+
+        // first do nothing, second should throw exception
+        final AtomicInteger countUpdateHostThreadInformation = new AtomicInteger(0);
+
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                printIt("updateHostThreadInformation");
+                if(countUpdateHostThreadInformation.incrementAndGet() > 1) {
+                    throw new RuntimeException("called too often");
+                }
+                return null;  //To change body of implemented methods use File | Settings | File Templates.
+            }
+        }).when(jobInfoRepository).updateHostThreadInformation(anyString());
+
+        final AtomicInteger state1 = new AtomicInteger(0);
+        when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                printIt("hasJob.QUEUED.1");
+                return state1.get() == 0;
+            }
+        });
+        when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                printIt("hasJob.RUNNING.1");
+                return state1.get() == 1;
+            }
+        });
+        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                printIt("activateQueuedJob.1");
+                return state1.compareAndSet(0,1);
+            }
+        });
+        when(jobInfoRepository.deactivateRunningJob(JOB_NAME_01)).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                printIt("deactivateRunningJob.1");
+                return state1.compareAndSet(1,0);
+            }
+        });
+
+        final AtomicInteger state2 = new AtomicInteger(0);
+        when(jobInfoRepository.hasJob(JOB_NAME_02, RunningState.QUEUED)).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                printIt("hasJob.QUEUED.2");
+                return state2.get() == 0;
+            }
+        });
+        when(jobInfoRepository.hasJob(JOB_NAME_02, RunningState.RUNNING)).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                printIt("hasJob.RUNNING.2");
+                return state2.get() == 1;
+            }
+        });
+        when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                printIt("activateQueuedJob.2");
+                return state2.compareAndSet(0,1);
+            }
+        });
+        when(jobInfoRepository.deactivateRunningJob(JOB_NAME_02)).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                printIt("deactivateRunningJob.2");
+                return state2.compareAndSet(1,0);
+
+            }
+        });
+
+        TestFramework.runOnce(new MultithreadedTestCase() {
+
+            public void thread1() throws Exception {
+                jobService.executeQueuedJob(job1,"id1", JobExecutionPriority.CHECK_PRECONDITIONS);
+            }
+
+            public void thread2() throws Exception {
+                jobService.executeQueuedJob(job2,"id2", JobExecutionPriority.CHECK_PRECONDITIONS);
+            }
+
+        });
+
     }
 
     @Test
@@ -192,15 +309,17 @@ public class JobServiceTest {
                 Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, 1000L)));
         when(jobInfoRepository.hasJob(JOB_NAME_02, RunningState.RUNNING)).thenReturn(Boolean.TRUE);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
+        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
 
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_02, 0));
         Set<String> constraint = new HashSet<>();
-        constraint.add(JOB_NAME_01); constraint.add(JOB_NAME_02);
+        constraint.add(JOB_NAME_01);
+        constraint.add(JOB_NAME_02);
         jobService.addRunningConstraint(constraint);
         jobService.executeQueuedJobs();
 
-        verify(jobInfoRepository, times(0)).activateQueuedJob(anyString());
+        verify(jobInfoRepository, times(0)).updateHostThreadInformation(anyString());
     }
 
     @Test

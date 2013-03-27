@@ -169,14 +169,31 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      *         false - If no queued job with the current name could be found and thus could not activated
      */
     public boolean activateQueuedJob(final String name) {
+        logger.info("Activate queued job={} ...", name);
+        return transitionState(name, RunningState.QUEUED, RunningState.RUNNING, new Date());
+    }
+
+    /**
+     * sets status of running job back to queued. This is necessary if running constraints fail after activateQueuedJob. This seems to be
+     * awkward, but is necessary to prevent race condition with parallel started jobs
+     *
+     * @param name The name of the job
+     * @return true - If the job with the given name was activated successfully<br/>
+     *         false - If no queued job with the current name could be found and thus could not activated
+     */
+    public boolean deactivateRunningJob(final String name) {
+        logger.info("deactivate running job={} ...", name);
+        return transitionState(name, RunningState.RUNNING, RunningState.QUEUED, null);
+    }
+
+    private boolean transitionState(final String name, RunningState fromState, RunningState toState, Date startTime) {
         Date dt = new Date();
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
-                new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()).
-                        append(JobInfoProperty.START_TIME.val(), dt).
+                new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), toState.name()).
+                        append(JobInfoProperty.START_TIME.val(), startTime).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        logger.info("Activate queued job={} ...", name);
         try{
-            final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, RunningState.QUEUED.name()), update, false, false, WriteConcern.SAFE);
+            final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, fromState.name()), update, false, false, WriteConcern.SAFE);
             return result.getN() == 1;
         }catch(MongoException.DuplicateKey e){
             return false;

@@ -4,6 +4,7 @@ dependencies {
     compile libs.jerseyClient, libs.jerseyCore, libs.jerseyClientJSON
 
     testCompile libs.testng, libs.mockito
+    testCompile libs.multithreadedtc
     testCompile libs.cobertura
     testCompile libs.springContext, libs.springCore, libs.springBeans, libs.springTest
     testCompile libs.jerseyApache
