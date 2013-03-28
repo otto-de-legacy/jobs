@@ -1,5 +1,20 @@
 apply from: 'gradle/libraries.gradle'
 
+// from: https://github.com/ben-manes/gradle-versions-plugin
+apply plugin: 'versions'
+
+buildscript {
+
+    // I need build script classpath for foreign plugins
+    repositories {
+        maven { url 'http://nexus.lhotse.ov.otto.de:8080/content/groups/public' }
+    }
+
+    dependencies {
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.3'
+    }
+}
+
 allprojects {
     apply plugin: 'idea'
     //version = '0.10.7'
