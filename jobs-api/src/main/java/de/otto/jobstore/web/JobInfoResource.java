@@ -51,12 +51,12 @@ public class JobInfoResource {
     public Response getJobs(@Context final UriInfo uriInfo) {
         final Abdera abdera = new Abdera();
         final Feed feed = createFeed(abdera, "Job Names", "A list of the available distinct job names",
-                uriInfo.getBaseUriBuilder().path(JobInfoResource.class).build());
+                uriInfo.getBaseUriBuilder().path(this.getClass()).build());
         try {
             final JAXBContext ctx = JAXBContext.newInstance(JobNameRepresentation.class);
             final Marshaller marshaller = ctx.createMarshaller();
             for (String name : jobService.listJobNames()) {
-                final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(name).build();
+                final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(name).build();
                 final StringWriter writer = new StringWriter();
                 marshaller.marshal(new JobNameRepresentation(name), writer);
                 final Entry entry = abdera.newEntry();
@@ -107,7 +107,7 @@ public class JobInfoResource {
         try {
             final String jobId = jobService.executeJob(name, JobExecutionPriority.FORCE_EXECUTION);
             final JobInfo jobInfo = jobInfoService.getById(jobId);
-            final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(jobInfo.getName()).path(jobId).build();
+            final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(jobInfo.getName()).path(jobId).build();
             return Response.created(uri).build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
@@ -135,12 +135,12 @@ public class JobInfoResource {
                                   @Context final UriInfo uriInfo) {
         final Abdera abdera = new Abdera();
         final Feed feed = createFeed(abdera, "JobInfo Objects", "A list of the " + size + " most recent jobInfo objects with name " + name,
-                uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(name).build());
+                uriInfo.getBaseUriBuilder().path(this.getClass()).path(name).build());
         try {
             final JAXBContext ctx = JAXBContext.newInstance(JobInfoRepresentation.class);
             final Marshaller marshaller = ctx.createMarshaller();
             for (JobInfo jobInfo : jobInfoService.getByName(name, size)) {
-                final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(name).path(jobInfo.getId()).build();
+                final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(name).path(jobInfo.getId()).build();
                 final StringWriter writer = new StringWriter();
                 marshaller.marshal(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES), writer);
                 final Entry entry = abdera.newEntry();
