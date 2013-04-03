@@ -278,6 +278,7 @@ public class JobService {
 
     @PostConstruct
     public void startup() {
+        LOGGER.info("startup called");
         shutdown = false;
     }
 
@@ -286,6 +287,7 @@ public class JobService {
      */
     @PreDestroy
     public void shutdownJobs() {
+        LOGGER.info("shutdownJobs called");
         if (isExecutionEnabled()) {
             for (JobRunnable jobRunnable : jobs.values()) {
                 if (!jobRunnable.getJobDefinition().isRemote()) {

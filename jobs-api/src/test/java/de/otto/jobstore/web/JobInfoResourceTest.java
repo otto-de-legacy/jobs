@@ -182,10 +182,27 @@ public class JobInfoResourceTest {
         when(jobInfoService.getByNameAndTimeRange(anyString(), any(Date.class), any(Date.class), any(Set.class))).
                 thenReturn(createJobs(5, "foo"));
 
-        Response response = jobInfoResource.getJobsHistory(5, null);
+        Response response = jobInfoResource.getJobsHistory(5, null, new HashSet(jobService.listJobNames()));
         assertEquals(200, response.getStatus());
-        Map<String, JobInfoRepresentation> history = (Map<String, JobInfoRepresentation>) response.getEntity();
+        Map<String, List<JobInfoRepresentation>> history = (Map<String, List<JobInfoRepresentation>>) response.getEntity();
         assertEquals(1, history.size());
+        assertEquals(5, history.get("foo").size());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testGetJobHistory2() throws Exception {
+        Set<String> names = new HashSet<>();
+        names.add("foo");
+        when(jobService.listJobNames()).thenReturn(names);
+        when(jobInfoService.getByNameAndTimeRange(anyString(), any(Date.class), any(Date.class), any(Set.class))).
+                thenReturn(createJobs(5, "foo"));
+
+        Response response = jobInfoResource.getJobsHistory(5, null, null);
+        assertEquals(200, response.getStatus());
+        Map<String, List<JobInfoRepresentation>> history = (Map<String, List<JobInfoRepresentation>>) response.getEntity();
+        assertEquals(1, history.size());
+        assertEquals(0, history.get("foo").size());
     }
 
 

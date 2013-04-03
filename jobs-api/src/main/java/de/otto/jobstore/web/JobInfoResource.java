@@ -51,12 +51,12 @@ public class JobInfoResource {
     public Response getJobs(@Context final UriInfo uriInfo) {
         final Abdera abdera = new Abdera();
         final Feed feed = createFeed(abdera, "Job Names", "A list of the available distinct job names",
-                uriInfo.getBaseUriBuilder().path(JobInfoResource.class).build());
+                uriInfo.getBaseUriBuilder().path(this.getClass()).build());
         try {
             final JAXBContext ctx = JAXBContext.newInstance(JobNameRepresentation.class);
             final Marshaller marshaller = ctx.createMarshaller();
             for (String name : jobService.listJobNames()) {
-                final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(name).build();
+                final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(name).build();
                 final StringWriter writer = new StringWriter();
                 marshaller.marshal(new JobNameRepresentation(name), writer);
                 final Entry entry = abdera.newEntry();
@@ -107,7 +107,7 @@ public class JobInfoResource {
         try {
             final String jobId = jobService.executeJob(name, JobExecutionPriority.FORCE_EXECUTION);
             final JobInfo jobInfo = jobInfoService.getById(jobId);
-            final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(jobInfo.getName()).path(jobId).build();
+            final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(jobInfo.getName()).path(jobId).build();
             return Response.created(uri).build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
@@ -135,12 +135,12 @@ public class JobInfoResource {
                                   @Context final UriInfo uriInfo) {
         final Abdera abdera = new Abdera();
         final Feed feed = createFeed(abdera, "JobInfo Objects", "A list of the " + size + " most recent jobInfo objects with name " + name,
-                uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(name).build());
+                uriInfo.getBaseUriBuilder().path(this.getClass()).path(name).build());
         try {
             final JAXBContext ctx = JAXBContext.newInstance(JobInfoRepresentation.class);
             final Marshaller marshaller = ctx.createMarshaller();
             for (JobInfo jobInfo : jobInfoService.getByName(name, size)) {
-                final URI uri = uriInfo.getBaseUriBuilder().path(JobInfoResource.class).path(name).path(jobInfo.getId()).build();
+                final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(name).path(jobInfo.getId()).build();
                 final StringWriter writer = new StringWriter();
                 marshaller.marshal(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES), writer);
                 final Entry entry = abdera.newEntry();
@@ -245,33 +245,40 @@ public class JobInfoResource {
     /**
      * <b>INTERNAL API, DO NOT USE</b>
      * Returns a map with the distinct job names as the key and the jobs with the given name as their values.
+     * Without given jobNames, jobs will NOT be returned. We need to rewrite the interface.
      *
      * @param hours The hours the jobs go back into the past
-     * @param resultStatus Filter the jobs by their result status (default null == unfiltered)
+     * @param resultCodes Filter the jobs by their result status (default null == unfiltered)
+     * @param jobNames Filter the jobs by their name (default null == all jobs, but without jobs itself)
      * @return The map of distinct names with their jobs as values
      */
     @GET
     @Path("/history")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getJobsHistory(@QueryParam("hours") @DefaultValue("12") final int hours,
-                                   @QueryParam("resultStatus") final ResultCode resultStatus) {
-        final Collection<String> jobNames = jobService.listJobNames();
-        final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
+                                   @QueryParam("resultCode") final Set<ResultCode> resultCodes,
+                                   @QueryParam("jobName") final Set<String> jobNames) {
+        final Collection<String> allJobNames = jobService.listJobNames();
         final Date dt = new Date(new Date().getTime() - TimeUnit.HOURS.toMillis(hours));
 
-        // only create a list if we really do not have a null object
-        Set<ResultCode> resultCodes = null;
-        if(resultStatus != null) {
-            resultCodes = Collections.singleton(resultStatus);
-        }
-
-        for (String jobName : jobNames) {
-            final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), resultCodes);
+        final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
+        for (String jobName : allJobNames) {
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<>();
-            for (JobInfo jobInfo : jobInfoList) {
-                jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES));
+
+            if (jobNames == null || jobNames.isEmpty()) {
+                // without jobNames we return a list with empty result, values must be get after first call
+                jobs.put(jobName, jobInfoRepresentations);
+            } else {
+                // otherwise only add if in list of jobs
+                if (jobNames.contains(jobName)) {
+                    final List<JobInfo> jobInfoList = jobInfoService.getByNameAndTimeRange(jobName, dt, new Date(), resultCodes);
+
+                    for (JobInfo jobInfo : jobInfoList) {
+                        jobInfoRepresentations.add(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES));
+                    }
+                    jobs.put(jobName, jobInfoRepresentations);
+                }
             }
-            jobs.put(jobName, jobInfoRepresentations);
         }
         return Response.ok(jobs).build();
     }
