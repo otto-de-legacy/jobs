@@ -203,10 +203,10 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                 new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), toState.name()).
                         append(JobInfoProperty.START_TIME.val(), startTime).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        try{
+        try {
             final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, fromState.name()), update, false, false, WriteConcern.SAFE);
             return result.getN() == 1;
-        }catch(MongoException.DuplicateKey e){
+        } catch (MongoException.DuplicateKey e){
             return false;
         }
     }

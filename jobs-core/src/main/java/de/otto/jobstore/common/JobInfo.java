@@ -48,6 +48,10 @@ public final class JobInfo extends AbstractItem {
         }
     }
 
+    public boolean hasLowerPriority(JobExecutionPriority priority) {
+        return getExecutionPriority().hasLowerPriority(priority);
+    }
+
     public String getId() {
         final Object id = getProperty(JobInfoProperty.ID);
         if (id == null) {

@@ -15,6 +15,8 @@ import org.testng.annotations.Test;
 import javax.annotation.Resource;
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -152,6 +154,36 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
         jobService.setExecutionEnabled(true);
         assertTrue(jobService.isExecutionEnabled());
+    }
+
+    ExecutorService executors = Executors.newFixedThreadPool(2);
+
+    @Test(enabled = false)
+    public void twoThreadsTryingToExecuteAJobShouldResultInOnlyOneExecution() throws Exception {
+        for (int i = 0; i < 1000; i++) {
+            jobService.registerJob(new LocalJobRunnableMock(JOB_NAME_1));
+
+            executors.submit(new JobExecutionRunnable());
+            executors.submit(new JobExecutionRunnable());
+
+            Thread.sleep(100);
+
+            final List<JobInfo> jobInfos = jobInfoRepository.findByName(JOB_NAME_1, 10);
+            assertEquals("Only one job expected in database as the second thread should not create a job when one already exists.", 1, jobInfos.size());
+            jobInfoRepository.clear(false);
+        }
+    }
+
+    class JobExecutionRunnable implements  Runnable {
+
+        @Override
+        public void run() {
+            try {
+                jobService.executeJob(JOB_NAME_1);
+            } catch (JobException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     class LocalJobRunnableMock extends AbstractLocalJobRunnable {
