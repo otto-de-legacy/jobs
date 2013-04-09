@@ -17,6 +17,8 @@ public abstract class AbstractRepository<E extends AbstractItem> {
 
     protected final DBCollection collection;
 
+    private WriteConcern safeWriteConcern = WriteConcern.SAFE;
+
     public AbstractRepository(final Mongo mongo, final String dbName, final String collectionName) {
         this(mongo, dbName, collectionName, null, null);
     }
@@ -39,18 +41,25 @@ public abstract class AbstractRepository<E extends AbstractItem> {
         prepareCollection();
     }
 
+    public AbstractRepository(final Mongo mongo, final String dbName, final String collectionName, final String username, final String password, WriteConcern safeWriteConcern) {
+        this(mongo, dbName, collectionName, username, password);
+        if(safeWriteConcern == null) {
+            throw new NullPointerException("writeConcern may not be null");
+        }
+        this.safeWriteConcern = safeWriteConcern;
+    }
+
+    public WriteConcern getSafeWriteConcern() {
+        return safeWriteConcern;
+    }
 
     public final void save(E item) {
         final DBObject obj = item.toDbObject();
-        final WriteResult wr = collection.save(obj);
-        final CommandResult cr = wr.getLastError(WriteConcern.SAFE);
+        final WriteResult wr = collection.save(obj,getSafeWriteConcern());
+        final CommandResult cr = wr.getLastError();
         if (!cr.ok()) {
             logger.error("Unable to save job info object={} wr={}: ", wr, obj);
         }
-    }
-
-    public final void save(E jobInfo, WriteConcern writeConcern) {
-        collection.save(jobInfo.toDbObject(), writeConcern);
     }
 
     /**
@@ -65,7 +74,7 @@ public abstract class AbstractRepository<E extends AbstractItem> {
             prepareCollection();
         } else {
             final WriteResult wr = collection.remove(new BasicDBObject());
-            final CommandResult cr = wr.getLastError(WriteConcern.SAFE);
+            final CommandResult cr = wr.getLastError(getSafeWriteConcern());
             if (cr.ok()) {
                 logger.info("Cleared all entities successfully on collection: {}", collection.getFullName());
             } else {

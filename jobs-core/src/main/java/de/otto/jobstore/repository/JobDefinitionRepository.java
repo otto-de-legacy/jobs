@@ -35,7 +35,7 @@ public class JobDefinitionRepository extends AbstractRepository<StoredJobDefinit
 
     public void addOrUpdate(StoredJobDefinition jobDefinition) {
         final DBObject obj = new BasicDBObject(MongoOperator.SET.op(), buildUpdateObject(jobDefinition));
-        collection.update(new BasicDBObject(JobDefinitionProperty.NAME.val(), jobDefinition.getName()), obj, true, false, WriteConcern.SAFE);
+        collection.update(new BasicDBObject(JobDefinitionProperty.NAME.val(), jobDefinition.getName()), obj, true, false, getSafeWriteConcern());
     }
 
     private BasicDBObject buildUpdateObject(StoredJobDefinition jobDefinition) {

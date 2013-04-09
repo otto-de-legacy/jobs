@@ -26,8 +26,6 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     private int hoursAfterWhichOldJobsAreDeleted         = 7 * 24;
     private int hoursAfterWhichNotExecutedJobsAreDeleted = 2;
 
-    private WriteConcern writeConcern = WriteConcern.SAFE;
-
     public JobInfoRepository(Mongo mongo, String dbName, String collectionName) {
         super(mongo, dbName, collectionName);
     }
@@ -36,12 +34,8 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         super(mongo, dbName, collectionName, username, password);
     }
 
-    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password, WriteConcern writeConcern) {
-        this(mongo, dbName, collectionName, username, password);
-        this.writeConcern = writeConcern;
-        //           new WriteConcern(2, 0, false, true); // mix of JOURNAL_SAFE and MAJORITY writeConcern
-        // Majority: new WriteConcern(2, 0, false, false);
-        // JOURNAL:  new WriteConcern(1, 0, false, true);
+    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password, WriteConcern safeWriteConcern) {
+        super(mongo, dbName, collectionName, username, password, safeWriteConcern);
     }
 
     public int getHoursAfterWhichOldJobsAreDeleted() {
@@ -95,7 +89,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             logger.info("Create job={} in state={} ...", name, runningState);
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
-            save(jobInfo, writeConcern);
+            save(jobInfo);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
             logger.warn("job={} with state={} already exists, creation skipped!", name, runningState);
@@ -214,7 +208,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                         append(JobInfoProperty.START_TIME.val(), startTime).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
         try {
-            final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, fromState.name()), update, false, false, writeConcern);
+            final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, fromState.name()), update, false, false, getSafeWriteConcern());
             return result.getN() == 1;
         } catch (MongoException.DuplicateKey e){
             return false;
@@ -229,7 +223,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     public void abortJob(String id) {
         if (ObjectId.isValid(id)) {
             collection.update(createIdQuery(id),
-                    new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.ABORTED.val(), true)), false, false, writeConcern);
+                    new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.ABORTED.val(), true)), false, false, getSafeWriteConcern());
         }
     }
 
@@ -313,7 +307,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                         append(JobInfoProperty.FINISH_TIME.val(), dt).
                         append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()));
         final WriteResult result = collection.update(new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
-                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name()), update, false, false, writeConcern);
+                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name()), update, false, false, getSafeWriteConcern());
         return result.getN() == 1;
     }
 
@@ -481,7 +475,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         final DBObject update = new BasicDBObject().
                 append(MongoOperator.PUSH_ALL.op(), new BasicDBObject(JobInfoProperty.LOG_LINES.val(), logLines)).
                 append(MongoOperator.SET.op(), new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        final WriteResult result = collection.update(createIdQuery(id), update, false, false, writeConcern);
+        final WriteResult result = collection.update(createIdQuery(id), update, false, false, getSafeWriteConcern());
         return result.getN() == 1;
     }
 
@@ -500,7 +494,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     public void remove(final String id) {
         if (ObjectId.isValid(id)) {
-            collection.remove(createIdQuery(id), writeConcern);
+            collection.remove(createIdQuery(id), getSafeWriteConcern());
         }
     }
 
@@ -586,7 +580,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         final WriteResult result = collection.remove(new BasicDBObject().
                 append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
                 append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())),
-                writeConcern);
+                getSafeWriteConcern());
         return result.getN();
     }
 
@@ -595,7 +589,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                 append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
                 append(JobInfoProperty.RESULT_STATE.val(), ResultCode.NOT_EXECUTED.name()).
                 append(JobInfoProperty.RUNNING_STATE.val(), RunningState.FINISHED.name()),
-                writeConcern);
+                getSafeWriteConcern());
         return result.getN();
     }
 
@@ -641,7 +635,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             set.append(JobInfoProperty.RESULT_MESSAGE.val(), resultMessage);
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
-        final WriteResult result = collection.update(query, update, false, false, writeConcern);
+        final WriteResult result = collection.update(query, update, false, false, getSafeWriteConcern());
         return result.getN() == 1;
     }
 
