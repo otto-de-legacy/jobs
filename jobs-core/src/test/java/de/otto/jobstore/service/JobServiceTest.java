@@ -398,7 +398,7 @@ public class JobServiceTest {
 
     @Test
     public void testExecuteJobForced() throws Exception {
-        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS,
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS,
                 Collections.<String,String>emptyMap(), null)).thenReturn("1234");
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(Boolean.TRUE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
@@ -411,12 +411,11 @@ public class JobServiceTest {
         assertEquals("1234", id);
         Thread.sleep(500);
         assertTrue(runnable.isExecuted());
-        verify(jobInfoRepository, times(1)).activateQueuedJob(JOB_NAME_01);
     }
 
     @Test
     public void testExecuteJobForcedFailedWithException() throws Exception {
-        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS,
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS,
                 Collections.<String,String>emptyMap(), null)).thenReturn("1234");
         when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(Boolean.TRUE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
