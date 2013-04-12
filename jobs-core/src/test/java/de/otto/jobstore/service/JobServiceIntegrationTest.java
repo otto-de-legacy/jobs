@@ -15,12 +15,14 @@ import org.testng.annotations.Test;
 import javax.annotation.Resource;
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 import static org.testng.AssertJUnit.*;
+import static org.testng.AssertJUnit.assertEquals;
 
 @ContextConfiguration(locations = {"classpath:spring/jobs-context.xml"})
 public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests {
@@ -155,6 +157,79 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         jobService.setExecutionEnabled(true);
         assertTrue(jobService.isExecutionEnabled());
     }
+
+    @Test
+    public void testIfJobReactsOnTimeoutConditionAndIsMarkedAsTimeoutAfterwards() throws Throwable {
+
+        final CountDownLatch c = new CountDownLatch(1);
+
+        JobRunnable job = new AbstractLocalJobRunnable() {
+            private AbstractLocalJobDefinition localJobDefinition = new AbstractLocalJobDefinition() {
+                @Override
+                public String getName() {
+                    return JOB_NAME_1;
+                }
+
+                @Override
+                public long getMaxIdleTime() {
+                    return 0;
+                }
+
+                @Override
+                public long getMaxExecutionTime() {
+                    return 0;
+                }
+
+                @Override
+                public boolean isAbortable() {
+                    return true;
+                }
+            };
+
+            @Override
+            public JobDefinition getJobDefinition() {
+                return localJobDefinition;
+            }
+
+            @Override
+            public void execute(JobExecutionContext context) throws JobException {
+
+                try {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                    }
+
+                    context.checkForAbort();
+                } finally {
+                    c.countDown();
+                }
+            }
+        };
+
+        jobService.registerJob(job);
+        String jobId = jobService.executeJob(job.getJobDefinition().getName());
+        c.await();
+
+
+        int count = 10;
+        while (count-- > 0) {
+            JobInfo jobInfo = jobInfoRepository.findById(jobId);
+            if (RunningState.RUNNING.name().equals(jobInfo.getRunningState())) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                }
+            } else {
+                break;
+            }
+        }
+
+        JobInfo jobInfo = jobInfoRepository.findById(jobId);
+        assertEquals(ResultCode.TIMED_OUT, jobInfo.getResultState());
+
+    }
+
 
     ExecutorService executors = Executors.newFixedThreadPool(2);
 

@@ -21,6 +21,10 @@ public class JobInfoCache {
         return getJobInfo().isAborted();
     }
 
+    public boolean isTimedOut() {
+        return getJobInfo().isTimedOut();
+    }
+
     private JobInfo getJobInfo() {
         final long currentTime = System.currentTimeMillis();
         if (lastUpdate + updateInterval < currentTime) {
