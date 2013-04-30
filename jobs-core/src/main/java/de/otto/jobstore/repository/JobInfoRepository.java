@@ -511,6 +511,18 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * Flags all running jobs as timed out if the have not be updated within the max execution time
      */
     public int cleanupTimedOutJobs() {
+        logger.info("cleanupTimedOutJobs called");
+        try {
+            return doCleanupTimedOutJobs();
+        } catch(Exception e) {
+            logger.error("cleanupTimedOutJobs exception occurred",e);
+        } finally {
+            logger.info("cleanupTimedOutJobs finished");
+        }
+        return 0;
+    }
+
+    private int doCleanupTimedOutJobs() {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
@@ -539,6 +551,18 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     }
 
     public int cleanupOldJobs() {
+        logger.info("cleanupOldJobs called");
+        try {
+            return doCleanupOldJobs();
+        } catch(Exception e) {
+            logger.error("cleanupOldJobs exception occurred",e);
+        } finally {
+            logger.info("cleanupOldJobs finished");
+        }
+        return 0;
+    }
+
+    private int doCleanupOldJobs() {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
@@ -556,7 +580,21 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         return numberOfRemovedJobs;
     }
 
+
     public int cleanupNotExecutedJobs() {
+        logger.info("cleanupNotExecutedJobs called");
+        try {
+            return doCleanupNotExecutedJobs();
+        } catch(Exception e) {
+            logger.error("cleanupNotExecutedJobs exception occurred",e);
+        } finally {
+            logger.info("cleanupNotExecutedJobs finished");
+        }
+        return 0;
+
+    }
+
+    private int doCleanupNotExecutedJobs() {
         final Date currentDate = new Date();
         removeJobIfTimedOut(JOB_NAME_CLEANUP_NOT_EXECUTED, currentDate);
         int numberOfRemovedJobs = 0;

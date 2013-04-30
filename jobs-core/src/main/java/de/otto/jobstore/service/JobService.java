@@ -242,6 +242,16 @@ public class JobService {
      * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
      */
     public void executeQueuedJobs() {
+        LOGGER.info("ltag=JobService.executeQueuedJobs called");
+        try {
+            doExecuteQueuedJobs();
+        } catch(Exception e) {
+            LOGGER.error("ltag=JobService.executeQueuedJobs exception occurred",e);
+        }
+        LOGGER.info("ltag=JobService.executeQueuedJobs finished");
+    }
+
+    private void doExecuteQueuedJobs() {
         if (isExecutionDisabled()) {
             return;
         }
@@ -281,6 +291,16 @@ public class JobService {
      * Polls all remote jobs and updates their status if necessary
      */
     public void pollRemoteJobs() {
+        LOGGER.info("ltag=JobService.pollRemoteJobs called");
+        try {
+            doPollRemoteJobs();
+        } catch(Exception e) {
+            LOGGER.error("ltag=JobService.pollRemoteJobs exception occurred",e);
+        }
+        LOGGER.info("ltag=JobService.pollRemoteJobs finished");
+    }
+
+    private void doPollRemoteJobs() {
         if (isExecutionDisabled()) {
             return;
         }
