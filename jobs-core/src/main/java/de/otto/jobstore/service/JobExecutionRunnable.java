@@ -3,6 +3,7 @@ package de.otto.jobstore.service;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.repository.JobInfoRepository;
 import de.otto.jobstore.service.exception.JobExecutionAbortedException;
+import de.otto.jobstore.service.exception.JobExecutionTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,9 @@ final class JobExecutionRunnable implements Runnable {
         } catch (JobExecutionAbortedException e) {
             LOGGER.warn("ltag=JobService.JobExecutionRunnable.run jobName=" + name + " jobId=" + context.getId() + " was aborted");
             jobInfoRepository.markAsFinished(context.getId(), ResultCode.ABORTED);
+        } catch (JobExecutionTimeoutException e) {
+            LOGGER.warn("ltag=JobService.JobExecutionRunnable.run jobName=" + name + " jobId=" + context.getId() + " timed out");
+            jobInfoRepository.markAsFinished(context.getId(), ResultCode.TIMED_OUT);
         } catch (Exception e) {
             LOGGER.error("ltag=JobService.JobExecutionRunnable.run jobName=" + name + " jobId=" + context.getId() + " failed: " + e.getMessage(), e);
             jobInfoRepository.markAsFinished(context.getId(), e);

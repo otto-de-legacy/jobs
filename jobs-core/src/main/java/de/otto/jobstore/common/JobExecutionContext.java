@@ -1,5 +1,10 @@
 package de.otto.jobstore.common;
 
+import de.otto.jobstore.service.exception.JobExecutionAbortedException;
+import de.otto.jobstore.service.exception.JobExecutionTimeoutException;
+
+import java.util.Date;
+
 public class JobExecutionContext {
 
     private final String id;
@@ -45,8 +50,19 @@ public class JobExecutionContext {
         this.resultMessage = resultMessage;
     }
 
-    public boolean isAborted() {
-        return jobInfoCache.isAborted();
+    /**
+     * checks if conditions are met to abort the job, either an external abort request or the job reached its timeout condition
+     * @throws JobExecutionAbortedException
+     * @throws JobExecutionTimeoutException
+     */
+    public void checkForAbort() throws JobExecutionAbortedException, JobExecutionTimeoutException {
+        if(jobInfoCache.isAborted()) {
+            throw JobExecutionAbortedException.fromJobName(getId());
+        }
+        if(jobInfoCache.isTimedOut()) {
+            throw JobExecutionTimeoutException.fromJobName(getId());
+        }
+
     }
 
     @Override

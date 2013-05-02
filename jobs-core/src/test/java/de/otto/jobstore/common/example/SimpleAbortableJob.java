@@ -36,9 +36,7 @@ public class SimpleAbortableJob extends AbstractLocalJobRunnable {
     @Override
     public void execute(JobExecutionContext context) throws JobException {
         for (int i = 0; i < 1000000; i++) {
-            if (context.isAborted()) {
-                throw JobExecutionAbortedException.fromJobName(getJobDefinition().getName());
-            }
+            context.checkForAbort();
             try {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
