@@ -24,7 +24,7 @@ cd jobexec_rpm
 
 ls
 
-fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} -s dir -t rpm --directories jobs-executor -n lhotse-jobexec .
+fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} -s dir -t rpm --directories var -n lhotse-jobexec .
 rpm -qlp lhotse-jobexec-${CURRENT_VERSION}-1.x86_64.rpm	
 
 #########################################################
