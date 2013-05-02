@@ -9,6 +9,9 @@ CURRENT_VERSION=$(echo ${VERSION} | sed 's/\"//g' | sed 's/\-//g' | sed 's/\SNAP
 
 mkdir -p jobexec_rpm/var/opt/jobs-executor
 mkdir -p jobexec_rpm/var/spool/jobs-executor/templates
+mkdir -p jobexec_rpm/var/spool/jobs-executor/log
+mkdir -p jobexec_rpm/var/spool/jobs-executor/zlog
+mkdir -p jobexec_rpm/var/spool/jobs-executor/instances
 cp jobs-executor/poser jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/*.sh jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/README.txt jobexec_rpm/var/opt/jobs-executor
@@ -24,7 +27,7 @@ cd jobexec_rpm
 
 ls
 
-fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} -s dir -t rpm --directories var -n lhotse-jobexec .
+fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} -s dir -t rpm --directories var/opt/jobs-executor --directories var/spool/jobs-executor -n lhotse-jobexec .
 rpm -qlp lhotse-jobexec-${CURRENT_VERSION}-1.x86_64.rpm	
 
 #########################################################
