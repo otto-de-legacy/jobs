@@ -1,6 +1,7 @@
 #!/bin/bash
 
 VERSION=$1
+BUILD_NUMBER=$2
 
 ## Init.
 CURRENT_VERSION=$(echo ${VERSION} | sed 's/\"//g' | sed 's/\-//g' | sed 's/\SNAPSHOT//g')
@@ -34,3 +35,6 @@ rpm -qlp lhotse-jobexec-${CURRENT_VERSION}-1.x86_64.rpm
 # fpm --rpm-user tomcat --rpm-group tomcat --prefix /var/opt -v $JOB_EXEC_VERSION -s dir -t rpm --directories apache-tomcat-$JOB_EXEC_VERSION -n "lhotse-tomcat" .
 # rpm -qlp lhotse-tomcat-$TOMCAT_VERSION-1.x86_64.rpm | grep "/var/opt/apache-tomcat-$TOMCAT_VERSION/lib/catalina.jar"
 
+
+
+echo "BUILDNUMBER: ${BUILD_NUMBER}"
