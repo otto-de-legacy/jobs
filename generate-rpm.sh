@@ -18,10 +18,8 @@ cp jobs-executor/README.txt jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/jobmonitor*.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/lru.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/auto_stub.py jobexec_rpm/var/opt/jobs-executor
-cp jobs-executor/samples/* jobexec_rpm/var/opt/jobs-executor
-cp jobs-executor/templates/* jobexec_rpm/var/opt/jobs-executor
-cp jobs-executor/tests/* jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/version.py jobexec_rpm/var/opt/jobs-executor
+cp jobs-executor/jobmonitor_settings_redhat.cfg jobexec_rpm/var/opt/jobs-executor/jobmonitor_settings.cfg
 
 cd jobexec_rpm
 
