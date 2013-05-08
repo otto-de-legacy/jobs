@@ -175,6 +175,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         logger.info("findByNameAndTimeRange executing cursor {} ", cursor);
         return getAll(cursor);
     }
+
     /**
      * Sets the status of the queued job with the given name to running. The lastModified date of the job is set
      * to the current date.
@@ -183,9 +184,9 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @return true - If the job with the given name was activated successfully<br/>
      *         false - If no queued job with the current name could be found and thus could not activated
      */
-    public boolean activateQueuedJob(final String name) {
-        logger.info("Activate queued job={} ...", name);
-        return transitionState(name, RunningState.QUEUED, RunningState.RUNNING, new Date());
+    public boolean activateQueuedJobById(final String id) {
+        logger.info("Activate job={} ...", id);
+        return changeState(id, RunningState.RUNNING, new Date());
     }
 
     /**
@@ -196,19 +197,19 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @return true - If the job with the given name was activated successfully<br/>
      *         false - If no queued job with the current name could be found and thus could not activated
      */
-    public boolean deactivateRunningJob(final String name) {
-        logger.info("deactivate running job={} ...", name);
-        return transitionState(name, RunningState.RUNNING, RunningState.QUEUED, null);
+    public boolean deactivateRunningJob(final String id) {
+        logger.info("Aeactivate job={} ...", id);
+        return changeState(id, RunningState.QUEUED, null);
     }
 
-    private boolean transitionState(final String name, RunningState fromState, RunningState toState, Date startTime) {
-        Date dt = new Date();
+    private boolean changeState(final String id, RunningState toState, Date startTime) {
+        final Date dt = new Date();
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
                 new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), toState.name()).
                         append(JobInfoProperty.START_TIME.val(), startTime).
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
         try {
-            final WriteResult result = collection.update(createFindByNameAndRunningStateQuery(name, fromState.name()), update, false, false, getSafeWriteConcern());
+            final WriteResult result = collection.update(createIdQuery(id), update, false, false, getSafeWriteConcern());
             return result.getN() == 1;
         } catch (MongoException.DuplicateKey e){
             return false;

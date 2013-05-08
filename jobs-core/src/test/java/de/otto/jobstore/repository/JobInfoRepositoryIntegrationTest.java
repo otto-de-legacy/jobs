@@ -56,14 +56,27 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     }
 
     @Test
-    public void testQueuedJobNotQueuedAnyMore() throws Exception {
-        assertNotNull(createJobInfo(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED));
-        assertTrue(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
-        assertFalse(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
+    public void activatingQueuedJobWhenAJobIsAlreadyRunningShouldFail() throws Exception {
+        String id = createJobInfo(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED);
+        assertNotNull(id);
+        assertTrue(jobInfoRepository.activateQueuedJobById(id));
 
-        assertNotNull(createJobInfo(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED));
+        id = createJobInfo(TESTVALUE_JOBNAME, 60 * 1000, RunningState.QUEUED);
+        assertNotNull(id);
         //Would violate Index as running job already exists
-        assertFalse(jobInfoRepository.activateQueuedJob(TESTVALUE_JOBNAME));
+        assertFalse(jobInfoRepository.activateQueuedJobById(id));
+    }
+
+    @Test
+    public void deactivatingARunningJobWhenAJobIsAlreadyQueuedShouldFail() throws Exception {
+        String id = createJobInfo(TESTVALUE_JOBNAME, 60 * 1000, RunningState.RUNNING);
+        assertNotNull(id);
+        assertTrue(jobInfoRepository.deactivateRunningJob(id));
+
+        id = createJobInfo(TESTVALUE_JOBNAME, 60 * 1000, RunningState.RUNNING);
+        assertNotNull(id);
+        //Would violate Index as running job already exists
+        assertFalse(jobInfoRepository.deactivateRunningJob(id));
     }
 
     @Test
