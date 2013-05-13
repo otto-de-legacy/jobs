@@ -17,7 +17,7 @@ public class JobInfoTest {
 
     @Test
     public void testIsLongTimeIdleReached() throws Exception {
-        JobInfo jobInfo = new JobInfo("test", null, null, 60 * 1000L, 60 * 1000L); //Timeout eine Minute
+        JobInfo jobInfo = new JobInfo("test", null, null, 60 * 1000L, 60 * 1000L, 0L); //Timeout eine Minute
         Date current = new Date();
         Date lastModified = new Date(current.getTime() - 2 * 60 * 1000L); //Last modified vor 2 Minuten
         jobInfo.setLastModifiedTime(lastModified);
@@ -27,7 +27,7 @@ public class JobInfoTest {
 
     @Test
     public void testIsTimeoutReached() throws Exception {
-        JobInfo jobInfo = new JobInfo("test", null, null, 1000L, 1000L); //Timeout eine Sekunde
+        JobInfo jobInfo = new JobInfo("test", null, null, 1000L, 1000L, 0L); //Timeout eine Sekunde
         ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.START_TIME, jobInfo.getCreationTime());
         Date startTime = jobInfo.getStartTime();
 

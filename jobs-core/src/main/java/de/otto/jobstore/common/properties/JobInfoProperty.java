@@ -24,6 +24,7 @@ public enum JobInfoProperty implements ItemProperty {
     TIMEOUT_PERIOD("maxExecutionTime"),
     MAX_IDLE_TIME("maxIdleTime"),
     MAX_EXECUTION_TIME("maxExecutionTime"),
+    MAX_RETRIES("maxRetries"),
     LAST_MODIFICATION_TIME("lastModificationTime"),
     ADDITIONAL_DATA("additionalData"),
     LOG_LINES("logLines"),

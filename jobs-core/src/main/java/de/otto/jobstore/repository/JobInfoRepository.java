@@ -62,11 +62,11 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    public String create(final String name, final long maxIdleTime, final long maxExecutionTime, final RunningState runningState,
+    public String create(final String name, final long maxIdleTime, final long maxExecutionTime, final long maxRetries, final RunningState runningState,
                          final JobExecutionPriority executionPriority, final Map<String, String> parameters, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxIdleTime, maxExecutionTime, runningState, executionPriority, parameters, additionalData);
+        return create(name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, runningState, executionPriority, parameters, additionalData);
     }
 
     /**
@@ -82,12 +82,12 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    public String create(final String name, final String host, final String thread, final long maxIdleTime, final long maxExecutionTime,
+    public String create(final String name, final String host, final String thread, final long maxIdleTime, final long maxExecutionTime, final long maxRetries,
                          final RunningState runningState, final JobExecutionPriority executionPriority, 
                          final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
             logger.info("Create job={} in state={} ...", name, runningState);
-            final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, runningState, executionPriority, additionalData);
+            final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
             save(jobInfo);
             return jobInfo.getId();
@@ -180,7 +180,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * Sets the status of the queued job with the given name to running. The lastModified date of the job is set
      * to the current date.
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @return true - If the job with the given name was activated successfully<br/>
      *         false - If no queued job with the current name could be found and thus could not activated
      */
@@ -193,7 +193,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * sets status of running job back to queued. This is necessary if running constraints fail after activateQueuedJob. This seems to be
      * awkward, but is necessary to prevent race condition with parallel started jobs
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @return true - If the job with the given name was activated successfully<br/>
      *         false - If no queued job with the current name could be found and thus could not activated
      */
@@ -528,7 +528,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
-            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
@@ -569,7 +569,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
             /* ... good bye ... */
@@ -601,7 +601,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not executed jobs before {} ...", beforeDate);
             /* ... good bye ... */
@@ -707,5 +707,12 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             }
         }
         return strings;
+    }
+
+    public void decrementMaxRetries(String id) {
+        JobInfo jobInfo = findById(id);
+        jobInfo.decrementMaxRetries();
+        save(jobInfo);
+        //To change body of created methods use File | Settings | File Templates.
     }
 }

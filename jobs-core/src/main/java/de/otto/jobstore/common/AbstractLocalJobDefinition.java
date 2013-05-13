@@ -8,7 +8,7 @@ public abstract class AbstractLocalJobDefinition implements JobDefinition {
     }
 
     @Override
-    public long getRetries() {
+    public long getMaxRetries() {
         return 0;
     }
 

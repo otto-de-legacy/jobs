@@ -27,7 +27,7 @@ public interface JobDefinition {
     /**
      * return the number of retries before job is flagged as error.
      */
-    long getRetries();
+    long getMaxRetries();
 
     /**
      * Flag if the job is executed locally or remotely

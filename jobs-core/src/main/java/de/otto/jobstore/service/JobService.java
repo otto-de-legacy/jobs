@@ -495,7 +495,7 @@ public class JobService {
     private String createJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, RunningState runningState) {
         final JobDefinition jobDefinition = runnable.getJobDefinition();
         // TODO: create-Methode mit JobRunnable in jobInfoRepository erzeugen
-        return jobInfoRepository.create(jobDefinition.getName(), jobDefinition.getMaxIdleTime(), jobDefinition.getMaxExecutionTime(),
+        return jobInfoRepository.create(jobDefinition.getName(), jobDefinition.getMaxIdleTime(), jobDefinition.getMaxExecutionTime(), jobDefinition.getMaxRetries(),
                 runningState, jobExecutionPriority, runnable.getParameters(), null);
     }
 
@@ -533,5 +533,43 @@ public class JobService {
     private StoredJobDefinition getJobDefinition(String name) {
         return jobDefinitionRepository.find(name);
     }
+
+    /**
+     * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
+     */
+    public void retryFailedJobs() {
+        LOGGER.info("ltag=JobService.retryFailedJobs called");
+        try {
+            doRetryFailedJobs();
+        } catch(Exception e) {
+            LOGGER.error("ltag=JobService.retryFailedJobs exception occurred",e);
+        }
+        LOGGER.info("ltag=JobService.retryFailedJobs finished");
+    }
+
+    private void doRetryFailedJobs() {
+
+        desynchronize();
+
+        for (JobRunnable jobRunnable : jobs.values()) {
+            final String name = jobRunnable.getJobDefinition().getName();
+            JobInfo jobInfo = jobInfoRepository.findMostRecentFinished(name);
+
+            if(jobInfo.getMaxRetries() > 0) {
+                ResultCode resultCode = jobInfo.getResultState();
+                if(resultCode != null && resultCode != ResultCode.SUCCESSFUL) {
+                    try {
+                        String id = executeJob(name, jobInfo.getExecutionPriority());
+                        jobInfoRepository.decrementMaxRetries(id);
+                    } catch (JobException e) {
+                        LOGGER.error("ltag=JobService.retryFailedJobs jobInfoName={} exception occurred", name, e);
+                    }
+                }
+            }
+        }
+
+    }
+
+
 
 }

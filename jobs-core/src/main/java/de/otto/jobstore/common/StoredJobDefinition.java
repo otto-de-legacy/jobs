@@ -14,24 +14,17 @@ public final class StoredJobDefinition extends AbstractItem implements JobDefini
         super(dbObject);
     }
 
-    /*
-    @Deprecated
-    public StoredJobDefinition(String name, long maxIdleTime, long pollingInterval, boolean remote, boolean abortable) {
-        this(name, maxIdleTime, pollingInterval, 0, remote, abortable);
-    }
-    */
-
-    public StoredJobDefinition(String name, long maxIdleTime, long pollingInterval, long retries, boolean remote, boolean abortable) {
+    public StoredJobDefinition(String name, long maxIdleTime, long pollingInterval, long maxRetries, boolean remote, boolean abortable) {
         addProperty(JobDefinitionProperty.NAME, name);
         addProperty(JobDefinitionProperty.MAX_IDLE_TIME, maxIdleTime);
         addProperty(JobDefinitionProperty.POLLING_INTERVAL, pollingInterval);
-        addProperty(JobDefinitionProperty.RETRIES, retries);
+        addProperty(JobDefinitionProperty.MAX_RETRIES, maxRetries);
         addProperty(JobDefinitionProperty.REMOTE, remote);
         addProperty(JobDefinitionProperty.ABORTABLE, abortable);
     }
 
     public StoredJobDefinition(JobDefinition jd) {
-        this(jd.getName(), jd.getMaxIdleTime(), jd.getPollingInterval(), jd.getRetries(), jd.isRemote(), jd.isAbortable());
+        this(jd.getName(), jd.getMaxIdleTime(), jd.getPollingInterval(), jd.getMaxRetries(), jd.isRemote(), jd.isAbortable());
     }
 
     public String getName() {
@@ -60,8 +53,8 @@ public final class StoredJobDefinition extends AbstractItem implements JobDefini
         return getProperty(JobDefinitionProperty.POLLING_INTERVAL);
     }
 
-    public long getRetries() {
-        return getProperty(JobDefinitionProperty.RETRIES);
+    public long getMaxRetries() {
+        return getProperty(JobDefinitionProperty.MAX_RETRIES);
     }
 
 
