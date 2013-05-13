@@ -8,6 +8,11 @@ public abstract class AbstractLocalJobDefinition implements JobDefinition {
     }
 
     @Override
+    public long getRetries() {
+        return 0;
+    }
+
+    @Override
     public final boolean isRemote() {
         return false;
     }
@@ -16,5 +21,6 @@ public abstract class AbstractLocalJobDefinition implements JobDefinition {
     public boolean isAbortable() {
         return false;
     }
+
 
 }

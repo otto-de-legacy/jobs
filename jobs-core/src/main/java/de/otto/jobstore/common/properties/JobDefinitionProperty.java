@@ -13,6 +13,7 @@ public enum JobDefinitionProperty implements ItemProperty {
     MAX_IDLE_TIME("maxIdleTime"),
     MAX_EXECUTION_TIME("maxExecutionTime"),
     POLLING_INTERVAL("pollingInterval"),
+    RETRIES("retries"),
     REMOTE("remote"),
     DISABLED("disabled", true),
     ABORTABLE("abortable");

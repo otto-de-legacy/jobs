@@ -25,6 +25,11 @@ public interface JobDefinition {
     long getPollingInterval();
 
     /**
+     * return the number of retries before job is flagged as error.
+     */
+    long getRetries();
+
+    /**
      * Flag if the job is executed locally or remotely
      *
      * @return true - The job is executed remotely</br>
@@ -39,5 +44,6 @@ public interface JobDefinition {
      *         false - The job cannot be aborted
      */
     boolean isAbortable();
+
 
 }

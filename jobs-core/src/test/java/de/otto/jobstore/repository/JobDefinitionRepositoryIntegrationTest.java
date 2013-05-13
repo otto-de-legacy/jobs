@@ -25,7 +25,7 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testAddingNotExistingJobDefinition() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, 0, true, false);
         jobDefinitionRepository.addOrUpdate(jd);
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertNotNull(retrievedJobDefinition);
@@ -33,12 +33,12 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testUpdatingExistingJobDefinition() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, 0, true, false);
         jobDefinitionRepository.addOrUpdate(jd);
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertEquals(1L, retrievedJobDefinition.getPollingInterval());
 
-        jd = new StoredJobDefinition(JOB_NAME, 1, 2, true, false);
+        jd = new StoredJobDefinition(JOB_NAME, 1, 2, 0, true, false);
         jobDefinitionRepository.addOrUpdate(jd);
         retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertEquals(2L, retrievedJobDefinition.getPollingInterval());
@@ -46,11 +46,11 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testUpdatingExistingJobDefinitionDoesNotOverwriteEnabledStatus() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, 0, true, false);
         jd.setDisabled(true);
         jobDefinitionRepository.save(jd);
 
-        jd = new StoredJobDefinition(JOB_NAME, 1, 2, true, false);
+        jd = new StoredJobDefinition(JOB_NAME, 1, 2, 0, true, false);
         jobDefinitionRepository.addOrUpdate(jd);
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertTrue(retrievedJobDefinition.isDisabled());
@@ -58,10 +58,10 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testUpdatingExistingJobDefinitionOverwritesAbortable() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, 0, true, false);
         jobDefinitionRepository.save(jd);
 
-        jd = new StoredJobDefinition(JOB_NAME, 1, 2, true, true);
+        jd = new StoredJobDefinition(JOB_NAME, 1, 2, 0, true, true);
         jobDefinitionRepository.addOrUpdate(jd);
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertTrue(retrievedJobDefinition.isAbortable());
@@ -69,7 +69,7 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testDisablingJob() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, 0, true, false);
         jobDefinitionRepository.save(jd);
         jobDefinitionRepository.setJobExecutionEnabled(JOB_NAME, false);
 
@@ -79,7 +79,7 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testActivatingJob() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, 0, true, false);
         jd.setDisabled(true);
         jobDefinitionRepository.save(jd);
         jobDefinitionRepository.setJobExecutionEnabled(JOB_NAME, true);
@@ -90,11 +90,11 @@ public class JobDefinitionRepositoryIntegrationTest extends AbstractTestNGSpring
 
     @Test
     public void testUpdatingPausedJob() throws Exception {
-        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, true, false);
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME, 1, 1, 0, true, false);
         jd.setDisabled(true);
         jobDefinitionRepository.save(jd);
 
-        StoredJobDefinition jd2 = new StoredJobDefinition(JOB_NAME, 2, 2, true, false);
+        StoredJobDefinition jd2 = new StoredJobDefinition(JOB_NAME, 2, 2, 0, true, false);
         jobDefinitionRepository.addOrUpdate(jd2);
         StoredJobDefinition retrievedJobDefinition = jobDefinitionRepository.find(JOB_NAME);
         assertEquals(2, retrievedJobDefinition.getPollingInterval());
