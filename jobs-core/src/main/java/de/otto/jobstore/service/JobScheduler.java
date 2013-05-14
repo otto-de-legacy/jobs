@@ -15,8 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * method to unify scheduling. Should be either called frequently per scheduler once a minute OR
- * use the factory method. This spawns an extra thread,
+ * method to unify scheduling. This spawns some extra daemon threads
  */
 public class JobScheduler {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobScheduler.class);
