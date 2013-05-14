@@ -38,4 +38,11 @@
         <constructor-arg index="1" ref="jobInfoService"/>
     </bean>
 
+    <!--
+    <bean id="jobScheduler" class="de.otto.jobstore.service.JobScheduler">
+        <constructor-arg index="0" ref="jobService"/>
+        <constructor-arg index="1" ref="jobInfoRepository"/>
+    </bean>
+    -->
+
 </beans>
