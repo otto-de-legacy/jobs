@@ -30,6 +30,11 @@ public interface JobDefinition {
     long getMaxRetries();
 
     /**
+     * The interval after which the job should be checked for retry
+     */
+    long getRetryInterval();
+
+    /**
      * Flag if the job is executed locally or remotely
      *
      * @return true - The job is executed remotely</br>

@@ -14,23 +14,23 @@ public final class JobInfo extends AbstractItem {
         super(dbObject);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long maxRetries) {
-        this(name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, RunningState.QUEUED);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime) {
+        this(name, host, thread, maxIdleTime, maxExecutionTime, RunningState.QUEUED);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime , Long maxRetries, RunningState state) {
-        this(name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state) {
+        this(name, host, thread, maxIdleTime, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long maxRetries, RunningState state) {
-        this(dt, name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state) {
+        this(dt, name, host, thread, maxIdleTime, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long maxRetries, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
-        this(new Date(), name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, state, executionPriority, additionalData);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
+        this(new Date(), name, host, thread, maxIdleTime, maxExecutionTime, state, executionPriority, additionalData);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long maxRetries, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
+    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
@@ -43,7 +43,6 @@ public final class JobInfo extends AbstractItem {
         setLastModifiedTime(dt);
         addProperty(JobInfoProperty.MAX_IDLE_TIME, maxIdleTime);
         addProperty(JobInfoProperty.MAX_EXECUTION_TIME, maxExecutionTime);
-        addProperty(JobInfoProperty.MAX_RETRIES, maxRetries);
 
         if (additionalData != null) {
             addProperty(JobInfoProperty.ADDITIONAL_DATA, new BasicDBObject(additionalData));
@@ -101,18 +100,13 @@ public final class JobInfo extends AbstractItem {
         return maxExecutionTime;
     }
 
-    public Long getMaxRetries() {
-        Long maxRetries = getProperty(JobInfoProperty.MAX_RETRIES);
-        //TODO This is only for backward compability for the time, the new version of this library is running, with formerly started jobs
-        if(maxRetries == null) {
+    public Long getRetries() {
+        Long retries = getProperty(JobInfoProperty.RETRIES);
+
+        if(retries == null) {
             return 0L;
         }
-        return maxRetries;
-    }
-
-    public void decrementMaxRetries() {
-        Long maxRetries = getMaxRetries();
-        addProperty(JobInfoProperty.MAX_RETRIES, maxRetries - 1);
+        return retries;
     }
 
     private Date getJobIdleExceededTime() {

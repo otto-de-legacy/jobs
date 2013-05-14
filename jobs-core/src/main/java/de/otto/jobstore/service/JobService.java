@@ -313,7 +313,7 @@ public class JobService {
             if (jobRunnable.getJobDefinition().isRemote()) {
                 final JobDefinition definition = jobRunnable.getJobDefinition();
                 final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(definition.getName(), RunningState.RUNNING);
-                if (runningJob != null && jobRequiresUpdate(runningJob.getLastModifiedTime(), System.currentTimeMillis(), definition.getPollingInterval()) &&
+                if (runningJob != null && jobAgedOverInterval(runningJob.getLastModifiedTime(), System.currentTimeMillis(), definition.getPollingInterval()) &&
                         runningJob.getAdditionalData().containsKey(JobInfoProperty.REMOTE_JOB_URI.val())) {
                     final JobRunnable runnable = jobs.get(definition.getName());
                     final RemoteJobStatus remoteJobStatus = runnable.getRemoteStatus(
@@ -404,8 +404,8 @@ public class JobService {
         return Collections.unmodifiableSet(runningConstraints);
     }
 
-    private boolean jobRequiresUpdate(Date lastModificationTime, long currentTime, long pollingInterval) {
-        return new Date(currentTime - pollingInterval).after(lastModificationTime);
+    private boolean jobAgedOverInterval(Date lastModificationTime, long currentTime, long interval) {
+        return new Date(currentTime - interval).after(lastModificationTime);
     }
 
     private void updateJobStatus(JobInfo jobInfo, JobRunnable runnable, RemoteJobStatus remoteJobStatus) {
@@ -552,24 +552,44 @@ public class JobService {
         desynchronize();
 
         for (JobRunnable jobRunnable : jobs.values()) {
-            final String name = jobRunnable.getJobDefinition().getName();
-            JobInfo jobInfo = jobInfoRepository.findMostRecentFinished(name);
+            JobDefinition definition = jobRunnable.getJobDefinition();
+            final String name = definition.getName();
+            final long maxRetries = definition.getMaxRetries();
 
-            if(jobInfo.getMaxRetries() > 0) {
-                ResultCode resultCode = jobInfo.getResultState();
-                if(resultCode != null && resultCode != ResultCode.SUCCESSFUL) {
-                    try {
-                        String id = executeJob(name, jobInfo.getExecutionPriority());
-                        jobInfoRepository.decrementMaxRetries(id);
-                    } catch (JobException e) {
-                        LOGGER.error("ltag=JobService.retryFailedJobs jobInfoName={} exception occurred", name, e);
-                    }
+            if(maxRetries <= 0) {
+                LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} no retries defined, skipping job", name);
+                continue;
+            }
+            JobInfo jobInfo = jobInfoRepository.findMostRecentFinished(name);
+            final long retries = jobInfo.getRetries();
+
+            if (retries < maxRetries) {
+
+                if (jobInfo.getResultState() == ResultCode.SUCCESSFUL) {
+                    LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} last execution successful, skipping job", name);
+                    continue;
+                }
+
+                if (! jobAgedOverInterval(jobInfo.getLastModifiedTime(), System.currentTimeMillis(), definition.getRetryInterval())) {
+                    LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} did not yet reached retry interval time, skipping job", name);
+                    continue;
+                }
+
+                // Prüfung, ob gerade ein job läuft, um doppeltes Starten/Queueing zu vermeiden
+                final JobInfo runningJobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING);
+                if (runningJobInfo != null) {
+                    LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} found already running job, skipping job", name);
+                    continue;
+                }
+
+                try {
+                    String id = executeJob(name, jobInfo.getExecutionPriority());
+                    jobInfoRepository.setRetries(id, retries + 1);
+                    LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} executeJob called", name);
+                } catch (JobException e) {
+                    LOGGER.error("ltag=JobService.retryFailedJobs jobInfoName={} executeJob failed", name, e);
                 }
             }
         }
-
     }
-
-
-
 }

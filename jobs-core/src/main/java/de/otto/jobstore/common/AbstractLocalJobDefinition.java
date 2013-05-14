@@ -13,6 +13,11 @@ public abstract class AbstractLocalJobDefinition implements JobDefinition {
     }
 
     @Override
+    public long getRetryInterval() {
+        return -1;
+    }
+
+    @Override
     public final boolean isRemote() {
         return false;
     }

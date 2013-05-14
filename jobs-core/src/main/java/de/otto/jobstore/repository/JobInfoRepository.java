@@ -66,7 +66,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                          final JobExecutionPriority executionPriority, final Map<String, String> parameters, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, runningState, executionPriority, parameters, additionalData);
+        return create(name, host, thread, maxIdleTime, maxExecutionTime, runningState, executionPriority, parameters, additionalData);
     }
 
     /**
@@ -82,12 +82,12 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    public String create(final String name, final String host, final String thread, final long maxIdleTime, final long maxExecutionTime, final long maxRetries,
+    public String create(final String name, final String host, final String thread, final long maxIdleTime, final long maxExecutionTime,
                          final RunningState runningState, final JobExecutionPriority executionPriority, 
                          final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
             logger.info("Create job={} in state={} ...", name, runningState);
-            final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, runningState, executionPriority, additionalData);
+            final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
             save(jobInfo);
             return jobInfo.getId();
@@ -709,10 +709,11 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         return strings;
     }
 
-    public void decrementMaxRetries(String id) {
-        JobInfo jobInfo = findById(id);
-        jobInfo.decrementMaxRetries();
-        save(jobInfo);
-        //To change body of created methods use File | Settings | File Templates.
+    public void setRetries(String id, long retries) {
+        final Date dt = new Date();
+        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
+                new BasicDBObject(JobInfoProperty.RETRIES.val(), retries).
+                        append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
+        collection.update(createIdQuery(id), update, false, false, getSafeWriteConcern());
     }
 }
