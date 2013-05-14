@@ -62,7 +62,7 @@ public class JobScheduler {
         try {
             executorService.awaitTermination(30, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            LOGGER.error("error rescheduling tasks: " + e.getMessage(), e);
+            LOGGER.error("error await termination of tasks: " + e.getMessage(), e);
         }
         executorService = null;
         LOGGER.info("finished shutdown");
