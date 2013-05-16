@@ -95,7 +95,8 @@ public class JobService {
      * @throws JobNotRegisteredException If the job is not registered with this jobService instance
      */
     public boolean isJobExecutionEnabled(final String name) throws JobNotRegisteredException {
-        final StoredJobDefinition jobDefinition = jobDefinitionRepository.find(checkIfJobIsRegistered(name));
+        checkIfJobIsRegistered(name);
+        final StoredJobDefinition jobDefinition = jobDefinitionRepository.find(name);
         return !jobDefinition.isDisabled();
     }
 
@@ -108,7 +109,8 @@ public class JobService {
      * @throws JobNotRegisteredException If the job is not registered with this jobService instance
      */
     public void setJobExecutionEnabled(String name, boolean executionEnabled) throws JobNotRegisteredException {
-        jobDefinitionRepository.setJobExecutionEnabled(checkIfJobIsRegistered(name), executionEnabled);
+        checkIfJobIsRegistered(name);
+        jobDefinitionRepository.setJobExecutionEnabled(name, executionEnabled);
     }
 
     /**
@@ -226,9 +228,8 @@ public class JobService {
     }
 
     private void checkIfJobIsDisabled(String name) throws JobNotRegisteredException, JobExecutionDisabledException {
-        final StoredJobDefinition jobDefinition = getJobDefinition(checkIfJobIsRegistered(name));
-        if (jobDefinition.isDisabled()) {
-            throw new JobExecutionDisabledException("Execution of jobs with name " + jobDefinition.getName() + " has been disabled");
+        if(!isJobExecutionEnabled(name)) {
+            throw new JobExecutionDisabledException("Execution of jobs with name " + name + " has been disabled");
         }
     }
 
@@ -262,13 +263,13 @@ public class JobService {
         desynchronize();
         LOGGER.info("ltag=JobService.executeQueuedJobs");
         for (JobInfo jobInfo : jobInfoRepository.findQueuedJobsSortedAscByCreationTime()) {
-            final StoredJobDefinition jobDefinition = getJobDefinition(jobInfo.getName());
-            if (jobDefinition.isDisabled()) {
-                LOGGER.info("ltag=JobService.executeQueuedJobs.isDisabled jobName={}", jobInfo.getName());
-                break;
-            }
-            if (!isJobRegistered(jobInfo.getName())) {
+            try {
+                checkIfJobIsDisabled(jobInfo.getName());
+            } catch (JobNotRegisteredException e) {
                 LOGGER.info("ltag=JobService.executeQueuedJobs.notRegistered jobName={}", jobInfo.getName());
+                break;
+            } catch (JobExecutionDisabledException e) {
+                LOGGER.info("ltag=JobService.executeQueuedJobs.isDisabled jobName={}", jobInfo.getName());
                 break;
             }
             if (jobInfoRepository.hasJob(jobInfo.getName(), RunningState.RUNNING)) {
@@ -343,6 +344,7 @@ public class JobService {
         if (isExecutionDisabled()) {
             return;
         }
+        // abort first
         for (JobRunnable jobRunnable : jobs.values()) {
             if (!jobRunnable.getJobDefinition().isRemote()) {
                 final String name = jobRunnable.getJobDefinition().getName();
@@ -350,7 +352,6 @@ public class JobService {
                 if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
                     LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", name);
                     abortJob(runningJob.getId());
-                    jobInfoRepository.markAsFinished(runningJob.getId(), ResultCode.ABORTED, "shutdownJobs called from executing host");
                 }
             }
         }
@@ -359,6 +360,17 @@ public class JobService {
             jobExecutorService.awaitTermination(awaitTerminationSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             LOGGER.warn("could not terminate all running threads");
+        }
+        // mark as aborted if still running
+        for (JobRunnable jobRunnable : jobs.values()) {
+            if (!jobRunnable.getJobDefinition().isRemote()) {
+                final String name = jobRunnable.getJobDefinition().getName();
+                final JobInfo runningJob = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING);
+                if (runningJob != null && runningJob.getHost().equals(InternetUtils.getHostName())) {
+                    LOGGER.info("ltag=JobService.shutdownJobs jobInfoName={}", name);
+                    jobInfoRepository.markAsFinished(runningJob.getId(), ResultCode.ABORTED, "shutdownJobs called from executing host");
+                }
+            }
         }
     }
 
@@ -499,10 +511,8 @@ public class JobService {
                 runningState, jobExecutionPriority, runnable.getParameters(), null);
     }
 
-    private String checkIfJobIsRegistered(final String name) throws JobNotRegisteredException {
-        if (isJobRegistered(name)) {
-            return name;
-        } else {
+    private void checkIfJobIsRegistered(final String name) throws JobNotRegisteredException {
+        if (!isJobRegistered(name)) {
             throw new JobNotRegisteredException("job with name " + name + " is not registered with this jobService instance");
         }
     }
@@ -547,13 +557,15 @@ public class JobService {
         LOGGER.info("ltag=JobService.retryFailedJobs finished");
     }
 
-    private void doRetryFailedJobs() {
+    protected void doRetryFailedJobs() {
 
         desynchronize();
 
-        for (JobRunnable jobRunnable : jobs.values()) {
-            JobDefinition definition = jobRunnable.getJobDefinition();
-            final String name = definition.getName();
+        for (String name : jobs.keySet()) {
+            //JobDefinition definition = jobRunnable.getJobDefinition();
+            //JobRunnable jobRunnable = jobs.get(name);
+            JobDefinition definition = getJobDefinition(name);
+
             final long maxRetries = definition.getMaxRetries();
 
             if(maxRetries <= 0) {
@@ -565,13 +577,13 @@ public class JobService {
 
             if (retries < maxRetries) {
 
-                if (jobInfo.getResultState() == ResultCode.SUCCESSFUL) {
-                    LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} last execution successful, skipping job", name);
+                if (jobInfo.getResultState() == ResultCode.SUCCESSFUL || jobInfo.getResultState() == ResultCode.NOT_EXECUTED) {
+                    LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} last execution was resultCode={}, skipping job", name, jobInfo.getResultState());
                     continue;
                 }
 
                 if (! jobAgedOverInterval(jobInfo.getLastModifiedTime(), System.currentTimeMillis(), definition.getRetryInterval())) {
-                    LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} did not yet reached retry interval time, skipping job", name);
+                    LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} did not yet reach retry interval time, skipping job", name);
                     continue;
                 }
 
