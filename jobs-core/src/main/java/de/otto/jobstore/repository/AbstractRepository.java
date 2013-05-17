@@ -53,7 +53,7 @@ public abstract class AbstractRepository<E extends AbstractItem> {
         return safeWriteConcern;
     }
 
-    public final void save(E item) {
+    public void save(E item) {
         final DBObject obj = item.toDbObject();
         final WriteResult wr = collection.save(obj,getSafeWriteConcern());
         final CommandResult cr = wr.getLastError();

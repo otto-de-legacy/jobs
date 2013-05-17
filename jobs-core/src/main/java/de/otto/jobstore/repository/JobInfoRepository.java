@@ -87,13 +87,26 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                          final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
             logger.info("Create job={} in state={} ...", name, runningState);
+
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
+            long retries = getRetriesOfPreviousFailedJob(name);
+            jobInfo.setRetries(retries + 1);
+
             save(jobInfo);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
             logger.warn("job={} with state={} already exists, creation skipped!", name, runningState);
             return null;
+        }
+    }
+
+    public long getRetriesOfPreviousFailedJob(String name) {
+        JobInfo jobInfo = findMostRecentFinished(name);
+        if(jobInfo == null || jobInfo.getResultState() == ResultCode.SUCCESSFUL || jobInfo.getResultState() == ResultCode.NOT_EXECUTED) {
+            return -1;
+        } else {
+            return jobInfo.getRetries();
         }
     }
 
@@ -180,7 +193,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * Sets the status of the queued job with the given name to running. The lastModified date of the job is set
      * to the current date.
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @return true - If the job with the given name was activated successfully<br/>
      *         false - If no queued job with the current name could be found and thus could not activated
      */
@@ -193,7 +206,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * sets status of running job back to queued. This is necessary if running constraints fail after activateQueuedJob. This seems to be
      * awkward, but is necessary to prevent race condition with parallel started jobs
      *
-     * @param name The name of the job
+     * @param id The id of the job
      * @return true - If the job with the given name was activated successfully<br/>
      *         false - If no queued job with the current name could be found and thus could not activated
      */
@@ -362,6 +375,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     /**
      * Returns all jobs with the given name.
+     * TODO: last modified ODER creation time?
      *
      * @param name The name of the jobs
      * @param limit The maximum number of jobs to return
@@ -380,6 +394,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     /**
      * Returns the job with the given name and the most current last modified timestamp.
+     * TODO: last modified ODER creation time?
      *
      * @param name The name of the job
      * @return The job with the given name and the most current timestamp or null if none could be found.
@@ -708,4 +723,5 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         }
         return strings;
     }
+
 }

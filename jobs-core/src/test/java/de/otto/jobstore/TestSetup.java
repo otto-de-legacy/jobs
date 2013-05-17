@@ -19,6 +19,11 @@ public class TestSetup {
         return new LocalMockJobRunnable(name, timeout, exception);
     }
 
+    public static LocalMockJobRunnable localJobRunnable(JobDefinition jobDefinition, final JobExecutionException exception) {
+        return new LocalMockJobRunnable(jobDefinition, exception);
+    }
+
+
     public static AbstractRemoteJobRunnable remoteJobRunnable(final RemoteJobExecutorService remoteJobExecutorService, final JobInfoService jobInfoService,
                                                               final Map<String, String> parameters, final AbstractRemoteJobDefinition jobDefinition) {
         return new AbstractRemoteJobRunnable(remoteJobExecutorService, jobInfoService) {
@@ -37,6 +42,10 @@ public class TestSetup {
     }
 
     public static AbstractLocalJobDefinition localJobDefinition(final String name, final long timeoutPeriod) {
+        return localJobDefinition(name, timeoutPeriod, 0L);
+    }
+
+    public static AbstractLocalJobDefinition localJobDefinition(final String name, final long timeoutPeriod, final long maxRetries) {
         return new AbstractLocalJobDefinition() {
             @Override
             public String getName() {
@@ -51,6 +60,11 @@ public class TestSetup {
             @Override
             public long getMaxExecutionTime() {
                 return timeoutPeriod;
+            }
+
+            @Override
+            public long getMaxRetries() {
+                return maxRetries;
             }
         };
     }
@@ -83,7 +97,12 @@ public class TestSetup {
 
         private volatile boolean executed = false;
         private JobException exception;
-        private AbstractLocalJobDefinition localJobDefinition;
+        private JobDefinition localJobDefinition;
+
+        private LocalMockJobRunnable(JobDefinition jobDefinition, JobException exception) {
+            localJobDefinition = jobDefinition;
+            this.exception = exception;
+        }
 
         private LocalMockJobRunnable(String name, long timeoutPeriod, JobException exception) {
             localJobDefinition = localJobDefinition(name, timeoutPeriod);

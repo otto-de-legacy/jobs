@@ -13,6 +13,7 @@ import org.bson.types.ObjectId;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -447,7 +448,7 @@ public class JobServiceTest {
     public void testJobExecutedDisabled() throws Exception {
         reset(jobDefinitionRepository);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
-        StoredJobDefinition disabledJob = new StoredJobDefinition(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName(), 0, 0, false, false);
+        StoredJobDefinition disabledJob = new StoredJobDefinition(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName(), 0, 0, 0, 0, 0, false, false);
         disabledJob.setDisabled(true);
         when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(disabledJob);
         JobService jobServiceImpl = new JobService(jobDefinitionRepository, jobInfoRepository);
@@ -465,6 +466,70 @@ public class JobServiceTest {
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
         jobService.executeJob(JOB_NAME_01);
     }
+
+    @Test
+    public void testRetryJobAsFailed() throws Exception {
+
+        final String jobId = "1234";
+
+        final JobInfo jobInfo = new JobInfo(jobId, "localhost", "thread", 0L, 0L, RunningState.FINISHED);
+        jobInfo.setResultState(ResultCode.FAILED);
+
+        when(jobInfoRepository.findMostRecentFinished(JOB_NAME_01)).thenReturn(jobInfo);
+        when(jobInfoRepository.getRetriesOfPreviousFailedJob(JOB_NAME_01)).thenCallRealMethod();
+
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS,
+                Collections.<String, String>emptyMap(), null)).thenReturn(jobId);
+        when(jobInfoRepository.activateQueuedJobById(JOB_NAME_01)).thenReturn(Boolean.TRUE);
+        when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
+        when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
+
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME_01, 0, 0, 0, 2, 0, false, false);
+        when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(jd);
+
+        JobRunnable runnable = TestSetup.localJobRunnable(jd, null);
+
+        jobService.registerJob(runnable);
+
+        jobService.doRetryFailedJobs();
+
+        assertEquals(jobInfoRepository.getRetriesOfPreviousFailedJob(JOB_NAME_01),0L);
+        verify(jobInfoRepository, times(1)).create(JOB_NAME_01, 0, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS,
+                Collections.<String, String>emptyMap(), null);
+    }
+
+    @Test
+    public void testNoRetryJobAsSuccessFull() throws Exception {
+
+        final String jobId = "1234";
+
+        final JobInfo jobInfo = new JobInfo(jobId, "localhost", "thread", 0L, 0L, RunningState.FINISHED);
+        jobInfo.setResultState(ResultCode.SUCCESSFUL);
+
+        when(jobInfoRepository.findMostRecentFinished(JOB_NAME_01)).thenReturn(jobInfo);
+        when(jobInfoRepository.getRetriesOfPreviousFailedJob(JOB_NAME_01)).thenCallRealMethod();
+
+
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS,
+                Collections.<String, String>emptyMap(), null)).thenReturn(jobId);
+        when(jobInfoRepository.activateQueuedJobById(JOB_NAME_01)).thenReturn(Boolean.TRUE);
+        when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
+        when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
+
+        StoredJobDefinition jd = new StoredJobDefinition(JOB_NAME_01, 0, 0, 0, 2, 0, false, false);
+        when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(jd);
+
+        JobRunnable runnable = TestSetup.localJobRunnable(jd, null);
+
+        jobService.registerJob(runnable);
+
+        jobService.doRetryFailedJobs();
+
+        assertEquals(jobInfoRepository.getRetriesOfPreviousFailedJob(JOB_NAME_01),-1L);
+        verify(jobInfoRepository, times(0)).create(JOB_NAME_01, 0, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS,
+                Collections.<String, String>emptyMap(), null);
+    }
+
 
     @Test
     public void testPollRemoteJobsNoRemoteJobs() throws Exception {
@@ -562,7 +627,7 @@ public class JobServiceTest {
         Date lastModification = new Date(dt.getTime() - 60L * 1000L);
         long currentTime = dt.getTime();
         long pollingInterval = 30 * 1000L;
-        boolean requiresUpdate = ReflectionTestUtils.invokeMethod(jobService, "jobRequiresUpdate", lastModification, currentTime, pollingInterval);
+        boolean requiresUpdate = ReflectionTestUtils.invokeMethod(jobService, "jobAgedOverInterval", lastModification, currentTime, pollingInterval);
         assertTrue(requiresUpdate);
     }
 
@@ -572,7 +637,7 @@ public class JobServiceTest {
         Date lastModification = new Date(dt.getTime() - 60L * 1000L);
         long currentTime = dt.getTime();
         long pollingInterval = 90 * 1000L;
-        boolean requiresUpdate = ReflectionTestUtils.invokeMethod(jobService, "jobRequiresUpdate", lastModification, currentTime, pollingInterval);
+        boolean requiresUpdate = ReflectionTestUtils.invokeMethod(jobService, "jobAgedOverInterval", lastModification, currentTime, pollingInterval);
         assertFalse(requiresUpdate);
     }
 
@@ -622,7 +687,7 @@ public class JobServiceTest {
     }
 
     private StoredJobDefinition createSimpleJd() {
-        return new StoredJobDefinition("foo", 0, 0, false, false) ;
+        return new StoredJobDefinition("foo", 0, 0, 0, 0, 0, false, false) ;
     }
 
 }

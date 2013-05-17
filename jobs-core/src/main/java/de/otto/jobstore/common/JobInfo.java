@@ -6,7 +6,7 @@ import de.otto.jobstore.common.properties.JobInfoProperty;
 
 import java.util.*;
 
-public final class JobInfo extends AbstractItem {
+public class JobInfo extends AbstractItem {
 
     private static final long serialVersionUID = 2454224303569320787L;
 
@@ -18,11 +18,11 @@ public final class JobInfo extends AbstractItem {
         this(name, host, thread, maxIdleTime, maxExecutionTime, RunningState.QUEUED);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime , RunningState state) {
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state) {
         this(name, host, thread, maxIdleTime, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime , RunningState state) {
+    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state) {
         this(dt, name, host, thread, maxIdleTime, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
@@ -43,6 +43,7 @@ public final class JobInfo extends AbstractItem {
         setLastModifiedTime(dt);
         addProperty(JobInfoProperty.MAX_IDLE_TIME, maxIdleTime);
         addProperty(JobInfoProperty.MAX_EXECUTION_TIME, maxExecutionTime);
+
         if (additionalData != null) {
             addProperty(JobInfoProperty.ADDITIONAL_DATA, new BasicDBObject(additionalData));
         }
@@ -97,6 +98,19 @@ public final class JobInfo extends AbstractItem {
             return Long.valueOf(1000*60*60*2);
         }
         return maxExecutionTime;
+    }
+
+    public Long getRetries() {
+        Long retries = getProperty(JobInfoProperty.RETRIES);
+
+        if(retries == null) {
+            return 0L;
+        }
+        return retries;
+    }
+
+    public void setRetries(Long retries) {
+        addProperty(JobInfoProperty.RETRIES, retries);
     }
 
     private Date getJobIdleExceededTime() {
@@ -251,7 +265,9 @@ public final class JobInfo extends AbstractItem {
         }
     }
 
-
+    public void setResultState(ResultCode resultCode) {
+        addProperty(JobInfoProperty.RESULT_STATE, resultCode.toString());
+    }
 
     @Override
     public String toString() {

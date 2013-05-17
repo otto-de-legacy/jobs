@@ -8,6 +8,16 @@ public abstract class AbstractLocalJobDefinition implements JobDefinition {
     }
 
     @Override
+    public long getMaxRetries() {
+        return 0;
+    }
+
+    @Override
+    public long getRetryInterval() {
+        return -1;
+    }
+
+    @Override
     public final boolean isRemote() {
         return false;
     }
@@ -16,5 +26,6 @@ public abstract class AbstractLocalJobDefinition implements JobDefinition {
     public boolean isAbortable() {
         return false;
     }
+
 
 }
