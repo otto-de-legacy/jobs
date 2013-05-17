@@ -1,5 +1,6 @@
 package de.otto.jobstore.service;
 
+import de.otto.jobstore.common.JobSchedule;
 import de.otto.jobstore.repository.JobInfoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,14 +21,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class JobScheduler {
     private static final Logger LOGGER = LoggerFactory.getLogger(JobScheduler.class);
 
-    private final JobService jobService;
-    private final JobInfoRepository jobInfoRepository;
-    private List<Schedule> schedules = new ArrayList<>();
+    private List<JobSchedule> schedules;
 
-    public JobScheduler(JobService jobService, JobInfoRepository jobInfoRepository) {
-        this.jobService = jobService;
-        this.jobInfoRepository = jobInfoRepository;
-        initSchedules();
+    public JobScheduler(final JobService jobService, final JobInfoRepository jobInfoRepository) {
+        this(createDefaultSchedules(jobService, jobInfoRepository));
+    }
+
+    public JobScheduler(List<JobSchedule> schedules) {
+        this.schedules = schedules;
     }
 
     private ScheduledExecutorService executorService;
@@ -42,7 +43,7 @@ public class JobScheduler {
 
         executorService = Executors.newScheduledThreadPool(schedules.size(),new JobSchedulerThreadFactory());
 
-        for(Schedule schedule: schedules) {
+        for(JobSchedule schedule: schedules) {
             executorService.scheduleAtFixedRate(schedule, 0, schedule.interval(), TimeUnit.MILLISECONDS);
         }
 
@@ -58,8 +59,9 @@ public class JobScheduler {
             return;
         }
 
-        executorService.shutdownNow();
+
         try {
+            executorService.shutdown();
             executorService.awaitTermination(30, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             LOGGER.error("error await termination of tasks: " + e.getMessage(), e);
@@ -68,126 +70,106 @@ public class JobScheduler {
         LOGGER.info("finished shutdown");
     }
 
-    private void initSchedules() {
-        schedules.add(new Schedule() {
+    private static List<JobSchedule> createDefaultSchedules(final JobService jobService, final JobInfoRepository jobInfoRepository) {
+        List<JobSchedule> schedules = new ArrayList<>();
+        schedules.add(new JobSchedule() {
             @Override
-            long interval() {
+            public long interval() {
                 return TimeUnit.MINUTES.toMillis(5);
             }
 
             @Override
-            void schedule() {
+            public void schedule() {
                 jobInfoRepository.cleanupTimedOutJobs();
             }
 
             @Override
-            String getName() {
+            public String getName() {
                 return "jobInfoRepository.cleanupTimedOutJobs()";
             }
         });
 
-        schedules.add(new Schedule() {
+        schedules.add(new JobSchedule() {
             @Override
-            long interval() {
+            public long interval() {
                 return TimeUnit.DAYS.toMillis(1);
             }
 
             @Override
-            void schedule() {
+            public void schedule() {
                 jobInfoRepository.cleanupOldJobs();
             }
 
             @Override
-            String getName() {
+            public String getName() {
                 return "jobInfoRepository.cleanupOldJobs()";
             }
         });
 
-        schedules.add(new Schedule() {
+        schedules.add(new JobSchedule() {
             @Override
-            long interval() {
+            public long interval() {
                 return TimeUnit.HOURS.toMillis(1);
             }
 
             @Override
-            void schedule() {
+            public void schedule() {
                 jobInfoRepository.cleanupNotExecutedJobs();
             }
 
             @Override
-            String getName() {
+            public String getName() {
                 return "jobInfoRepository.cleanupNotExecutedJobs()";
             }
         });
 
-        schedules.add(new Schedule() {
+        schedules.add(new JobSchedule() {
             @Override
-            long interval() {
+            public long interval() {
                 return TimeUnit.MINUTES.toMillis(1);
             }
 
             @Override
-            void schedule() {
+            public void schedule() {
                 jobService.executeQueuedJobs();
             }
-
             @Override
-            String getName() {
+            public String getName() {
                 return "jobService.executeQueuedJobs()";
             }
         });
 
-        schedules.add(new Schedule() {
+        schedules.add(new JobSchedule() {
             @Override
-            long interval() {
+            public long interval() {
                 return TimeUnit.MINUTES.toMillis(1);
             }
-
             @Override
-            void schedule() {
+            public void schedule() {
                 jobService.pollRemoteJobs();
             }
             @Override
-            String getName() {
+            public String getName() {
                 return "jobService.pollRemoteJobs()";
             }
         });
 
-        schedules.add(new Schedule() {
+        schedules.add(new JobSchedule() {
             @Override
-            long interval() {
+            public long interval() {
                 return TimeUnit.MINUTES.toMillis(1);
             }
-
             @Override
-            void schedule() {
+            public void schedule() {
                 jobService.retryFailedJobs();
             }
             @Override
-            String getName() {
+            public String getName() {
                 return "jobService.retryFailedJobs()";
             }
         });
 
-    }
-
-    private abstract static class Schedule implements Runnable {
-
-        @Override
-        public void run() {
-
-            try {
-                LOGGER.info("schedule called on {}",getName());
-                schedule();
-            } catch(Exception e) {
-                LOGGER.error("error executing Scheduled {}",getName(),e);
-            }
-            LOGGER.info("schedule finished on {}",getName());
-        }
-
-        abstract long interval();
-        abstract void schedule();
-        abstract String getName();
+        return schedules;
     }
 
     /**
