@@ -6,7 +6,7 @@ import de.otto.jobstore.common.properties.JobInfoProperty;
 
 import java.util.*;
 
-public final class JobInfo extends AbstractItem {
+public class JobInfo extends AbstractItem {
 
     private static final long serialVersionUID = 2454224303569320787L;
 
@@ -107,6 +107,10 @@ public final class JobInfo extends AbstractItem {
             return 0L;
         }
         return retries;
+    }
+
+    public void setRetries(Long retries) {
+        addProperty(JobInfoProperty.RETRIES, retries);
     }
 
     private Date getJobIdleExceededTime() {
@@ -261,7 +265,9 @@ public final class JobInfo extends AbstractItem {
         }
     }
 
-
+    public void setResultState(ResultCode resultCode) {
+        addProperty(JobInfoProperty.RESULT_STATE, resultCode.toString());
+    }
 
     @Override
     public String toString() {

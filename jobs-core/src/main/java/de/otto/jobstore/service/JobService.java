@@ -507,7 +507,7 @@ public class JobService {
     private String createJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, RunningState runningState) {
         final JobDefinition jobDefinition = runnable.getJobDefinition();
         // TODO: create-Methode mit JobRunnable in jobInfoRepository erzeugen
-        return jobInfoRepository.create(jobDefinition.getName(), jobDefinition.getMaxIdleTime(), jobDefinition.getMaxExecutionTime(), jobDefinition.getMaxRetries(),
+        return jobInfoRepository.create(jobDefinition.getName(), jobDefinition.getMaxIdleTime(), jobDefinition.getMaxExecutionTime(),
                 runningState, jobExecutionPriority, runnable.getParameters(), null);
     }
 
@@ -561,12 +561,10 @@ public class JobService {
 
         desynchronize();
 
-        for (String name : jobs.keySet()) {
-            //JobDefinition definition = jobRunnable.getJobDefinition();
-            //JobRunnable jobRunnable = jobs.get(name);
-            JobDefinition definition = getJobDefinition(name);
-
-            final long maxRetries = definition.getMaxRetries();
+        for (JobRunnable jobRunnable : jobs.values()) {
+            JobDefinition definition = jobRunnable.getJobDefinition();
+            String name     = definition.getName();
+            long maxRetries = definition.getMaxRetries();
 
             if(maxRetries <= 0) {
                 LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} no retries defined, skipping job", name);
@@ -596,7 +594,6 @@ public class JobService {
 
                 try {
                     String id = executeJob(name, jobInfo.getExecutionPriority());
-                    jobInfoRepository.setRetries(id, retries + 1);
                     LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} executeJob called", name);
                 } catch (JobException e) {
                     LOGGER.error("ltag=JobService.retryFailedJobs jobInfoName={} executeJob failed", name, e);

@@ -62,7 +62,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    public String create(final String name, final long maxIdleTime, final long maxExecutionTime, final long maxRetries, final RunningState runningState,
+    public String create(final String name, final long maxIdleTime, final long maxExecutionTime, final RunningState runningState,
                          final JobExecutionPriority executionPriority, final Map<String, String> parameters, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
@@ -87,13 +87,26 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                          final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
             logger.info("Create job={} in state={} ...", name, runningState);
+
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
+            long retries = getRetriesOfPreviousFailedJob(name);
+            jobInfo.setRetries(retries + 1);
+
             save(jobInfo);
             return jobInfo.getId();
         } catch (MongoException.DuplicateKey e) {
             logger.warn("job={} with state={} already exists, creation skipped!", name, runningState);
             return null;
+        }
+    }
+
+    public long getRetriesOfPreviousFailedJob(String name) {
+        JobInfo jobInfo = findMostRecentFinished(name);
+        if(jobInfo == null || jobInfo.getResultState() == ResultCode.SUCCESSFUL || jobInfo.getResultState() == ResultCode.NOT_EXECUTED) {
+            return -1;
+        } else {
+            return jobInfo.getRetries();
         }
     }
 
@@ -362,6 +375,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     /**
      * Returns all jobs with the given name.
+     * TODO: last modified ODER creation time?
      *
      * @param name The name of the jobs
      * @param limit The maximum number of jobs to return
@@ -380,6 +394,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     /**
      * Returns the job with the given name and the most current last modified timestamp.
+     * TODO: last modified ODER creation time?
      *
      * @param name The name of the job
      * @return The job with the given name and the most current timestamp or null if none could be found.
@@ -528,7 +543,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
-            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
@@ -569,7 +584,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
             /* ... good bye ... */
@@ -601,7 +616,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not executed jobs before {} ...", beforeDate);
             /* ... good bye ... */
@@ -709,11 +724,4 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         return strings;
     }
 
-    public void setRetries(String id, long retries) {
-        final Date dt = new Date();
-        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
-                new BasicDBObject(JobInfoProperty.RETRIES.val(), retries).
-                        append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt));
-        collection.update(createIdQuery(id), update, false, false, getSafeWriteConcern());
-    }
 }
