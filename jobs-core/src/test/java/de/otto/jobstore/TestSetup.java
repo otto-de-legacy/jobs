@@ -42,6 +42,10 @@ public class TestSetup {
     }
 
     public static AbstractLocalJobDefinition localJobDefinition(final String name, final long timeoutPeriod) {
+        return localJobDefinition(name, timeoutPeriod, 0L);
+    }
+
+    public static AbstractLocalJobDefinition localJobDefinition(final String name, final long timeoutPeriod, final long maxRetries) {
         return new AbstractLocalJobDefinition() {
             @Override
             public String getName() {
@@ -56,6 +60,11 @@ public class TestSetup {
             @Override
             public long getMaxExecutionTime() {
                 return timeoutPeriod;
+            }
+
+            @Override
+            public long getMaxRetries() {
+                return maxRetries;
             }
         };
     }

@@ -270,6 +270,58 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
     }
 
+    @Test
+    public void testIfRetryDoesNotOccur() throws Exception {
+        JobDefinition jobDefinition = TestSetup.localJobDefinition(JOB_NAME_1, 1000, 3);
+        JobRunnable jobRunnable = TestSetup.localJobRunnable(jobDefinition, null);
+        jobService.registerJob(jobRunnable);
+
+        // no job yet started, should not start one
+        jobService.doRetryFailedJobs();
+        JobInfo jobInfo1 = jobInfoRepository.findMostRecent(JOB_NAME_1);
+        assertNull(jobInfo1);
+
+        String id = jobService.executeJob(JOB_NAME_1);
+        JobInfo jobInfo2 = jobInfoRepository.findById(id);
+
+        // no new job started, so last jobInfo should be same as current found jobInfo
+        jobService.doRetryFailedJobs();
+        JobInfo jobInfo3 = jobInfoRepository.findMostRecent(JOB_NAME_1);
+        assertEquals(new Long(0), jobInfo3.getRetries());
+        assertEquals(jobInfo2.getId(), jobInfo3.getId());
+
+    }
+
+    public void testIfRetryWorks() throws Exception {
+        JobDefinition jobDefinition = TestSetup.localJobDefinition(JOB_NAME_1, 1000, 3);
+        JobRunnable jobRunnable = TestSetup.localJobRunnable(jobDefinition, new JobExecutionException("We shall fail"));
+        jobService.registerJob(jobRunnable);
+
+        String id1 = jobService.executeJob(JOB_NAME_1);
+
+        JobInfo jobInfo1 = jobInfoRepository.findById(id1);
+        //assertNotNull(jobInfo1);
+        //assertEquals(RunningState.RUNNING.name(), jobInfo1.getRunningState());
+
+        jobService.doRetryFailedJobs();
+        JobInfo jobInfo2 = jobInfoRepository.findMostRecent(JOB_NAME_1);
+        assertEquals(new Long(1), jobInfo2.getRetries());
+
+        jobService.doRetryFailedJobs();
+        JobInfo jobInfo3 = jobInfoRepository.findMostRecent(JOB_NAME_1);
+        assertEquals(new Long(2), jobInfo3.getRetries());
+
+        jobService.doRetryFailedJobs();
+        JobInfo jobInfo4 = jobInfoRepository.findMostRecent(JOB_NAME_1);
+        assertEquals(new Long(3), jobInfo4.getRetries());
+
+        // no new job started, so last jobInfo should be same as current found jobInfo
+        jobService.doRetryFailedJobs();
+        JobInfo jobInfo5 = jobInfoRepository.findMostRecent(JOB_NAME_1);
+        assertEquals(jobInfo4.getId(), jobInfo5.getId());
+    }
+
+
     class JobExecutionRunnable implements  Runnable {
 
         @Override
@@ -284,7 +336,11 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
 
     class LocalJobRunnableMock extends AbstractLocalJobRunnable {
 
-        private AbstractLocalJobDefinition localJobDefinition;
+        private JobDefinition localJobDefinition;
+
+        LocalJobRunnableMock(JobDefinition jobDefinition) {
+            localJobDefinition = jobDefinition;
+        }
 
         LocalJobRunnableMock(String name) {
             localJobDefinition = TestSetup.localJobDefinition(name, 1000);

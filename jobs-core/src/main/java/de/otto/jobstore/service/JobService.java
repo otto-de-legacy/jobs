@@ -70,9 +70,20 @@ public class JobService {
      *     false - A job with the given name is already registered
      */
     public boolean registerJob(final JobRunnable jobRunnable) {
+        return registerJob(jobRunnable, false);
+    }
+
+     /**
+      * Registers a job with the given runnable in this job service
+      *
+      * @param jobRunnable The jobRunnable
+      * @return true - The job was successfully registered<br>
+      *     false - A job with the given name is already registered
+      */
+     protected boolean registerJob(final JobRunnable jobRunnable, boolean reregister) {
         final JobDefinition jobDefinition = jobRunnable.getJobDefinition();
         final String name = jobDefinition.getName();
-        if (isJobRegistered(name)) {
+        if (!reregister && isJobRegistered(name)) {
             LOGGER.warn("ltag=JobService.createJob.registerJob Tried to re-register job with name={}", name);
             return false;
         } else {
@@ -357,6 +368,7 @@ public class JobService {
         }
         shutdown = true;
         try {
+            jobExecutorService.shutdown();
             jobExecutorService.awaitTermination(awaitTerminationSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             LOGGER.warn("could not terminate all running threads");
@@ -571,6 +583,12 @@ public class JobService {
                 continue;
             }
             JobInfo jobInfo = jobInfoRepository.findMostRecentFinished(name);
+
+            if(jobInfo == null) {
+                LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} no last execution found, skipping job", name);
+                continue;
+            }
+
             final long retries = jobInfo.getRetries();
 
             if (retries < maxRetries) {
