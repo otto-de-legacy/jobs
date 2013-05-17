@@ -57,16 +57,17 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param name The name of the job
      * @param maxIdleTime Sets the time after which a job is considered to be dead if unmodified (lastModifiedTime + timeout).
      * @param maxExecutionTime Sets the time after which a job is considered to be dead (startTime + timeout).
+     * @param maxRetries Sets the number of maximum automatic retries if job fails.
      * @param runningState The state with which the job is started
      * @param executionPriority The priority with which the job is to be executed
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
-    public String create(final String name, final long maxIdleTime, final long maxExecutionTime, final RunningState runningState,
+    public String create(final String name, final long maxIdleTime, final long maxExecutionTime, final long maxRetries, final RunningState runningState,
                          final JobExecutionPriority executionPriority, final Map<String, String> parameters, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxIdleTime, maxExecutionTime, runningState, executionPriority, parameters, additionalData);
+        return create(name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, runningState, executionPriority, parameters, additionalData);
     }
 
     /**
@@ -77,21 +78,22 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @param thread The thread, which runs the job
      * @param maxIdleTime Sets the time after which a job is considered to be dead if unmodified (lastModifiedTime + timeout).
      * @param maxExecutionTime Sets the time after which a job is considered to be dead (startTime + timeout).
+     * @param maxRetries Sets the number of maximum automatic retries if job fails.
      * @param runningState The state with which the job is started
      * @param executionPriority The priority with which the job is to be executed
      * @param additionalData Additional information to be stored with the job
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     public String create(final String name, final String host, final String thread, final long maxIdleTime, final long maxExecutionTime,
-                         final RunningState runningState, final JobExecutionPriority executionPriority, 
+                         final long maxRetries, final RunningState runningState, final JobExecutionPriority executionPriority,
                          final Map<String, String> parameters, final Map<String, String> additionalData) {
         try {
             logger.info("Create job={} in state={} ...", name, runningState);
 
-            final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, runningState, executionPriority, additionalData);
+            long retries = evaluateRetriesBasedOnPreviouslyFailedJobs(name, maxRetries);
+
+            final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, retries, runningState, executionPriority, additionalData);
             jobInfo.setParameters(parameters);
-            long retries = getRetriesOfPreviousFailedJob(name);
-            jobInfo.setRetries(retries + 1);
 
             save(jobInfo);
             return jobInfo.getId();
@@ -101,12 +103,12 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         }
     }
 
-    public long getRetriesOfPreviousFailedJob(String name) {
+    public long evaluateRetriesBasedOnPreviouslyFailedJobs(String name, long maxRetries) {
         JobInfo jobInfo = findMostRecentFinished(name);
         if(jobInfo == null || jobInfo.getResultState() == ResultCode.SUCCESSFUL || jobInfo.getResultState() == ResultCode.NOT_EXECUTED) {
-            return -1;
+            return maxRetries;
         } else {
-            return jobInfo.getRetries();
+            return Math.max(0, jobInfo.getRetries()-1);
         }
     }
 
@@ -543,7 +545,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
-            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
             final List<String> removedJobs = new ArrayList<>();
             for (JobInfo jobInfo : getAll(cursor)) {
@@ -584,7 +586,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
             /* ... good bye ... */
@@ -616,7 +618,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, FIVE_MINUTES, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
             final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
             logger.info("Going to delete not executed jobs before {} ...", beforeDate);
             /* ... good bye ... */

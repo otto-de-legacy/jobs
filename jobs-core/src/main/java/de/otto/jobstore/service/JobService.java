@@ -520,7 +520,7 @@ public class JobService {
         final JobDefinition jobDefinition = runnable.getJobDefinition();
         // TODO: create-Methode mit JobRunnable in jobInfoRepository erzeugen
         return jobInfoRepository.create(jobDefinition.getName(), jobDefinition.getMaxIdleTime(), jobDefinition.getMaxExecutionTime(),
-                runningState, jobExecutionPriority, runnable.getParameters(), null);
+                jobDefinition.getMaxRetries(), runningState, jobExecutionPriority, runnable.getParameters(), null);
     }
 
     private void checkIfJobIsRegistered(final String name) throws JobNotRegisteredException {
@@ -591,7 +591,7 @@ public class JobService {
 
             final long retries = jobInfo.getRetries();
 
-            if (retries < maxRetries) {
+            if (retries > 0) {
 
                 if (jobInfo.getResultState() == ResultCode.SUCCESSFUL || jobInfo.getResultState() == ResultCode.NOT_EXECUTED) {
                     LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} last execution was resultCode={}, skipping job", name, jobInfo.getResultState());

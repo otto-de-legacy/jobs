@@ -15,7 +15,7 @@ public class JobInfoRepresentationTest {
 
     @Test
     public void testFromJobInfo() throws Exception {
-        JobInfo jobInfo = new JobInfo("foo", "host", "thread", 1234L, 1234L, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS, new HashMap<String, String>());
+        JobInfo jobInfo = new JobInfo("foo", "host", "thread", 1234L, 1234L, 0L, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS, new HashMap<String, String>());
         jobInfo.appendLogLine(new LogLine("line1", new Date()));
         jobInfo.appendLogLine(new LogLine("line2", new Date()));
         jobInfo.putAdditionalData("key1", "value1");
@@ -31,7 +31,7 @@ public class JobInfoRepresentationTest {
 
     @Test
     public void testCutoffLogLines() throws Exception {
-        JobInfo jobInfo = new JobInfo("foo", "host", "thread", 1234L, 1234L, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS, new HashMap<String, String>());
+        JobInfo jobInfo = new JobInfo("foo", "host", "thread", 1234L, 1234L, 0L, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS, new HashMap<String, String>());
         for (int i = 0; i < 50; i++) {
             jobInfo.appendLogLine(new LogLine("line " + i, new Date()));
         }
