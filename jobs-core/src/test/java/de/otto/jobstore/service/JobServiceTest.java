@@ -84,6 +84,8 @@ public class JobServiceTest {
 
         final JobRunnable job1 = TestSetup.localJobRunnable(JOB_NAME_01, 0);
         final JobRunnable job2 = TestSetup.localJobRunnable(JOB_NAME_02, 0);
+        final String id1 = "id1";
+        final String id2 = "id2";
 
         Set<String> constraint = new HashSet<>();
         constraint.add(job1.getJobDefinition().getName());
@@ -125,14 +127,14 @@ public class JobServiceTest {
                 return state1.get() == 1;
             }
         });
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenAnswer(new Answer<Object>() {
+        when(jobInfoRepository.activateQueuedJobById(id1)).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 printIt("activateQueuedJob.1");
                 return state1.compareAndSet(0,1);
             }
         });
-        when(jobInfoRepository.deactivateRunningJob(JOB_NAME_01)).thenAnswer(new Answer<Object>() {
+        when(jobInfoRepository.deactivateRunningJob(id1)).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 printIt("deactivateRunningJob.1");
@@ -155,14 +157,14 @@ public class JobServiceTest {
                 return state2.get() == 1;
             }
         });
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenAnswer(new Answer<Object>() {
+        when(jobInfoRepository.activateQueuedJobById(id2)).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 printIt("activateQueuedJob.2");
                 return state2.compareAndSet(0,1);
             }
         });
-        when(jobInfoRepository.deactivateRunningJob(JOB_NAME_02)).thenAnswer(new Answer<Object>() {
+        when(jobInfoRepository.deactivateRunningJob(id2)).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 printIt("deactivateRunningJob.2");
@@ -174,11 +176,11 @@ public class JobServiceTest {
         TestFramework.runOnce(new MultithreadedTestCase() {
 
             public void thread1() throws Exception {
-                jobService.executeQueuedJob(job1,"id1", JobExecutionPriority.CHECK_PRECONDITIONS);
+                jobService.executeQueuedJob(job1,id1, JobExecutionPriority.CHECK_PRECONDITIONS);
             }
 
             public void thread2() throws Exception {
-                jobService.executeQueuedJob(job2,"id2", JobExecutionPriority.CHECK_PRECONDITIONS);
+                jobService.executeQueuedJob(job2,id2, JobExecutionPriority.CHECK_PRECONDITIONS);
             }
 
         });
@@ -239,12 +241,14 @@ public class JobServiceTest {
 
     @Test
     public void testExecuteQueuedJobs() throws Exception {
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
+        final ObjectId id1 = new ObjectId();
         JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, 1000L);
-        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, id1);
+        when(jobInfoRepository.activateQueuedJobById(id1.toString())).thenReturn(true);
+        final ObjectId id2 = new ObjectId();
         final JobInfo jobInfo2 = new JobInfo(JOB_NAME_02, "bla", "bla", 1000L, 1000L);
-        ReflectionTestUtils.invokeMethod(jobInfo2, "addProperty", JobInfoProperty.ID, new ObjectId());
+        ReflectionTestUtils.invokeMethod(jobInfo2, "addProperty", JobInfoProperty.ID, id2);
+        when(jobInfoRepository.activateQueuedJobById(id2.toString())).thenReturn(false);
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
                 Arrays.asList(jobInfo, jobInfo2));
         TestSetup.LocalMockJobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01,1000);
@@ -263,9 +267,10 @@ public class JobServiceTest {
 
     @Test
     public void testExecuteForcedQueuedJobs() throws Exception {
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
+        final ObjectId id = new ObjectId();
+        when(jobInfoRepository.activateQueuedJobById(id.toString())).thenReturn(true);
         JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, 1000L, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS, new HashMap<String, String>());
-        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, id);
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(Arrays.asList(jobInfo));
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         TestSetup.LocalMockJobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01, 1000);
@@ -281,12 +286,14 @@ public class JobServiceTest {
 
     @Test
     public void testExecuteQueuedJobsFinishWithException() throws Exception {
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_02)).thenReturn(false);
+        final ObjectId id1 = new ObjectId();
         JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, 1000L);
-        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, new ObjectId());
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, id1);
+        when(jobInfoRepository.activateQueuedJobById(id1.toString())).thenReturn(true);
         final JobInfo jobInfo2 = new JobInfo(JOB_NAME_02, "bla", "bla", 1000L, 1000L);
-        ReflectionTestUtils.invokeMethod(jobInfo2, "addProperty", JobInfoProperty.ID, new ObjectId());
+        final ObjectId id2 = new ObjectId();
+        ReflectionTestUtils.invokeMethod(jobInfo2, "addProperty", JobInfoProperty.ID, id2);
+        when(jobInfoRepository.activateQueuedJobById(id2.toString())).thenReturn(false);
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
                 Arrays.asList(jobInfo, jobInfo2));
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
@@ -305,11 +312,14 @@ public class JobServiceTest {
 
     @Test
     public void testExecuteQueuedJobsViolatesRunningConstraints() throws Exception {
+        final ObjectId id = new ObjectId();
+        final JobInfo jobInfo = new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, 1000L);
+        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.ID, id);
         when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(
-                Arrays.asList(new JobInfo(JOB_NAME_01, "bla", "bla", 1000L, 1000L)));
+                Arrays.asList(jobInfo));
         when(jobInfoRepository.hasJob(JOB_NAME_02, RunningState.RUNNING)).thenReturn(Boolean.TRUE);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(true);
+        when(jobInfoRepository.activateQueuedJobById(id.toString())).thenReturn(true);
 
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_02, 0));
@@ -332,7 +342,7 @@ public class JobServiceTest {
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
         jobService.executeQueuedJobs();
 
-        verify(jobInfoRepository, times(0)).activateQueuedJob(anyString());
+        verify(jobInfoRepository, times(0)).activateQueuedJobById(anyString());
     }
 
     @Test
@@ -345,7 +355,7 @@ public class JobServiceTest {
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
         jobService.executeQueuedJobs();
 
-        verify(jobInfoRepository, times(0)).activateQueuedJob(anyString());
+        verify(jobInfoRepository, times(0)).activateQueuedJobById(anyString());
     }
 
     @Test(expectedExceptions = JobAlreadyQueuedException.class)
@@ -398,9 +408,10 @@ public class JobServiceTest {
 
     @Test
     public void testExecuteJobForced() throws Exception {
+        final String jobId = "1234";
         when(jobInfoRepository.create(JOB_NAME_01, 0, 0, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS,
-                Collections.<String,String>emptyMap(), null)).thenReturn("1234");
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(Boolean.TRUE);
+                Collections.<String,String>emptyMap(), null)).thenReturn(jobId);
+        when(jobInfoRepository.activateQueuedJobById(jobId)).thenReturn(Boolean.TRUE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
@@ -408,16 +419,17 @@ public class JobServiceTest {
 
         jobService.registerJob(runnable);
         String id = jobService.executeJob(JOB_NAME_01, JobExecutionPriority.IGNORE_PRECONDITIONS);
-        assertEquals("1234", id);
+        assertEquals(jobId, id);
         Thread.sleep(500);
         assertTrue(runnable.isExecuted());
     }
 
     @Test
     public void testExecuteJobForcedFailedWithException() throws Exception {
+        final String jobId = "1234";
         when(jobInfoRepository.create(JOB_NAME_01, 0, 0, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS,
-                Collections.<String,String>emptyMap(), null)).thenReturn("1234");
-        when(jobInfoRepository.activateQueuedJob(JOB_NAME_01)).thenReturn(Boolean.TRUE);
+                Collections.<String,String>emptyMap(), null)).thenReturn(jobId);
+        when(jobInfoRepository.activateQueuedJobById(JOB_NAME_01)).thenReturn(Boolean.TRUE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
@@ -426,7 +438,7 @@ public class JobServiceTest {
 
         jobService.registerJob(runnable);
         String id = jobService.executeJob(JOB_NAME_01, JobExecutionPriority.IGNORE_PRECONDITIONS);
-        assertEquals("1234", id);
+        assertEquals(jobId, id);
         Thread.sleep(500);
         verify(jobInfoRepository, times(1)).markAsFinished(id, exception);
     }

@@ -200,11 +200,15 @@ public class JobService {
         }
     }
 
-    private String executeJobOrQueueIfRunningConstraintsAreViolated(String name, JobExecutionPriority executionPriority, JobRunnable runnable) throws JobAlreadyRunningException {
+    private String executeJobOrQueueIfRunningConstraintsAreViolated(String name, JobExecutionPriority executionPriority, JobRunnable runnable)
+            throws JobAlreadyRunningException, JobAlreadyQueuedException {
         final String id = runJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
         if (violatesRunningConstraints(name)) {
             LOGGER.info("ltag=JobService.executeJobIsNecessary.violatesRunningConstraints jobInfoName={} jobInfoId={}", name, id);
-            jobInfoRepository.deactivateRunningJob(name);
+            if (!jobInfoRepository.deactivateRunningJob(id)) {
+                jobInfoRepository.remove(id);
+                throw new JobAlreadyQueuedException("Job could not be deactivated because another job is already queued and was thus deleted");
+            }
         } else {
             LOGGER.debug("ltag=JobService.executeJobIsNecessary jobInfoName={}", name);
             executeJob(runnable, id, executionPriority);
@@ -458,11 +462,11 @@ public class JobService {
      */
     protected void executeQueuedJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
         final String name = runnable.getJobDefinition().getName();
-        if (!jobInfoRepository.activateQueuedJob(name)) {
+        if (!jobInfoRepository.activateQueuedJobById(id)) {
             LOGGER.info("ltag=JobService.executeQueuedJob.activateQueuedJobFailed jobInfoName={} jobInfoId={}", name, id);
         } else if (violatesRunningConstraints(name)) {
             LOGGER.info("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={} jobInfoId={}", name, id);
-            jobInfoRepository.deactivateRunningJob(name);
+            jobInfoRepository.deactivateRunningJob(id);
         } else {
             jobInfoRepository.updateHostThreadInformation(id);
             LOGGER.info("ltag=JobService.activateQueuedJob.activate jobInfoName={} jobInfoId={}", name, id);

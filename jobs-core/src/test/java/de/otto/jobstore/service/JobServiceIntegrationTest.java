@@ -249,6 +249,27 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         }
     }
 
+    @Test(enabled = false)
+    public void twoThreadsTryingToExecuteWhileAnotherJobWhichViolatesRunningConstraints() throws Exception {
+        Set<String> runningConstraints = new HashSet<>(); runningConstraints.add(JOB_NAME_1); runningConstraints.add(JOB_NAME_2);
+        for (int i = 0; i < 1000; i++) {
+            jobService.registerJob(new LocalJobRunnableMock(JOB_NAME_2));
+            jobService.executeJob(JOB_NAME_2);
+
+            jobService.registerJob(new LocalJobRunnableMock(JOB_NAME_1));
+
+            executors.submit(new JobExecutionRunnable());
+            executors.submit(new JobExecutionRunnable());
+
+            Thread.sleep(100);
+
+            final List<JobInfo> jobInfos = jobInfoRepository.findByName(JOB_NAME_1, 10);
+            assertEquals("Only one job expected in database.", 1, jobInfos.size());
+            jobInfoRepository.clear(false);
+        }
+
+    }
+
     class JobExecutionRunnable implements  Runnable {
 
         @Override
