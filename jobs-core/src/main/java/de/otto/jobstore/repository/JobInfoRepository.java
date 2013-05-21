@@ -619,13 +619,15 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
             final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
-            logger.info("Going to delete not executed jobs before {} ...", beforeDate);
-            /* ... good bye ... */
-            numberOfRemovedJobs = cleanupNotExecuted(beforeDate);
-            logger.info("Deleted {} not executed jobs.", numberOfRemovedJobs);
-            addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
-            markAsFinished(id, ResultCode.SUCCESSFUL);
+            if(id != null){//Job konnte wirklich von diesem Server erzeugt werden.
+                final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
+                logger.info("Going to delete not executed jobs before {} ...", beforeDate);
+                /* ... good bye ... */
+                numberOfRemovedJobs = cleanupNotExecuted(beforeDate);
+                logger.info("Deleted {} not executed jobs.", numberOfRemovedJobs);
+                addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+                markAsFinished(id, ResultCode.SUCCESSFUL);
+            }
         }
         return numberOfRemovedJobs;
     }
