@@ -619,4 +619,9 @@ public class JobService {
             }
         }
     }
+
+    public JobDefinition getJobDefinitionByName(String jobName){
+        final JobRunnable jobRunnable = jobs.get(jobName);
+        return (jobRunnable != null)?jobRunnable.getJobDefinition():null;
+    }
 }
