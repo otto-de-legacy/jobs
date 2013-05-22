@@ -546,24 +546,26 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
             final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
-            final List<String> removedJobs = new ArrayList<>();
-            for (JobInfo jobInfo : getAll(cursor)) {
-                if (jobInfo.isTimedOut(currentDate) || jobInfo.isIdleTimeExceeded(currentDate)) {
-                    if (markAsFinished(jobInfo.getId(), ResultCode.TIMED_OUT)) {
-                        removedJobs.add(jobInfo.getName() + " - " + jobInfo.getId());
-                        ++numberOfRemovedJobs;
-                    } else {
-                        logger.error("marking the job " + jobInfo.getName() + ":" + jobInfo.getId() + "as finished was not successful");
+            if (id != null) { //Job konnte wirklich von diesem Server erzeugt werden.
+                final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
+                final List<String> removedJobs = new ArrayList<>();
+                for (JobInfo jobInfo : getAll(cursor)) {
+                    if (jobInfo.isTimedOut(currentDate) || jobInfo.isIdleTimeExceeded(currentDate)) {
+                        if (markAsFinished(jobInfo.getId(), ResultCode.TIMED_OUT)) {
+                            removedJobs.add(jobInfo.getName() + " - " + jobInfo.getId());
+                            ++numberOfRemovedJobs;
+                        } else {
+                            logger.error("marking the job " + jobInfo.getName() + ":" + jobInfo.getId() + "as finished was not successful");
+                        }
                     }
                 }
+                logger.info("Deleted {} timed-out jobs: {}", numberOfRemovedJobs, removedJobs);
+                addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+                if (!removedJobs.isEmpty()) {
+                    addAdditionalData(id, "removedJobs", removedJobs.toString());
+                }
+                markAsFinished(id, ResultCode.SUCCESSFUL);
             }
-            logger.info("Deleted {} timed-out jobs: {}", numberOfRemovedJobs, removedJobs);
-            addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
-            if (!removedJobs.isEmpty()) {
-                addAdditionalData(id, "removedJobs", removedJobs.toString());
-            }
-            markAsFinished(id, ResultCode.SUCCESSFUL);
         }
         return numberOfRemovedJobs;
     }
@@ -587,13 +589,15 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
             final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
-            logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
-            /* ... good bye ... */
-            numberOfRemovedJobs = cleanupNotRunning(beforeDate);
-            logger.info("Deleted {} not runnnig jobs.", numberOfRemovedJobs);
-            addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
-            markAsFinished(id, ResultCode.SUCCESSFUL);
+            if (id != null) { //Job konnte wirklich von diesem Server erzeugt werden.
+                final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
+                logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
+                /* ... good bye ... */
+                numberOfRemovedJobs = cleanupNotRunning(beforeDate);
+                logger.info("Deleted {} not runnnig jobs.", numberOfRemovedJobs);
+                addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
+                markAsFinished(id, ResultCode.SUCCESSFUL);
+            }
         }
         return numberOfRemovedJobs;
     }
@@ -619,7 +623,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
             final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            if(id != null){//Job konnte wirklich von diesem Server erzeugt werden.
+            if (id != null) { //Job konnte wirklich von diesem Server erzeugt werden.
                 final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
                 logger.info("Going to delete not executed jobs before {} ...", beforeDate);
                 /* ... good bye ... */
