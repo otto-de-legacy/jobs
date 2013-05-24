@@ -614,7 +614,7 @@ public class JobService {
                     String id = executeJob(name, jobInfo.getExecutionPriority());
                     LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} executeJob called", name);
                 } catch (JobException e) {
-                    LOGGER.error("ltag=JobService.retryFailedJobs jobInfoName={} executeJob failed", name, e);
+                    LOGGER.error("ltag=JobService.retryFailedJobs jobInfoName={} executeJob failed: {}", name, e.getMessage());
                 }
             }
         }
