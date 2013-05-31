@@ -647,10 +647,12 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     }
 
     protected int cleanupNotExecuted(Date clearJobsBefore) {
+        final List<String> resultStates = toStringList(EnumSet.complementOf(EnumSet.of(RunningState.FINISHED)));
+
         final WriteResult result = collection.remove(new BasicDBObject().
                 append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
                 append(JobInfoProperty.RESULT_STATE.val(), ResultCode.NOT_EXECUTED.name()).
-                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.FINISHED.name()),
+                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NIN.op(), resultStates)),
                 getSafeWriteConcern());
         return result.getN();
     }
