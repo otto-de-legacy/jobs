@@ -287,7 +287,7 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
         // no new job started, so last jobInfo should be same as current found jobInfo
         jobService.doRetryFailedJobs();
         JobInfo jobInfo3 = jobInfoRepository.findMostRecent(JOB_NAME_1);
-        assertEquals(new Long(0), jobInfo3.getRetries());
+        assertEquals(new Long(3), jobInfo3.getRetries());
         assertEquals(jobInfo2.getId(), jobInfo3.getId());
 
     }

@@ -273,7 +273,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testCleanupOldJobs() throws Exception {
         jobInfoRepository.setHoursAfterWhichOldJobsAreDeleted(1);
-        JobInfo jobInfo = new JobInfo(new Date(new Date().getTime() - TimeUnit.DAYS.toMillis(12)), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.FINISHED);
+        JobInfo jobInfo = new JobInfo(new Date(new Date().getTime() - TimeUnit.DAYS.toMillis(12)), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, 0L, RunningState.FINISHED);
         jobInfoRepository.save(jobInfo);
         assertEquals(1L, jobInfoRepository.count());
         jobInfoRepository.cleanupOldJobs();
@@ -304,7 +304,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
 
     @Test
     public void testFindMostRecentByResultState() throws Exception {
-        JobInfo jobInfo = new JobInfo(new Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1)), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.RUNNING);
+        JobInfo jobInfo = new JobInfo(new Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1)), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, 0L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
         jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.FAILED);
         JobInfo jobInfo1 = newJobInfo(1000L, RunningState.RUNNING);
@@ -485,15 +485,15 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     }
 
     private String createJobInfo(String name, long timeoutPeriod, RunningState runningState, Map<String, String> params) {
-        return jobInfoRepository.create(name, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, timeoutPeriod, runningState, JobExecutionPriority.CHECK_PRECONDITIONS, params, null);
+        return jobInfoRepository.create(name, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, timeoutPeriod, 0L, runningState, JobExecutionPriority.CHECK_PRECONDITIONS, params, null);
     }
 
     private JobInfo newJobInfo(long timeoutPeriod, RunningState runningState) {
-        return new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, timeoutPeriod, runningState);
+        return new JobInfo(TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, timeoutPeriod, 0L, runningState);
     }
 
     private JobInfo createTestJobInfo(long timestamp, ResultCode resultCode) {
-        JobInfo jobInfo = new JobInfo(new Date(timestamp), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, RunningState.RUNNING);
+        JobInfo jobInfo = new JobInfo(new Date(timestamp), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, 0L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo);
         assertTrue(jobInfoRepository.markAsFinished(jobInfo.getId(), resultCode));
 

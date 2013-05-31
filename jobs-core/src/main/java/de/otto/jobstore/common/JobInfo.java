@@ -14,23 +14,23 @@ public class JobInfo extends AbstractItem {
         super(dbObject);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime) {
-        this(name, host, thread, maxIdleTime, maxExecutionTime, RunningState.QUEUED);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries) {
+        this(name, host, thread, maxIdleTime, maxExecutionTime, retries, RunningState.QUEUED);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state) {
-        this(name, host, thread, maxIdleTime, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state) {
+        this(name, host, thread, maxIdleTime, maxExecutionTime, retries, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state) {
-        this(dt, name, host, thread, maxIdleTime, maxExecutionTime, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state) {
+        this(dt, name, host, thread, maxIdleTime, maxExecutionTime, retries, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
-    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
-        this(new Date(), name, host, thread, maxIdleTime, maxExecutionTime, state, executionPriority, additionalData);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
+        this(new Date(), name, host, thread, maxIdleTime, maxExecutionTime, retries, state, executionPriority, additionalData);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
+    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
@@ -43,6 +43,7 @@ public class JobInfo extends AbstractItem {
         setLastModifiedTime(dt);
         addProperty(JobInfoProperty.MAX_IDLE_TIME, maxIdleTime);
         addProperty(JobInfoProperty.MAX_EXECUTION_TIME, maxExecutionTime);
+        addProperty(JobInfoProperty.RETRIES, retries);
 
         if (additionalData != null) {
             addProperty(JobInfoProperty.ADDITIONAL_DATA, new BasicDBObject(additionalData));
@@ -107,10 +108,6 @@ public class JobInfo extends AbstractItem {
             return 0L;
         }
         return retries;
-    }
-
-    public void setRetries(Long retries) {
-        addProperty(JobInfoProperty.RETRIES, retries);
     }
 
     private Date getJobIdleExceededTime() {
