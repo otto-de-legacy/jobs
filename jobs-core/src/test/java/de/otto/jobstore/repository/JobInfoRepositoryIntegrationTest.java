@@ -342,14 +342,12 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     }
 
     @Test
-    public void testSetQueuedJobAsNotExecuted() throws Exception {
-        assertFalse(jobInfoRepository.markQueuedAsNotExecuted("test"));
+    public void testRemoveQueuedJobAsNotExecuted() throws Exception {
         JobInfo jobInfo = newJobInfo(1000L, RunningState.QUEUED);
         jobInfoRepository.save(jobInfo);
-        jobInfoRepository.markQueuedAsNotExecuted(TESTVALUE_JOBNAME);
+        jobInfoRepository.remove(TESTVALUE_JOBNAME);
         List<JobInfo> jobInfoList = jobInfoRepository.findByName(TESTVALUE_JOBNAME, null);
-        assertEquals(1, jobInfoList.size());
-        assertEquals(ResultCode.NOT_EXECUTED, jobInfoList.get(0).getResultState());
+        assertEquals(0, jobInfoList.size());
     }
 
     @Test

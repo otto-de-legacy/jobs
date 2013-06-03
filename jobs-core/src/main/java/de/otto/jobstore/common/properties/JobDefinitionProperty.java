@@ -17,6 +17,7 @@ public enum JobDefinitionProperty implements ItemProperty {
     RETRY_INTERVAL("retryInterval"),
     REMOTE("remote"),
     DISABLED("disabled", true),
+    LAST_NOT_EXECUTED("lastNotExecuted", true),
     ABORTABLE("abortable");
 
     private final String value;
