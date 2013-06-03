@@ -17,8 +17,8 @@ buildscript {
 
 allprojects {
     apply plugin: 'idea'
-    // version = '0.11.4'
-    version = '0.11.4-SNAPSHOT'
+    version = '0.11.4'
+    //version = '0.11.4-SNAPSHOT'
     group = 'de.otto'
 }
 
