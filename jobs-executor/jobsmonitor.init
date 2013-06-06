@@ -1,0 +1,98 @@
+#!/bin/sh
+#
+#
+# chkconfig: 345 85 25
+# description: Starts the monitor process of the jobexecutor framework
+# processname: jobmonitor.py
+
+### BEGIN INIT INFO
+# Provides:          jobmonitor
+# Required-Start:    $network
+# Required-Stop:     $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 2 6
+# Short-Description: Starts Jobmonitor
+# Description:       Starts the monitor process of the jobexecutor framework
+### END INIT INFO
+
+# Source function library.
+if [ -f /etc/init.d/functions ] ; then
+  /etc/init.d/functions
+elif [ -f /etc/rc.d/init.d/functions ] ; then
+  /etc/rc.d/init.d/functions
+else
+  exit 0
+fi
+
+USER=jobexec
+jobmonitor_home=/var/opt/jobs-executor
+jobsexecutor="${jobmonitor_home}/jobmonitor.py" 
+# Setup variables
+folder_saved=`pwd`
+
+
+
+start() {
+  cd ${jobmonitor_home}
+  # we execute in our own environment to not mix up anything
+  virtualenv venv
+  . venv/bin/activate
+  echo -n "Starting jobs-executor: "
+  nohub phython ${jobsexecutor} >> /dev/null 2>&1 &
+  echo -n "started as background process" && echo success && echo
+  echo -en "\033[${RES_COL}G[  OK  ]"
+}
+
+stop() {
+  echo -n "Stopping jobs-executor ... "
+  pid=`ps -ef | grep python | grep jobmonitor.py | gawk '{print $2}'`
+
+  if [ "${pid}" = "" ] ; then
+    echo "jobs-executor is not running"
+  else
+    kill $pid
+  fi
+  echo success && echo
+  echo -en "\033[${RES_COL}G[  OK  ]"
+}
+
+status() {
+  pid=`ps -ef | grep python | grep jobmonitor.py | gawk '{print $2}'`
+
+  if [ "${pid}" = "" ] ; then
+    echo "stopped"
+  else
+    echo "running"
+  fi
+}
+
+case "$1" in
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+restart)
+  stop
+  start
+  ;;
+status)
+  status
+  ;;
+*)
+  echo $"Usage: $0 {start|stop|restart|status}"
+  exit 1
+  ;;
+esac
+
+# Back to original folder
+cd $folder_saved
+exit 0
+
+
+
+
+
+
+
