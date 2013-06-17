@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 
 VERSION=$1
 RELEASE=$2
@@ -9,7 +9,7 @@ CURRENT_VERSION=$(echo ${VERSION} | sed 's/\"//g' | sed 's/\-//g' | sed 's/\SNAP
 #cp git/shit/jobs-executor -> jobexec_rpm
 
 mkdir -p jobexec_rpm/var/opt/jobs-executor
-mkdir -p jobexec_rpm/etc/init.d/
+mkdir -p jobexec_rpm/etc/init.d
 mkdir -p jobexec_rpm/var/spool/jobs-executor/templates
 mkdir -p jobexec_rpm/var/spool/jobs-executor/log
 mkdir -p jobexec_rpm/var/spool/jobs-executor/zlog
@@ -27,7 +27,7 @@ cd jobexec_rpm
 
 ls
 
-fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} --iteration ${RELEASE} -s dir -t rpm --directories var/opt/jobs-executor --directories var/spool/jobs-executor -n lhotse-jobexec .
+fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} --iteration ${RELEASE} -s dir -t rpm --directories var/opt/jobs-executor --directories var/spool/jobs-executor --directories etc/init.d -n lhotse-jobexec .
 rpm -qlp lhotse-jobexec-${CURRENT_VERSION}-${RELEASE}.x86_64.rpm
 
 #########################################################
