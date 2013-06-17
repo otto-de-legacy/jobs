@@ -22,7 +22,7 @@ cp jobs-executor/lru.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/auto_stub.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/version.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/jobmonitor_settings_redhat.cfg jobexec_rpm/var/opt/jobs-executor/jobmonitor_settings.cfg
-cp jobs-executor/jobsmonitor.init jobsexec_rpm/etc/init.d/jobsmonitor
+cp jobs-executor/jobsmonitor.init jobexec_rpm/etc/init.d/jobsmonitor
 cd jobexec_rpm
 
 ls
