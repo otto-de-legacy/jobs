@@ -38,7 +38,7 @@ start() {
   virtualenv venv
   . venv/bin/activate
   echo -n "Starting jobs-executor: "
-  nohub phython ${jobsexecutor} >> /dev/null 2>&1 &
+  nohub python jobmonitor.py >> /dev/null 2>&1 &
   echo -n "started as background process" && echo success && echo
   echo -en "\033[${RES_COL}G[  OK  ]"
 }
