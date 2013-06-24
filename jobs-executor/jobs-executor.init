@@ -54,6 +54,7 @@ start() {
 stop() {
   echo -n "Stopping jobs-executor ... "
   killproc -p $pidfile -TERM /bin/python jobmonitor.py
+  rm -rf $pid
 }
 
 case "$1" in
