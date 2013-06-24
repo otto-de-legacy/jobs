@@ -17,19 +17,27 @@
 
 # Source function library.
 if [ -f /etc/init.d/functions ] ; then
-source /etc/init.d/functions
+  source /etc/init.d/functions
 elif [ -f /etc/rc.d/init.d/functions ] ; then
-source /etc/rc.d/init.d/functions
+  source /etc/rc.d/init.d/functions
 else
   exit 0
 fi
 
 USER=jobexec
 jobmonitor_home=/var/opt/jobs-executor
-pidfile=/var/run/jobmonitor.pid
-jobsexecutor="${jobmonitor_home}/jobmonitor.py" 
+pidfile=${jobmonitor_home}/run/jobmonitor.pid
+jobsexecutor="${jobmonitor_home}/jobmonitor.py"
+JOBMONITOR_SETTINGS=${jobmonitor_home}/jobmonitor_settings.cfg
 # Setup variables
 folder_saved=`pwd`
+#get custom config
+
+if [ -f ${JOBMONITOR_SETTINGS} ] ; then
+  export JOBMONITOR_SETTINGS=${JOBMONITOR_SETTINGS}
+else
+  echo "no custom config found... use default settings."
+fi
 
 
 start() {
