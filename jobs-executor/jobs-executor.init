@@ -33,15 +33,14 @@ JOBMONITOR_SETTINGS=${jobmonitor_home}/jobmonitor_settings.cfg
 folder_saved=`pwd`
 #get custom config
 
-if [ -f ${JOBMONITOR_SETTINGS} ] ; then
-  export JOBMONITOR_SETTINGS=${JOBMONITOR_SETTINGS}
-else
-  echo "no custom config found... use default settings."
-fi
-
-
 start() {
   cd ${jobmonitor_home}
+  if [ -f ${JOBMONITOR_SETTINGS} ] ; then
+   echo "reading config from: JOBMONITOR_SETTINGS=${JOBMONITOR_SETTINGS}"
+   export JOBMONITOR_SETTINGS=${JOBMONITOR_SETTINGS}
+  else
+   echo "no custom config found... use default settings."
+  fi
   echo -n "Starting jobs-executor: "
   daemon --pidfile=${pidfile} --user=${USER} python jobmonitor.py >> /dev/null 2>&1 &
   #Sleep a little bit until python is up...
