@@ -481,5 +481,5 @@ if __name__ == '__main__':
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-    app.run(host='0.0.0.0', port=HTTP_PORT, threaded=True)
+    app.run(host='0.0.0.0', port=app.config['HTTP_PORT'], threaded=True)
     permanent_check()
