@@ -17,53 +17,44 @@
 
 # Source function library.
 if [ -f /etc/init.d/functions ] ; then
-  /etc/init.d/functions
+  source /etc/init.d/functions
 elif [ -f /etc/rc.d/init.d/functions ] ; then
-  /etc/rc.d/init.d/functions
+  source /etc/rc.d/init.d/functions
 else
   exit 0
 fi
 
 USER=jobexec
 jobmonitor_home=/var/opt/jobs-executor
-jobsexecutor="${jobmonitor_home}/jobmonitor.py" 
+pidfile=${jobmonitor_home}/run/jobmonitor.pid
+jobsexecutor="${jobmonitor_home}/jobmonitor.py"
+JOBMONITOR_SETTINGS=${jobmonitor_home}/jobmonitor_settings.cfg
 # Setup variables
 folder_saved=`pwd`
+#get custom config
 
+if [ -f ${JOBMONITOR_SETTINGS} ] ; then
+  export JOBMONITOR_SETTINGS=${JOBMONITOR_SETTINGS}
+else
+  echo "no custom config found... use default settings."
+fi
 
 
 start() {
   cd ${jobmonitor_home}
-  # we execute in our own environment to not mix up anything
-  virtualenv venv
-  . venv/bin/activate
   echo -n "Starting jobs-executor: "
-  nohub phython ${jobsexecutor} >> /dev/null 2>&1 &
-  echo -n "started as background process" && echo success && echo
-  echo -en "\033[${RES_COL}G[  OK  ]"
+  daemon --pidfile=${pidfile} --user=${USER} python jobmonitor.py >> /dev/null 2>&1 &
+  #Sleep a little bit until python is up...
+  sleep 3
+  pid=$(ps -ef | grep /bin/python | grep jobmonitor.py | gawk '{print $2}')
+  echo "...your pid is: " $pid
+  echo $pid > $pidfile
 }
 
 stop() {
   echo -n "Stopping jobs-executor ... "
-  pid=`ps -ef | grep python | grep jobmonitor.py | gawk '{print $2}'`
-
-  if [ "${pid}" = "" ] ; then
-    echo "jobs-executor is not running"
-  else
-    kill $pid
-  fi
-  echo success && echo
-  echo -en "\033[${RES_COL}G[  OK  ]"
-}
-
-status() {
-  pid=`ps -ef | grep python | grep jobmonitor.py | gawk '{print $2}'`
-
-  if [ "${pid}" = "" ] ; then
-    echo "stopped"
-  else
-    echo "running"
-  fi
+  killproc -p $pidfile -TERM /bin/python jobmonitor.py
+  rm -rf $pid
 }
 
 case "$1" in
@@ -78,7 +69,7 @@ restart)
   start
   ;;
 status)
-  status
+  status -p $pidfile
   ;;
 *)
   echo $"Usage: $0 {start|stop|restart|status}"
@@ -89,10 +80,3 @@ esac
 # Back to original folder
 cd $folder_saved
 exit 0
-
-
-
-
-
-
-
