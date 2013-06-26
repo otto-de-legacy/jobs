@@ -26,7 +26,7 @@ fi
 
 USER=jobexec
 jobmonitor_home=/var/opt/jobs-executor
-pidfile=${jobmonitor_home}/run/jobmonitor.pid
+pidfile=/var/run/jobs-executor/jobmonitor.pid
 jobsexecutor="${jobmonitor_home}/jobmonitor.py"
 JOBMONITOR_SETTINGS=${jobmonitor_home}/jobmonitor_settings.cfg
 # Setup variables

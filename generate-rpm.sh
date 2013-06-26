@@ -9,7 +9,7 @@ CURRENT_VERSION=$(echo ${VERSION} | sed 's/\"//g' | sed 's/\-//g' | sed 's/\SNAP
 #cp git/shit/jobs-executor -> jobexec_rpm
 
 mkdir -p jobexec_rpm/var/opt/jobs-executor
-mkdir -p jobexec_rpm/var/opt/jobs-executor/run
+mkdir -p jobexec_rpm/var/run/jobs-executor
 mkdir -p jobexec_rpm/etc/init.d
 mkdir -p jobexec_rpm/var/spool/jobs-executor/templates
 mkdir -p jobexec_rpm/var/spool/jobs-executor/log
@@ -24,7 +24,7 @@ cp jobs-executor/auto_stub.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/version.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/jobmonitor_settings_redhat.cfg jobexec_rpm/var/opt/jobs-executor/jobmonitor_settings.cfg
 cp jobs-executor/jobs-executor.init jobexec_rpm/etc/init.d/jobs-executor
-echo "chmod +x /etc/init.d/jobs-executor; chkconfig --add jobs-executor" > jobexec_rpm/var/opt/init-service.sh
+echo "chmod +x /etc/init.d/jobs-executor; chkconfig --add jobs-executor;" > jobexec_rpm/var/opt/init-service.sh
 cd jobexec_rpm
 
 ls
