@@ -24,7 +24,8 @@ cp jobs-executor/auto_stub.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/version.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/jobmonitor_settings_redhat.cfg jobexec_rpm/var/opt/jobs-executor/jobmonitor_settings.cfg
 cp jobs-executor/jobs-executor.init jobexec_rpm/etc/init.d/jobs-executor
-echo "chmod +x /etc/init.d/jobs-executor; chkconfig --add jobs-executor;" > jobexec_rpm/var/opt/init-service.sh
+#Set some Permissions and autostart Job-executer
+echo "chmod +x /etc/init.d/jobs-executor; chmod 777 /var/spool/jobs-executor/log; chkconfig --add jobs-executor; service jobs-executor start" > jobexec_rpm/var/opt/init-service.sh
 cd jobexec_rpm
 
 ls
