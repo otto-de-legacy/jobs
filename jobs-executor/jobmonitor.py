@@ -478,8 +478,10 @@ if __name__ == '__main__':
     logging.basicConfig(
         level=logging.INFO,
         format='[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        datefmt='%Y-%m-%d %H:%M:%S',
+        filename="%s/%s" % (app.config['JOB_LOG_DIR'], app.config['LOGFILE']),
+        filemode='w'
     )
 
-    app.run(host='0.0.0.0', port=HTTP_PORT, threaded=True)
+    app.run(host='0.0.0.0', port=app.config['HTTP_PORT'], threaded=True)
     permanent_check()

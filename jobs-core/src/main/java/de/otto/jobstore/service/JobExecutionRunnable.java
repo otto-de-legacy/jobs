@@ -1,11 +1,14 @@
 package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.*;
+import de.otto.jobstore.repository.JobDefinitionRepository;
 import de.otto.jobstore.repository.JobInfoRepository;
 import de.otto.jobstore.service.exception.JobExecutionAbortedException;
 import de.otto.jobstore.service.exception.JobExecutionTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Date;
 
 final class JobExecutionRunnable implements Runnable {
 
@@ -13,12 +16,15 @@ final class JobExecutionRunnable implements Runnable {
 
     final JobRunnable jobRunnable;
     final JobInfoRepository jobInfoRepository;
+    final JobDefinitionRepository jobDefinitionRepository;
     final JobExecutionContext context;
 
-    JobExecutionRunnable(JobRunnable jobRunnable, JobInfoRepository jobInfoRepository, JobExecutionContext context) {
+    JobExecutionRunnable(JobRunnable jobRunnable, JobInfoRepository jobInfoRepository, JobDefinitionRepository jobDefinitionRepository, JobExecutionContext context) {
         this.jobRunnable = jobRunnable;
         this.jobInfoRepository = jobInfoRepository;
+        this.jobDefinitionRepository = jobDefinitionRepository;
         this.context = context;
+
     }
 
     @Override
@@ -36,7 +42,8 @@ final class JobExecutionRunnable implements Runnable {
                 }
             } else {
                 LOGGER.info("ltag=JobService.JobExecutionRunnable.run skipped jobName={} jobId={}", name, context.getId());
-                jobInfoRepository.markAsFinished(context.getId(), ResultCode.NOT_EXECUTED);
+                jobInfoRepository.remove(context.getId());
+                jobDefinitionRepository.setLastNotExecuted(name, new Date());
             }
         } catch (JobExecutionAbortedException e) {
             LOGGER.warn("ltag=JobService.JobExecutionRunnable.run jobName=" + name + " jobId=" + context.getId() + " was aborted");

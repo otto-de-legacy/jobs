@@ -4,6 +4,8 @@ import com.mongodb.*;
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.common.properties.JobDefinitionProperty;
 
+import java.util.Date;
+
 
 public class JobDefinitionRepository extends AbstractRepository<StoredJobDefinition> {
 
@@ -52,6 +54,11 @@ public class JobDefinitionRepository extends AbstractRepository<StoredJobDefinit
     public void setJobExecutionEnabled(String name, boolean executionEnabled) {
         collection.update(new BasicDBObject(JobDefinitionProperty.NAME.val(), name),
                 new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobDefinitionProperty.DISABLED.val(), !executionEnabled)));
+    }
+
+    public void setLastNotExecuted(String name, Date date) {
+        collection.update(new BasicDBObject(JobDefinitionProperty.NAME.val(), name),
+                new BasicDBObject(MongoOperator.SET.op(), new BasicDBObject(JobDefinitionProperty.LAST_NOT_EXECUTED.val(), date)));
     }
 
 }

@@ -109,23 +109,6 @@ public class JobScheduler {
         schedules.add(new JobSchedule() {
             @Override
             public long interval() {
-                return TimeUnit.HOURS.toMillis(1);
-            }
-
-            @Override
-            public void schedule() {
-                jobInfoRepository.cleanupNotExecutedJobs();
-            }
-
-            @Override
-            public String getName() {
-                return "jobInfoRepository.cleanupNotExecutedJobs()";
-            }
-        });
-
-        schedules.add(new JobSchedule() {
-            @Override
-            public long interval() {
                 return TimeUnit.MINUTES.toMillis(1);
             }
 
