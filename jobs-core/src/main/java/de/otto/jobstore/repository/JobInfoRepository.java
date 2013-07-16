@@ -635,7 +635,16 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
         final WriteResult result = collection.update(query, update, false, false, getSafeWriteConcern());
-        return result.getN() == 1;
+        String lastConcern = null;
+        boolean updateCount = false;
+        try {
+            lastConcern = String.valueOf(result.getLastConcern());
+            updateCount = result.getN() == 1;
+        } catch (IllegalStateException e) {
+            logger.error("Exception occured during update lastConcern=" + lastConcern + " updateCount=" + updateCount + " ExceptionMessage: " + e.getMessage());
+            throw e;
+        }
+        return updateCount;
     }
 
     private BasicDBObject createFindByNameAndRunningStateQuery(final String name, final String state) {
