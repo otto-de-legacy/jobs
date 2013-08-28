@@ -24,9 +24,10 @@ cp -v monitoring/play1app/conf/* ft2_observer_rpm/var/opt/pingbot/play1app/conf/
 cp -v monitoring/pingbot.init ft2_observer_rpm/etc/init.d/pingbot
 
 unzip play-${PLAYVERSION}.zip -d ft2_observer_rpm/var/opt/
+mydir=${pwd}
 cd ft2_observer_rpm/var/opt/
 ln -s play-${PLAYVERSION} play
-cd /
+cd $mydir
 
 #Set some Permissions and autostart Job-executer
 echo "chmod +x /etc/init.d/pingbot; chown -R tomcat:tomcat /var/opt/pingbot;chown -R tomcat:tomcat /var/opt/play; mysqladmin create if not exists pingbot; chkconfig --add pingbot; service pingbot start" > ft2_observer_rpm/var/opt/init-service.sh
