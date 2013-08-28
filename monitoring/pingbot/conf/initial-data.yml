@@ -1,0 +1,312 @@
+models.MonitorEnvironment(live):
+ "name": "live"
+ "sortKey": "1"
+
+--
+models.MonitorEnvironment(develop):
+ "name": "develop"
+ "sortKey": "3"
+
+--
+models.MonitorEnvironment(prelive-cluster):
+ "name": "prelive-cluster"
+ "sortKey": "2"
+
+--
+models.MonitorEnvironment(develop-ci):
+ "name": "develop-ci"
+ "sortKey": "4"
+
+models.MonitorGroup(live_SAN):
+ "name": "SAN"
+ "sortKey": "1"
+ "environment": "live"
+
+--
+models.MonitorGroup(live_Product):
+ "name": "Product"
+ "sortKey": "2"
+ "environment": "live"
+
+--
+models.MonitorGroup(develop_Product):
+ "name": "Product"
+ "sortKey": "2"
+ "environment": "develop"
+
+--
+models.MonitorGroup(prelive-cluster_SAN):
+ "name": "SAN"
+ "sortKey": "1"
+ "environment": "prelive-cluster"
+
+--
+models.MonitorGroup(prelive-cluster_Product):
+ "name": "Product"
+ "sortKey": "2"
+ "environment": "prelive-cluster"
+
+--
+models.MonitorGroup(develop_SAN):
+ "name": "SAN"
+ "sortKey": "1"
+ "environment": "develop"
+
+--
+models.MonitorGroup(develop-ci_SAN):
+ "name": "SAN"
+ "sortKey": "1"
+ "environment": "develop-ci"
+
+--
+models.MonitorGroup(develop-ci_Product):
+ "name": "Product"
+ "sortKey": "2"
+ "environment": "develop-ci"
+
+models.MonitorResource(models_MonitorResource_10):
+ "name": "Varnish -> Tomcat"
+ "type": "varnish"
+ "is_primary": "true"
+ "url": "http://san.live.lhotse.ov.otto.de:17395/san/admin/status.json"
+ "cookie": "LhotseAccessToken=TGhvdHNlLU1pdGFyYmVpdGVyc2hvcA=="
+ "group": "live_SAN"
+--
+models.MonitorResource(models_MonitorResource_11):
+ "name": "Tomcat (san01.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://san01.live.lhotse.ov.otto.de:8080/san/admin/status.json"
+ "group": "live_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_12):
+ "name": "Tomcat (san02.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://san02.live.lhotse.ov.otto.de:8080/san/admin/status.json"
+ "group": "live_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_13):
+ "name": "Tomcat (san03.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://san03.live.lhotse.ov.otto.de:8080/san/admin/status.json"
+ "group": "live_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_14):
+ "name": "Tomcat (san04.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://san04.live.lhotse.ov.otto.de:8080/san/admin/status.json"
+ "group": "live_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_15):
+ "name": "Tomcat (san05.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://san05.live.lhotse.ov.otto.de:8080/san/admin/status.json"
+ "group": "live_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_16):
+ "name": "Varnish -> Tomcat"
+ "type": "varnish"
+ "is_primary": "true"
+ "url": "http://product.live.lhotse.ov.otto.de:17395/product/admin/status.json"
+ "cookie": "LhotseAccessToken=TGhvdHNlLU1pdGFyYmVpdGVyc2hvcA=="
+ "group": "live_Product"
+--
+models.MonitorResource(models_MonitorResource_17):
+ "name": "Tomcat (product01.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://product01.live.lhotse.ov.otto.de:8080/product/admin/status.json"
+ "group": "live_Product"
+
+--
+models.MonitorResource(models_MonitorResource_18):
+ "name": "Tomcat (product02.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://product02.live.lhotse.ov.otto.de:8080/product/admin/status.json"
+ "group": "live_Product"
+
+--
+models.MonitorResource(models_MonitorResource_19):
+ "name": "Tomcat (product03.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://product03.live.lhotse.ov.otto.de:8080/product/admin/status.json"
+ "group": "live_Product"
+
+--
+models.MonitorResource(models_MonitorResource_4):
+ "name": "Varnish -> Tomcat"
+ "type": "varnish"
+ "is_primary": "true"
+ "url": "http://develop.lhotse.ov.otto.de/product/admin/status.json"
+ "group": "develop_Product"
+
+--
+models.MonitorResource(models_MonitorResource_5):
+ "name": "Varnish -> Tomcat"
+ "type": "varnish"
+ "is_primary": "true"
+ "url": "http://san.prelive-cluster.lhotse.ov.otto.de:17395/san/admin/status.json"
+ "username": "lhotse"
+ "password": "lh0tse"
+--
+models.MonitorResource(models_MonitorResource_6):
+ "name": "Varnish -> Tomcat"
+ "type": "varnish"
+ "is_primary": "true"
+ "url": "http://product.prelive-cluster.lhotse.ov.otto.de:17395/product/admin/status.json"
+ "username": "lhotse"
+ "password": "lh0tse"
+--
+models.MonitorResource(models_MonitorResource_7):
+ "name": "Tomcat (product01.prelive)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://product01.prelive-cluster.lhotse.ov.otto.de:8080/product/admin/status.json"
+ "group": "prelive-cluster_Product"
+
+--
+models.MonitorResource(models_MonitorResource_33):
+ "name": "FH QS4"
+ "type": "fh-query"
+ "is_primary": "false"
+ "url": "http://fh04.develop.lhotse.ov.otto.de:9180/preview/?fh_location=//catalog01/de_DE/$s=schneeeule"
+ "group": "develop_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_1):
+ "name": "Varnish -> Tomcat"
+ "type": "varnish"
+ "is_primary": "true"
+ "url": "http://develop-ci.lhotse.ov.otto.de/san/admin/status.json"
+ "group": "develop-ci_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_2):
+ "name": "Varnish -> Tomcat"
+ "type": "varnish"
+ "is_primary": "true"
+ "url": "http://develop-ci.lhotse.ov.otto.de/product/admin/status.json"
+ "group": "develop-ci_Product"
+
+--
+models.MonitorResource(models_MonitorResource_3):
+ "name": "Varnish -> Tomcat"
+ "type": "varnish"
+ "is_primary": "true"
+ "url": "http://develop.lhotse.ov.otto.de/san/admin/status.json"
+ "group": "develop_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_32):
+ "name": "FH QS3"
+ "type": "fh-query"
+ "is_primary": "false"
+ "url": "http://fh03.develop.lhotse.ov.otto.de:9180/preview/?fh_location=//catalog01/de_DE/$s=schneeeule"
+ "group": "develop_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_31):
+ "name": "Build Lights (Product)"
+ "type": "jenkins"
+ "is_primary": "false"
+ "url": "http://jenkins-ft2.lhotse.ov.otto.de/view/Buildlights-Product/api/json"
+ "group": "develop-ci_Product"
+
+--
+models.MonitorResource(models_MonitorResource_28):
+ "name": "Tomcat (product02.dev)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://product02.develop.lhotse.ov.otto.de:8080/product/admin/status.json"
+ "group": "develop_Product"
+
+--
+models.MonitorResource(models_MonitorResource_29):
+ "name": "Tomcat (product01.dev)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://product01.develop.lhotse.ov.otto.de:8080/product/admin/status.json"
+ "group": "develop_Product"
+
+--
+models.MonitorResource(models_MonitorResource_26):
+ "name": "Tomcat (san01.dev)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://san01.develop.lhotse.ov.otto.de:8080/san/admin/status.json"
+ "group": "develop_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_27):
+ "name": "Tomcat (san02.dev)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://san02.develop.lhotse.ov.otto.de:8080/san/admin/status.json"
+ "group": "develop_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_23):
+ "name": "Tomcat (san02.prelive)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://san02.prelive-cluster.lhotse.ov.otto.de:8080/san/admin/status.json"
+ "group": "prelive-cluster_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_25):
+ "name": "FH QS2"
+ "type": "fh-query"
+ "is_primary": "false"
+ "url": "http://fh02.develop.lhotse.ov.otto.de:9180/preview/?fh_location=//catalog01/de_DE/$s=schneeeule"
+ "group": "develop_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_21):
+ "name": "Tomcat (product05.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://product05.live.lhotse.ov.otto.de:8080/product/admin/status.json"
+ "group": "live_Product"
+
+--
+models.MonitorResource(models_MonitorResource_22):
+ "name": "Tomcat (san01.prelive)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://san01.prelive-cluster.lhotse.ov.otto.de:8080/san/admin/status.json"
+ "group": "prelive-cluster_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_30):
+ "name": "Build Lights (SAN)"
+ "type": "jenkins"
+ "is_primary": "false"
+ "url": "http://jenkins-ft2.lhotse.ov.otto.de/view/BuildLights-SAN/api/json"
+ "group": "develop-ci_SAN"
+
+--
+models.MonitorResource(models_MonitorResource_20):
+ "name": "Tomcat (product04.live)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://product04.live.lhotse.ov.otto.de:8080/product/admin/status.json"
+ "group": "live_Product"
+
+--
+models.MonitorResource(models_MonitorResource_8):
+ "name": "Tomcat (product02.prelive)"
+ "type": "tomcat"
+ "is_primary": "false"
+ "url": "http://product02.prelive-cluster.lhotse.ov.otto.de:8080/product/admin/status.json"
+ "group": "prelive-cluster_Product"
