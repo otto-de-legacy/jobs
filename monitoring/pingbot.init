@@ -34,8 +34,22 @@ folder_saved=`pwd`
 
 start() {
   cd ${pingbot_home}
-  echo "Testing if database pingbot"
-  echo "create database if not exists pingbot" | mysql
+  echo "Testing database pingbot"
+    if ! mysql -u root -e 'use pingbot'; then 
+      echo "Importing initial dump";
+      gunzip < ${pingbot_home}/play1app/conf/pingbotdump.sql.gz | mysql
+      [ $? = 0 ] && mv ${pingbot_home}/play1app/conf/pingbotdump.sql.gz ${pingbot_home}/play1app/conf/pingbotdump.sql.gz_imported
+      Q1="GRANT ALL ON pingbot.* TO 'drevil'@'localhost';"
+      Q2="FLUSH PRIVILEGES;
+      SQL="${Q1}${Q2}""
+      mysql -uroot -e "$SQL"
+    else 
+      echo "Everything fine"; 
+    fi
+
+  echo -n "Testing dependencys"
+  cd /var/opt/pingbot/play1app && play dependencies
+  cd ${folder_saved}
   export PATH=$PATH:$playFramework
   echo -n "Starting pingbot: "
   daemon --pidfile=${pidfile} --user=${USER} play run /var/opt/pingbot/play1app >> /dev/null 2>&1 &
