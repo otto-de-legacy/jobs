@@ -39,7 +39,7 @@ ls
 fpm --rpm-user tomcat --rpm-group users -v ${CURRENT_VERSION} --iteration ${RELEASE} -s dir -t rpm \
 --directories var/opt/tomcat/webapps/dashboard --directories var/opt/play --directories var/opt/play-${PLAYVERSION} \
 --directories var/opt/pingbot --directories var/run/pingbot -n lhotse-ft2_observer --after-install var/opt/init-service.sh .
-rpm -qlp lhotse-ft2_observer-${CURRENT_VERSION}-${RELEASE}.x86_64.rpm
+#rpm -qlp lhotse-ft2_observer-${CURRENT_VERSION}-${RELEASE}.x86_64.rpm
 
 #########################################################
 
