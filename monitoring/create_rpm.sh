@@ -15,9 +15,9 @@ git clone git@git.lhotse.ov.otto.de:lhotse-product
 
 mkdir -p ft2_observer_rpm/var/opt/tomcat/webapps
 mkdir -p ft2_observer_rpm/var/run/pingbot/
-mkdir -p ft2_observer_rpm/etc/init.d/
-cp -r lhotse-product/dashboard ft2_observer_rpm/var/opt/tomcat/webapps/
-cp -r pingbot ft2_observer_rpm/var/opt/
+mkdir -p ft2_observer_rpm/etc/init.d
+cp -rv lhotse-product/dashboard ft2_observer_rpm/var/opt/tomcat/webapps/
+cp -rv pingbot ft2_observer_rpm/var/opt/
 
 unzip play-${PLAYVERSION}.zip -d ft2_observer_rpm/var/opt/
 cd ft2_observer_rpm/var/opt/
@@ -25,8 +25,8 @@ ln -s play-${PLAYVERSION} play
 cd -
 
 # get the config for pingbot
-cp monitoring/play1app/conf/* ft2_observer_rpm/var/opt/pingbot/play1app/conf/
-cp monitoring/pingbot.init ft2_observer_rpm/etc/init.d/pingbot
+cp -v monitoring/play1app/conf/* ft2_observer_rpm/var/opt/pingbot/play1app/conf/
+cp -v monitoring/pingbot.init ft2_observer_rpm/etc/init.d/pingbot
 #Set some Permissions and autostart Job-executer
 echo "chmod +x /etc/init.d/pingbot; chown -R tomcat:tomcat /var/opt/pingbot;chown -R tomcat:tomcat /var/opt/play; mysqladmin create if not exists pingbot; chkconfig --add pingbot; service pingbot start" > ft2_observer_rpm/var/opt/init-service.sh
 
