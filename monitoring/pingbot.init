@@ -34,6 +34,8 @@ folder_saved=`pwd`
 
 start() {
   cd ${pingbot_home}
+  echo "Testing if database pingbot"
+  echo "create database if not exists pingbot" | mysql
   export PATH=$PATH:$playFramework
   echo -n "Starting pingbot: "
   daemon --pidfile=${pidfile} --user=${USER} play run /var/opt/pingbot/play1app >> /dev/null 2>&1 &

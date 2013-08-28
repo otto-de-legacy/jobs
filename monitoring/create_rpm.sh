@@ -29,7 +29,7 @@ ln -s play-${PLAYVERSION} play
 cd ../../..
 
 #Set some Permissions and autostart Job-executer
-echo "chmod +x /etc/init.d/pingbot; chown -R tomcat:tomcat /var/opt/pingbot;chown -R tomcat:tomcat /var/opt/play; mysqladmin create if not exists pingbot; chkconfig --add pingbot; service pingbot start" > ft2_observer_rpm/var/opt/init-service.sh
+echo "chmod +x /etc/init.d/pingbot; chown -R tomcat:tomcat /var/opt/pingbot;chown -R tomcat:tomcat /var/opt/play; chkconfig --add pingbot; service pingbot start" > ft2_observer_rpm/var/opt/init-service.sh
 
 cd ft2_observer_rpm
 
