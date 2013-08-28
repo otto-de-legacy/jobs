@@ -20,8 +20,8 @@ cp -rv lhotse-product/dashboard ft2_observer_rpm/var/opt/tomcat/webapps/
 cp -rv pingbot ft2_observer_rpm/var/opt/
 
 # get the config for pingbot
-cp -v monitoring/play1app/conf/* ft2_observer_rpm/var/opt/pingbot/play1app/conf/
-cp -v monitoring/pingbot.init ft2_observer_rpm/etc/init.d/pingbot
+cp -v play1app/conf/* ft2_observer_rpm/var/opt/pingbot/play1app/conf/
+cp -v pingbot.init ft2_observer_rpm/etc/init.d/pingbot
 
 unzip play-${PLAYVERSION}.zip -d ft2_observer_rpm/var/opt/
 mydir=${pwd}
