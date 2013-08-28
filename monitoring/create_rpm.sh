@@ -19,14 +19,15 @@ mkdir -p ft2_observer_rpm/etc/init.d
 cp -rv lhotse-product/dashboard ft2_observer_rpm/var/opt/tomcat/webapps/
 cp -rv pingbot ft2_observer_rpm/var/opt/
 
-unzip play-${PLAYVERSION}.zip -d ft2_observer_rpm/var/opt/
-cd ft2_observer_rpm/var/opt/
-ln -s play-${PLAYVERSION} play
-cd -
-
 # get the config for pingbot
 cp -v monitoring/play1app/conf/* ft2_observer_rpm/var/opt/pingbot/play1app/conf/
 cp -v monitoring/pingbot.init ft2_observer_rpm/etc/init.d/pingbot
+
+unzip play-${PLAYVERSION}.zip -d ft2_observer_rpm/var/opt/
+cd ft2_observer_rpm/var/opt/
+ln -s play-${PLAYVERSION} play
+cd /
+
 #Set some Permissions and autostart Job-executer
 echo "chmod +x /etc/init.d/pingbot; chown -R tomcat:tomcat /var/opt/pingbot;chown -R tomcat:tomcat /var/opt/play; mysqladmin create if not exists pingbot; chkconfig --add pingbot; service pingbot start" > ft2_observer_rpm/var/opt/init-service.sh
 
