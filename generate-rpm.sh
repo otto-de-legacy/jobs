@@ -25,12 +25,12 @@ cp jobs-executor/version.py jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/jobmonitor_settings_redhat.cfg jobexec_rpm/var/opt/jobs-executor/jobmonitor_settings.cfg
 cp jobs-executor/jobs-executor.init jobexec_rpm/etc/init.d/jobs-executor
 #Set some Permissions and autostart Job-executer
-echo "chmod +x /etc/init.d/jobs-executor; chmod 777 /var/spool/jobs-executor/log; chkconfig --add jobs-executor; service jobs-executor start" > jobexec_rpm/var/opt/init-service.sh
+echo "chmod +x /etc/init.d/jobs-executor; chmod 777 /var/spool/jobs-executor/log; chkconfig --add jobs-executor; service jobs-executor start" > jobexec_rpm/var/opt/jobs-executor/init-service.sh
 cd jobexec_rpm
 
 ls
 
-fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} --iteration ${RELEASE} -s dir -t rpm --directories var/opt/jobs-executor --directories var/spool/jobs-executor -n lhotse-jobexec  --after-install var/opt/init-service.sh .
+fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} --iteration ${RELEASE} -s dir -t rpm --directories var/opt/jobs-executor --directories var/spool/jobs-executor -n lhotse-jobexec  --after-install var/opt/jobs-executor/init-service.sh .
 rpm -qlp lhotse-jobexec-${CURRENT_VERSION}-${RELEASE}.x86_64.rpm
 
 #########################################################
