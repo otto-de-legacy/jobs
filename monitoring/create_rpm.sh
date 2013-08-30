@@ -29,7 +29,7 @@ ln -s play-${PLAYVERSION} play
 cd ../../..
 
 #Set some Permissions and autostart Job-executer
-echo "chmod +x /etc/init.d/pingbot; chown -R tomcat:tomcat /var/opt/pingbot;chown -R tomcat:tomcat /var/opt/play; chkconfig --add pingbot; service pingbot start" > ft2_observer_rpm/var/opt/init-service.sh
+echo "chmod +x /etc/init.d/pingbot; chown -R tomcat:tomcat /var/opt/pingbot;chown -R tomcat:tomcat /var/opt/play; chkconfig --add pingbot; service pingbot start" > ft2_observer_rpm/var/opt/pingbot/init-service.sh
 
 cd ft2_observer_rpm
 
@@ -37,7 +37,7 @@ ls
 
 fpm --rpm-user tomcat --rpm-group users -v ${CURRENT_VERSION} --iteration ${RELEASE} -s dir -t rpm \
 --directories var/opt/tomcat/webapps/dashboard --directories var/opt/play --directories var/opt/play-${PLAYVERSION} \
---directories var/opt/pingbot --directories var/run/pingbot -n lhotse-ft2_observer --after-install var/opt/init-service.sh .
+--directories var/opt/pingbot --directories var/run/pingbot -n lhotse-ft2_observer --after-install var/opt/pingbot/init-service.sh .
 rpm -qlp lhotse-ft2_observer-${CURRENT_VERSION}-${RELEASE}.x86_64.rpm
 
 #########################################################
