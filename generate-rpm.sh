@@ -30,7 +30,9 @@ cd jobexec_rpm
 
 ls
 
-fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} --iteration ${RELEASE} -s dir -t rpm --directories var/opt/jobs-executor --directories var/spool/jobs-executor -n lhotse-jobexec  --after-install var/opt/jobs-executor/init-service.sh .
+fpm --rpm-user jobexec --rpm-group users -v ${CURRENT_VERSION} --iteration ${RELEASE} --epoch 1 \
+  -s dir -t rpm --directories var/opt/jobs-executor --directories var/spool/jobs-executor \
+  -n lhotse-jobexec  --after-install var/opt/jobs-executor/init-service.sh .
 rpm -qlp lhotse-jobexec-${CURRENT_VERSION}-${RELEASE}.x86_64.rpm
 
 #########################################################
