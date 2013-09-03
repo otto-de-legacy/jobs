@@ -39,6 +39,7 @@ public class JobInfoResourceIntegrationTest extends AbstractTestNGSpringContextT
         JobRunnable jobRunnable = mockRunnable(true);
         jobService.registerJob(jobRunnable);
         final String id = jobService.executeJob(jobRunnable.getJobDefinition().getName());
+        jobService.shutdownJobExecutorService(true);
 
         final Response response = jobInfoResource.abortJob(jobRunnable.getJobDefinition().getName(), id);
         assertEquals(200, response.getStatus());

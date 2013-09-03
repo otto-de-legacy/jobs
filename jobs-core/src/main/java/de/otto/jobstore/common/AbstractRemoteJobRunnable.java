@@ -57,7 +57,8 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
         try {
             log.info("ltag={}.execute Trigger remote job jobName={} jobId={} ...",
                     this.getClass().getSimpleName(), getJobDefinition().getName(), context.getId());
-            final URI uri = remoteJobExecutorService.startJob(new RemoteJob(getJobDefinition().getName(), context.getId(), getParameters()));
+            final JobInfo jobInfo = jobInfoService.getById(context.getId());
+            final URI uri = remoteJobExecutorService.startJob(new RemoteJob(getJobDefinition().getName(), context.getId(), jobInfo.getParameters()));
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), uri.toString());
         } catch (RemoteJobAlreadyRunningException e) {
             log.info("ltag={}.execute Remote job jobName={} jobId={} is already running: {}",

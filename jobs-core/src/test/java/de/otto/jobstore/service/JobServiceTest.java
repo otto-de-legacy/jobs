@@ -372,8 +372,7 @@ public class JobServiceTest {
     public void testExecuteJobWithHigherPriorityOfJobWhichIsAlreadyQueued() throws Exception {
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.QUEUED)).
                 thenReturn(createJobInfo(JOB_NAME_01, JobExecutionPriority.CHECK_PRECONDITIONS, RunningState.QUEUED));
-        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 0, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS,
-                Collections.<String, String>emptyMap(), null))
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 0, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS, null))
                 .thenReturn("1234");
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
 
@@ -394,8 +393,7 @@ public class JobServiceTest {
 
     @Test
     public void testExecuteJobWithHigherPriorityOfJobWhichIsAlreadyRunning() throws Exception {
-        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 0, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS,
-                Collections.<String, String>emptyMap(), null)).
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 0, RunningState.QUEUED, JobExecutionPriority.IGNORE_PRECONDITIONS, null)).
                 thenReturn("1234");
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(createJobInfo(JOB_NAME_01, JobExecutionPriority.CHECK_PRECONDITIONS, RunningState.RUNNING));
@@ -409,8 +407,8 @@ public class JobServiceTest {
     @Test
     public void testExecuteJobForced() throws Exception {
         final String jobId = "1234";
-        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 0, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS,
-                Collections.<String,String>emptyMap(), null)).thenReturn(jobId);
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 0, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS, null)).
+                thenReturn(jobId);
         when(jobInfoRepository.activateQueuedJobById(jobId)).thenReturn(Boolean.TRUE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
@@ -427,8 +425,8 @@ public class JobServiceTest {
     @Test
     public void testExecuteJobForcedFailedWithException() throws Exception {
         final String jobId = "1234";
-        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 0, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS,
-                Collections.<String,String>emptyMap(), null)).thenReturn(jobId);
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 0, RunningState.RUNNING, JobExecutionPriority.IGNORE_PRECONDITIONS, null)).
+                thenReturn(jobId);
         when(jobInfoRepository.activateQueuedJobById(JOB_NAME_01)).thenReturn(Boolean.TRUE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
@@ -477,8 +475,8 @@ public class JobServiceTest {
         when(jobInfoRepository.findMostRecentFinished(JOB_NAME_01)).thenReturn(jobInfo);
         when(jobInfoRepository.evaluateRetriesBasedOnPreviouslyFailedJobs(JOB_NAME_01, 2L)).thenCallRealMethod();
 
-        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 2, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS,
-                Collections.<String, String>emptyMap(), null)).thenReturn(jobId);
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 2, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null)).
+                thenReturn(jobId);
         when(jobInfoRepository.activateQueuedJobById(JOB_NAME_01)).thenReturn(Boolean.TRUE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
@@ -493,8 +491,7 @@ public class JobServiceTest {
         jobService.doRetryFailedJobs();
 
         assertEquals(jobInfoRepository.evaluateRetriesBasedOnPreviouslyFailedJobs(JOB_NAME_01,2L),1L);
-        verify(jobInfoRepository, times(1)).create(JOB_NAME_01, 0, 0, 2, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS,
-                Collections.<String, String>emptyMap(), null);
+        verify(jobInfoRepository, times(1)).create(JOB_NAME_01, 0, 0, 2, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS,null);
     }
 
     @Test
@@ -509,8 +506,8 @@ public class JobServiceTest {
         when(jobInfoRepository.evaluateRetriesBasedOnPreviouslyFailedJobs(JOB_NAME_01,2L)).thenCallRealMethod();
 
 
-        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 2, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS,
-                Collections.<String, String>emptyMap(), null)).thenReturn(jobId);
+        when(jobInfoRepository.create(JOB_NAME_01, 0, 0, 2, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null)).
+                thenReturn(jobId);
         when(jobInfoRepository.activateQueuedJobById(JOB_NAME_01)).thenReturn(Boolean.TRUE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(Boolean.FALSE);
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
@@ -525,8 +522,7 @@ public class JobServiceTest {
         jobService.doRetryFailedJobs();
 
         assertEquals(jobInfoRepository.evaluateRetriesBasedOnPreviouslyFailedJobs(JOB_NAME_01,2L),2L);
-        verify(jobInfoRepository, times(0)).create(JOB_NAME_01, 0, 0, 2, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS,
-                Collections.<String, String>emptyMap(), null);
+        verify(jobInfoRepository, times(0)).create(JOB_NAME_01, 0, 0, 2, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
 
