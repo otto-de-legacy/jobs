@@ -18,3 +18,4 @@ instances/*.conf
 job-executor/coverage.xml
 jobs-core/jobs-executor
 *.log
+/.project

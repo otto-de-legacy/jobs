@@ -141,18 +141,6 @@ public class JobService {
     }
 
     /**
-     * Removes a job with the given from the queue and sets its result state to not executed.
-     *
-     * @param name The name of the job
-     * @return true - If a queued job with the given name was found</br>
-     *         false - If no queued job with the given name could be found
-     *
-     */
-    public boolean removeJobFromQueue(String name) {
-        return jobInfoRepository.markQueuedAsNotExecuted(name);
-    }
-
-    /**
      * Executes a job with the given name and returns its ID. If a job is already running or running it would violate
      * running constraints it this job will be added to the queue. If a job is already queued an exception will be thrown.
      *
@@ -468,7 +456,7 @@ public class JobService {
         final JobDefinition definition = runnable.getJobDefinition();
 
         jobExecutorService.execute(new JobExecutionRunnable(
-                runnable, jobInfoRepository, createJobExecutionContext(id, definition.getName(), executionPriority, null)));
+                runnable, jobInfoRepository, jobDefinitionRepository, createJobExecutionContext(id, definition.getName(), executionPriority, null)));
     }
 
     private JobExecutionContext createJobExecutionContext(String jobId, String jobName, JobExecutionPriority priority, List<String> logLines) {
@@ -618,5 +606,10 @@ public class JobService {
                 }
             }
         }
+    }
+
+    public JobDefinition getJobDefinitionByName(String jobName){
+        final JobRunnable jobRunnable = jobs.get(jobName);
+        return (jobRunnable != null)?jobRunnable.getJobDefinition():null;
     }
 }

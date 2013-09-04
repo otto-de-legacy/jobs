@@ -4,6 +4,8 @@ package de.otto.jobstore.common;
 import com.mongodb.DBObject;
 import de.otto.jobstore.common.properties.JobDefinitionProperty;
 
+import java.util.Date;
+
 public final class StoredJobDefinition extends AbstractItem implements JobDefinition {
 
     public static final StoredJobDefinition JOB_EXEC_SEMAPHORE = new StoredJobDefinition("ALL_JOBS", 0, 0, 0, 0, 0, false, false);
@@ -80,6 +82,10 @@ public final class StoredJobDefinition extends AbstractItem implements JobDefini
     public boolean isDisabled() {
         final Boolean disabled = getProperty(JobDefinitionProperty.DISABLED);
         return disabled == null ? false : disabled;
+    }
+
+    public Date getLastNotExecuted() {
+        return getProperty(JobDefinitionProperty.LAST_NOT_EXECUTED);
     }
 
 }

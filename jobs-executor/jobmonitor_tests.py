@@ -8,7 +8,7 @@ import unittest
 import dateutil.parser
 
 import flask
-from flask.helpers import json
+from flask import json
 from auto_stub import TestCase
 
 import jobmonitor

@@ -20,7 +20,6 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     private static final String JOB_NAME_CLEANUP              = "JobInfo_Cleanup";
     private static final String JOB_NAME_TIMED_OUT_CLEANUP    = "JobInfo_TimedOut_Cleanup";
-    private static final String JOB_NAME_CLEANUP_NOT_EXECUTED = "JobInfo_NotExecuted_Cleanup";
     private static final long FIVE_MINUTES = 5 * 60 * 1000;
 
     private int hoursAfterWhichOldJobsAreDeleted         = 7 * 24;
@@ -309,25 +308,6 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     }
 
     /**
-     * Marks the current queued job of the given name as not executed
-     *
-     * @param name The name of the job
-     * @return true - The job was marked as requestred<br/>
-     *          false - No queued job with the given name could be found
-     */
-    public boolean markQueuedAsNotExecuted(final String name) {
-        final Date dt = new Date();
-        final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(),
-                new BasicDBObject().append(JobInfoProperty.RESULT_STATE.val(), ResultCode.NOT_EXECUTED.name()).
-                        append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), dt).
-                        append(JobInfoProperty.FINISH_TIME.val(), dt).
-                        append(JobInfoProperty.RUNNING_STATE.val(), createFinishedRunningState()));
-        final WriteResult result = collection.update(new BasicDBObject().append(JobInfoProperty.NAME.val(), name).
-                append(JobInfoProperty.RUNNING_STATE.val(), RunningState.QUEUED.name()), update, false, false, getSafeWriteConcern());
-        return result.getN() == 1;
-    }
-
-    /**
      * Adds additional data to a running job with the given id. If information with the given key already exists
      * it is overwritten. The lastModified date of the job is set to the current date.
      *
@@ -602,57 +582,12 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         return numberOfRemovedJobs;
     }
 
-
-    public int cleanupNotExecutedJobs() {
-        logger.info("cleanupNotExecutedJobs called");
-        try {
-            return doCleanupNotExecutedJobs();
-        } catch(Exception e) {
-            logger.error("cleanupNotExecutedJobs exception occurred",e);
-        } finally {
-            logger.info("cleanupNotExecutedJobs finished");
-        }
-        return 0;
-
-    }
-
-    private int doCleanupNotExecutedJobs() {
-        final Date currentDate = new Date();
-        removeJobIfTimedOut(JOB_NAME_CLEANUP_NOT_EXECUTED, currentDate);
-        int numberOfRemovedJobs = 0;
-        if (!hasJob(JOB_NAME_CLEANUP_NOT_EXECUTED, RunningState.RUNNING)) {
-            /* register clean up job with max execution time */
-            final String id = create(JOB_NAME_CLEANUP_NOT_EXECUTED, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
-            if (id != null) { //Job konnte wirklich von diesem Server erzeugt werden.
-                final Date beforeDate = new Date(currentDate.getTime() -  hoursAfterWhichNotExecutedJobsAreDeleted * 60 * 60 * 1000);
-                logger.info("Going to delete not executed jobs before {} ...", beforeDate);
-                /* ... good bye ... */
-                numberOfRemovedJobs = cleanupNotExecuted(beforeDate);
-                logger.info("Deleted {} not executed jobs.", numberOfRemovedJobs);
-                addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
-                markAsFinished(id, ResultCode.SUCCESSFUL);
-            }
-        }
-        return numberOfRemovedJobs;
-    }
-
     // ~~
 
     protected int cleanupNotRunning(Date clearJobsBefore) {
         final WriteResult result = collection.remove(new BasicDBObject().
                 append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
                 append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NE.op(), RunningState.RUNNING.name())),
-                getSafeWriteConcern());
-        return result.getN();
-    }
-
-    protected int cleanupNotExecuted(Date clearJobsBefore) {
-        final List<String> resultStates = toStringList(EnumSet.complementOf(EnumSet.of(RunningState.FINISHED)));
-
-        final WriteResult result = collection.remove(new BasicDBObject().
-                append(JobInfoProperty.CREATION_TIME.val(), new BasicDBObject(MongoOperator.LT.op(), clearJobsBefore)).
-                append(JobInfoProperty.RESULT_STATE.val(), ResultCode.NOT_EXECUTED.name()).
-                append(JobInfoProperty.RUNNING_STATE.val(), new BasicDBObject(MongoOperator.NIN.op(), resultStates)),
                 getSafeWriteConcern());
         return result.getN();
     }
@@ -700,7 +635,16 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
         final WriteResult result = collection.update(query, update, false, false, getSafeWriteConcern());
-        return result.getN() == 1;
+        String lastConcern = null;
+        boolean updateCount = false;
+        try {
+            lastConcern = String.valueOf(result.getLastConcern());
+            updateCount = result.getN() == 1;
+        } catch (IllegalStateException e) {
+            logger.error("Exception occured during update lastConcern=" + lastConcern + " updateCount=" + updateCount + " ExceptionMessage: " + e.getMessage());
+            throw e;
+        }
+        return updateCount;
     }
 
     private BasicDBObject createFindByNameAndRunningStateQuery(final String name, final String state) {
