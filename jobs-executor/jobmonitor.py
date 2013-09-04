@@ -178,7 +178,7 @@ def start_job_instance(job_name):
         log.info('Job %s is not active, going to start new instance ...', job_name)
         # ~~ extract Job parameters from JSON and create job config
         job_id = create_job_id()
-        job_params = request.json['parameters'] if request.json['parameters'] else {}
+        job_params = request.json['parameters'] if 'parameters' in request.json and request.json['parameters'] else {}
         job_client_id = request.json['client_id'] if 'client_id' in request.json else {}
 
         log.info('preparing job %s [%s] with params: %s' % (job_name, job_client_id, job_params))
