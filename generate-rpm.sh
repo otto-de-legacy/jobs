@@ -11,10 +11,8 @@ CURRENT_VERSION=$(echo ${VERSION} | sed 's/\"//g' | sed 's/\-//g' | sed 's/\SNAP
 mkdir -p jobexec_rpm/var/opt/jobs-executor
 mkdir -p jobexec_rpm/var/run/jobs-executor
 mkdir -p jobexec_rpm/etc/init.d
-mkdir -p jobexec_rpm/var/spool/jobs-executor/templates
 mkdir -p jobexec_rpm/var/spool/jobs-executor/log
 mkdir -p jobexec_rpm/var/spool/jobs-executor/zlog
-mkdir -p jobexec_rpm/var/spool/jobs-executor/instances
 cp jobs-executor/poser jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/*.sh jobexec_rpm/var/opt/jobs-executor
 cp jobs-executor/README.txt jobexec_rpm/var/opt/jobs-executor
