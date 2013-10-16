@@ -14,7 +14,7 @@ The Jobservice interface allows the user to control registration and execution o
 When starting a job an execution priority can be supplied. The effect of the execution priority is displayed in the table below.
 
 | Priority | A job is queued | A job is running  | No job running or queued |
-| :-------------: |:-------------:| :-----:| :-----:|
+| --------------- | ---------------| ---------------| ---------------|
 | lower | Job with current priority will be queued | Job with current priority will be queued | Job with current priority will be executed |
 | equal | JobAlreadyQueuedException | JobAlreadyQueuedException | Job with current priority will be executed |
 | higher | JobAlreadyQueuedException | JobAlreadyQueuedException | Job with current priority will be executed |
