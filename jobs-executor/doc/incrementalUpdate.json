@@ -1,8 +1,0 @@
-{
-    "name": "FHIncrementalSearchUpdate",
-    "parameters": {
-        "productSystemAbsUrl": "http://product.develop-ci.lhotse.ov.otto.de:17395/product/api/products/",
-        "sanApiUrl": "http://san.develop-ci.lhotse.ov.otto.de:17395/san/api/",
-        "offsetDateTime": "2013-01-04T14:26:00.013+01:00"
-    }
-}
