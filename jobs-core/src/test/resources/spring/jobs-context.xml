@@ -33,7 +33,6 @@
 
     <bean class="de.otto.jobstore.service.RemoteJobExecutorService">
         <constructor-arg index="0" value="http://127.0.0.1:5000/jobs/"/>
-        <!-- constructor-arg index="0" value="http://fh02.develop-ci.lhotse.ov.otto.de:5000/jobs/"/ -->
     </bean>
 
     <bean id="jobServiceWithoutRemoteJobExecutorService" class="de.otto.jobstore.service.JobService">

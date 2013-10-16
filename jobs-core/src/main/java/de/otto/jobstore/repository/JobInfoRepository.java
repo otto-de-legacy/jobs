@@ -63,10 +63,10 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @return The id of the job if it could be created or null if a job with the same name and state already exists
      */
     public String create(final String name, final long maxIdleTime, final long maxExecutionTime, final long maxRetries, final RunningState runningState,
-                         final JobExecutionPriority executionPriority, final Map<String, String> parameters, final Map<String, String> additionalData) {
+                         final JobExecutionPriority executionPriority, final Map<String, String> additionalData) {
         final String host = InternetUtils.getHostName();
         final String thread = Thread.currentThread().getName();
-        return create(name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, runningState, executionPriority, parameters, additionalData);
+        return create(name, host, thread, maxIdleTime, maxExecutionTime, maxRetries, runningState, executionPriority, additionalData);
     }
 
     /**
@@ -85,14 +85,13 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      */
     public String create(final String name, final String host, final String thread, final long maxIdleTime, final long maxExecutionTime,
                          final long maxRetries, final RunningState runningState, final JobExecutionPriority executionPriority,
-                         final Map<String, String> parameters, final Map<String, String> additionalData) {
+                         final Map<String, String> additionalData) {
         try {
             logger.info("Create job={} in state={} ...", name, runningState);
 
             long retries = evaluateRetriesBasedOnPreviouslyFailedJobs(name, maxRetries);
 
             final JobInfo jobInfo = new JobInfo(name, host, thread, maxIdleTime, maxExecutionTime, retries, runningState, executionPriority, additionalData);
-            jobInfo.setParameters(parameters);
 
             save(jobInfo);
             return jobInfo.getId();
@@ -525,7 +524,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         removeJobIfTimedOut(JOB_NAME_TIMED_OUT_CLEANUP, currentDate);
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_TIMED_OUT_CLEANUP, RunningState.RUNNING)) {
-            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_TIMED_OUT_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
             if (id != null) { //Job konnte wirklich von diesem Server erzeugt werden.
                 final DBCursor cursor = collection.find(new BasicDBObject(JobInfoProperty.RUNNING_STATE.val(), RunningState.RUNNING.name()));
                 final List<String> removedJobs = new ArrayList<>();
@@ -568,7 +567,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         int numberOfRemovedJobs = 0;
         if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
             /* register clean up job with max execution time */
-            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null, null);
+            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, null);
             if (id != null) { //Job konnte wirklich von diesem Server erzeugt werden.
                 final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
                 logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
@@ -678,4 +677,11 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         return strings;
     }
 
+    public void saveParameters(String id, Map<String, String> parameters) {
+        JobInfo jobInfo = findById(id);
+        if(jobInfo != null) {
+            jobInfo.setParameters(parameters);
+            save(jobInfo);
+        }
+    }
 }

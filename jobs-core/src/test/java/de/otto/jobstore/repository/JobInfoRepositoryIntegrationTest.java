@@ -38,15 +38,10 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testCreate() throws Exception {
         assertFalse(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING));
-        Map<String, String> params = new HashMap<>();
-        params.put("foo", "bar");
-        params.put("hugo", "moep");
-        String id = createJobInfo(TESTVALUE_JOBNAME, 500, RunningState.RUNNING, params);
+        String id = createJobInfo(TESTVALUE_JOBNAME, 500, RunningState.RUNNING);
         assertTrue(jobInfoRepository.hasJob(TESTVALUE_JOBNAME, RunningState.RUNNING));
         JobInfo createdJob = jobInfoRepository.findById(id);
         assertNotNull("Created job with id " + id + ", cannot be found", createdJob);
-        assertNotNull("Created job has no parameters set", createdJob.getParameters());
-        assertEquals(2, createdJob.getParameters().size());
     }
 
     @Test
@@ -479,11 +474,7 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     }
 
     private String createJobInfo(String name, long timeoutPeriod, RunningState runningState) {
-        return createJobInfo(name, timeoutPeriod, runningState, null);
-    }
-
-    private String createJobInfo(String name, long timeoutPeriod, RunningState runningState, Map<String, String> params) {
-        return jobInfoRepository.create(name, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, timeoutPeriod, 0L, runningState, JobExecutionPriority.CHECK_PRECONDITIONS, params, null);
+        return jobInfoRepository.create(name, TESTVALUE_HOST, TESTVALUE_THREAD, timeoutPeriod, timeoutPeriod, 0L, runningState, JobExecutionPriority.CHECK_PRECONDITIONS, null);
     }
 
     private JobInfo newJobInfo(long timeoutPeriod, RunningState runningState) {

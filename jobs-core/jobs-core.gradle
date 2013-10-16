@@ -48,14 +48,3 @@ uploadArchives {
         }
     }
 }
-
-task uploadJavadoc(dependsOn: javadoc) << {
-    project.exec {
-        commandLine(
-                'scp',
-                '-r',
-                javadoc.destinationDir,
-                'deploy@docs.lhotse.ov.otto.de:/srv/www/htdocs/jobstore/core'
-        )
-    }
-}

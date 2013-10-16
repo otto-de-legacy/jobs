@@ -1,8 +1,0 @@
-{
-    "client_id": "4711",
-    "name": "demojob",
-    "parameters": {
-    	"sample_file": "/var/log/syslog",
-        "unused_host": "server1"
-    }
-}

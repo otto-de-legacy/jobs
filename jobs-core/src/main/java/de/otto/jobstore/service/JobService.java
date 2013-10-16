@@ -355,12 +355,9 @@ public class JobService {
             }
         }
         shutdown = true;
-        try {
-            jobExecutorService.shutdown();
-            jobExecutorService.awaitTermination(awaitTerminationSeconds, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            LOGGER.warn("could not terminate all running threads");
-        }
+
+        shutdownJobExecutorService(false);
+
         // mark as aborted if still running
         for (JobRunnable jobRunnable : jobs.values()) {
             if (!jobRunnable.getJobDefinition().isRemote()) {
@@ -371,6 +368,19 @@ public class JobService {
                     jobInfoRepository.markAsFinished(runningJob.getId(), ResultCode.ABORTED, "shutdownJobs called from executing host");
                 }
             }
+        }
+    }
+
+    /** public as we use it in tests also, don't use in other contexts */
+    public void shutdownJobExecutorService(boolean recreate) {
+        try {
+            jobExecutorService.shutdown();
+            jobExecutorService.awaitTermination(awaitTerminationSeconds, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            LOGGER.warn("could not terminate all running threads");
+        }
+        if(recreate) {
+            jobExecutorService = Executors.newCachedThreadPool();
         }
     }
 
@@ -508,7 +518,7 @@ public class JobService {
         final JobDefinition jobDefinition = runnable.getJobDefinition();
         // TODO: create-Methode mit JobRunnable in jobInfoRepository erzeugen
         return jobInfoRepository.create(jobDefinition.getName(), jobDefinition.getMaxIdleTime(), jobDefinition.getMaxExecutionTime(),
-                jobDefinition.getMaxRetries(), runningState, jobExecutionPriority, runnable.getParameters(), null);
+                jobDefinition.getMaxRetries(), runningState, jobExecutionPriority, null);
     }
 
     private void checkIfJobIsRegistered(final String name) throws JobNotRegisteredException {

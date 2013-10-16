@@ -37,6 +37,9 @@ public class AbstractRemoteJobRunnableTest {
     @Test
     public void testRemoteJobSetup() throws Exception {
         URI uri = URI.create("http://www.otto.de");
+        JobInfo jobInfo = mock(JobInfo.class);
+        when(jobInfo.getParameters()).thenReturn(parameters);
+        when(jobInfoService.getById("4811")).thenReturn(jobInfo);
         when(remoteJobExecutorService.startJob(new RemoteJob(jobName, "4811", parameters))).thenReturn(uri);
         JobRunnable runnable = TestSetup.remoteJobRunnable(remoteJobExecutorService, jobInfoService, parameters, jobDefinition);
         MockJobLogger logger = new MockJobLogger();
@@ -49,6 +52,9 @@ public class AbstractRemoteJobRunnableTest {
     @Test
     public void testExecutingJobWhichIsAlreadyRunning() throws Exception {
         URI uri = URI.create("http://www.otto.de");
+        JobInfo jobInfo = mock(JobInfo.class);
+        when(jobInfo.getParameters()).thenReturn(parameters);
+        when(jobInfoService.getById("4711")).thenReturn(jobInfo);
         when(remoteJobExecutorService.startJob(new RemoteJob(jobName, "4711", parameters))).
                 thenThrow(new RemoteJobAlreadyRunningException("", uri));
         JobRunnable runnable = TestSetup.remoteJobRunnable(remoteJobExecutorService, jobInfoService, parameters, jobDefinition);

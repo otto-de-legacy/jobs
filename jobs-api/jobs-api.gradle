@@ -10,17 +10,6 @@ uploadArchives {
     }
 }
 
-task uploadJavadoc(dependsOn: javadoc) << {
-    project.exec {
-        commandLine(
-                'scp',
-                '-r',
-                javadoc.destinationDir,
-                'deploy@docs.lhotse.ov.otto.de:/srv/www/htdocs/jobstore/api'
-        )
-    }
-}
-
 dependencies {
     compile project(':jobs-core')
     compile libs.jerseyAbdera, libs.jerseyClient, libs.jerseyCore
