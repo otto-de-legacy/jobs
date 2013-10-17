@@ -12,11 +12,15 @@ import java.util.Map;
 public class TestSetup {
 
     public static LocalMockJobRunnable localJobRunnable(final String name, final int timeout) {
-        return localJobRunnable(name, timeout, null);
+        return localJobRunnable(name, timeout, null, 0);
     }
 
-    public static LocalMockJobRunnable localJobRunnable(final String name, final int timeout, final JobExecutionException exception) {
-        return new LocalMockJobRunnable(name, timeout, exception);
+    public static LocalMockJobRunnable localJobRunnable(final String name, final int timeout, final int maxRetries) {
+        return localJobRunnable(name, timeout, null, maxRetries);
+    }
+
+    public static LocalMockJobRunnable localJobRunnable(final String name, final int timeout, final JobExecutionException exception, int maxRetries) {
+        return new LocalMockJobRunnable(name, timeout, exception, maxRetries);
     }
 
     public static LocalMockJobRunnable localJobRunnable(JobDefinition jobDefinition, final JobExecutionException exception) {
@@ -104,8 +108,8 @@ public class TestSetup {
             this.exception = exception;
         }
 
-        private LocalMockJobRunnable(String name, long timeoutPeriod, JobException exception) {
-            localJobDefinition = localJobDefinition(name, timeoutPeriod);
+        private LocalMockJobRunnable(String name, long timeoutPeriod, JobException exception, int maxRetries) {
+            localJobDefinition = localJobDefinition(name, timeoutPeriod, maxRetries);
             this.exception = exception;
         }
 

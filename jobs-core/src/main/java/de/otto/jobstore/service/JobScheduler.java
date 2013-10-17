@@ -23,12 +23,17 @@ public class JobScheduler {
 
     private List<JobSchedule> schedules;
 
-    public JobScheduler(final JobService jobService, final JobInfoRepository jobInfoRepository) {
-        this(createDefaultSchedules(jobService, jobInfoRepository));
+    public JobScheduler(final JobService jobService) {
+        this(createDefaultSchedules(jobService));
     }
 
     public JobScheduler(List<JobSchedule> schedules) {
         this.schedules = schedules;
+    }
+
+    @Deprecated
+    public JobScheduler(final JobService jobService, final JobInfoRepository jobInfoRepository) {
+        this(jobService);
     }
 
     private ScheduledExecutorService executorService;
@@ -70,7 +75,7 @@ public class JobScheduler {
         LOGGER.info("finished shutdown");
     }
 
-    private static List<JobSchedule> createDefaultSchedules(final JobService jobService, final JobInfoRepository jobInfoRepository) {
+    private static List<JobSchedule> createDefaultSchedules(final JobService jobService) {
         List<JobSchedule> schedules = new ArrayList<>();
         schedules.add(new JobSchedule() {
             @Override
@@ -80,7 +85,7 @@ public class JobScheduler {
 
             @Override
             public void schedule() {
-                jobInfoRepository.cleanupTimedOutJobs();
+                jobService.cleanupTimedOutJobs();
             }
 
             @Override
@@ -97,7 +102,7 @@ public class JobScheduler {
 
             @Override
             public void schedule() {
-                jobInfoRepository.cleanupOldJobs();
+                jobService.cleanupOldJobs();
             }
 
             @Override

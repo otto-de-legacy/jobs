@@ -1,28 +1,11 @@
 package de.otto.jobstore.service;
 
-import de.otto.jobstore.TestSetup;
-import de.otto.jobstore.common.*;
-import de.otto.jobstore.common.properties.JobInfoProperty;
-import de.otto.jobstore.common.util.InternetUtils;
-import de.otto.jobstore.repository.JobDefinitionRepository;
-import de.otto.jobstore.repository.JobInfoRepository;
-import de.otto.jobstore.service.exception.*;
-import edu.umd.cs.mtc.MultithreadedTestCase;
-import edu.umd.cs.mtc.TestFramework;
-import org.bson.types.ObjectId;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.springframework.test.util.ReflectionTestUtils;
+import de.otto.jobstore.common.JobSchedule;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.net.URI;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Arrays;
 
-import static org.mockito.Mockito.*;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
 
 public class JobSchedulerTest {

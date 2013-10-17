@@ -172,7 +172,6 @@ public class JobServiceTest {
 
             }
         });
-
         TestFramework.runOnce(new MultithreadedTestCase() {
 
             public void thread1() throws Exception {
@@ -184,7 +183,6 @@ public class JobServiceTest {
             }
 
         });
-
     }
 
     @Test
@@ -299,7 +297,7 @@ public class JobServiceTest {
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(createSimpleJd());
         final JobExecutionException exception = new JobExecutionException("problem while executing");
-        JobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01, 1000, exception);
+        JobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01, 1000, exception, 0);
         jobService.registerJob(runnable);
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_02, 0));
 
@@ -432,7 +430,7 @@ public class JobServiceTest {
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         final JobExecutionException exception = new JobExecutionException("problem while executing");
-        JobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01, 0, exception);
+        JobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01, 0, exception, 0);
 
         jobService.registerJob(runnable);
         String id = jobService.executeJob(JOB_NAME_01, JobExecutionPriority.IGNORE_PRECONDITIONS);
@@ -644,6 +642,20 @@ public class JobServiceTest {
         final Collection<JobRunnable> jobRunnables = jobService.listJobRunnables();
         assertEquals(2, jobRunnables.size());
         assertEquals("job1", jobRunnables.iterator().next().getJobDefinition().getName());
+    }
+
+    @Test
+    public void executesTimedOutJobsCleanup() throws Exception {
+        jobService.cleanupTimedOutJobs();
+
+        verify(jobInfoRepository).cleanupTimedOutJobs();
+    }
+
+    @Test
+    public void executesOldJobsCleanup() throws Exception {
+        jobService.cleanupOldJobs();
+
+        verify(jobInfoRepository).cleanupOldJobs();
     }
 
     private class RemoteMockJobRunnable extends AbstractRemoteJobRunnable {
