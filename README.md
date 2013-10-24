@@ -5,6 +5,8 @@ The framework handles the execution of jobs (local or remote) in a multi-node en
 
 Information collected during the execution of a job may be saved and used for monitoring. The result state of a job is captured as well. The definition of timeouts allows to detect jobs which did not finish in their expected time frame.
 
+Certain jobs may be deactivated or the whole processing may be deactivated online. Additionally certain servers in a cluster with the same database may be excluded from job execution.
+
 ## Documentation
 In order to use the framework you have to implement a JobRunnable interface for each job which defines their properties and execution logic. For every job executed information on it are stored in the connected MongoDB which is also used as the semaphore to only allow one job to be executed and/or queued.
 
