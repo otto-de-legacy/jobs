@@ -35,6 +35,10 @@
         <constructor-arg index="0" value="http://127.0.0.1:5000/jobs/"/>
     </bean>
 
+    <bean class="de.otto.jobstore.service.RemoteJobExecutorWithScriptTransferService">
+        <constructor-arg index="0" value="http://10.66.10.5:5000/new_jobs/"/>
+    </bean>
+
     <bean id="jobServiceWithoutRemoteJobExecutorService" class="de.otto.jobstore.service.JobService">
         <constructor-arg index="0" ref="jobDefinitionRepository"/>
         <constructor-arg index="1" ref="jobInfoRepository"/>
