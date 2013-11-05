@@ -223,7 +223,7 @@ public class JobService {
     private String executeJobOrQueueIfRunningConstraintsAreViolated(String name, JobExecutionPriority executionPriority, JobRunnable runnable)
             throws JobAlreadyRunningException, JobAlreadyQueuedException {
         final String id = runJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
-        if (violatesRunningConstraints(name)) {
+        if (violatesRunningConstraints(name, true)) {
             LOGGER.info("ltag=JobService.executeJobIsNecessary.violatesRunningConstraints jobInfoName={} jobInfoId={}", name, id);
             if (!jobInfoRepository.deactivateRunningJob(id)) {
                 jobInfoRepository.remove(id);
@@ -522,7 +522,7 @@ public class JobService {
         final String name = runnable.getJobDefinition().getName();
         if (!jobInfoRepository.activateQueuedJobById(id)) {
             LOGGER.info("ltag=JobService.executeQueuedJob.activateQueuedJobFailed jobInfoName={} jobInfoId={}", name, id);
-        } else if (violatesRunningConstraints(name)) {
+        } else if (violatesRunningConstraints(name, false)) {
             LOGGER.info("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={} jobInfoId={}", name, id);
             jobInfoRepository.deactivateRunningJob(id);
         } else {
@@ -563,7 +563,7 @@ public class JobService {
         }
     }
 
-    private boolean violatesRunningConstraints(final String name) {
+    private boolean violatesRunningConstraints(final String name, boolean alsoCheckForQueuedJobs) {
         for (Set<String> constraint : runningConstraints) {
             if (constraint.contains(name)) {
                 for (String constraintJobName : constraint) {
@@ -572,6 +572,12 @@ public class JobService {
                     }
                     if (jobInfoRepository.hasJob(constraintJobName, RunningState.RUNNING)) {
                         return true;
+                    }
+                    if(alsoCheckForQueuedJobs) {
+                        if (jobInfoRepository.hasJob(constraintJobName, RunningState.QUEUED)) {
+                            return true;
+                        }
+
                     }
                 }
             }
