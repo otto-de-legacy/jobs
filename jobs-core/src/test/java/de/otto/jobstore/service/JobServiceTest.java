@@ -51,6 +51,61 @@ public class JobServiceTest {
     }
 
     @Test
+    public void queueJobIfConstraintJobIsQueued() throws Exception {
+        JobRunnable job1 = TestSetup.localJobRunnable(JOB_NAME_01, 0);
+        JobRunnable job2 = TestSetup.localJobRunnable(JOB_NAME_02, 0);
+
+        jobService.registerJob(job1);
+        jobService.registerJob(job2);
+        when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(new StoredJobDefinition(job1.getJobDefinition()));
+        when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(new StoredJobDefinition(job2.getJobDefinition()));
+
+        Set<String> constraint = new HashSet<>();
+        constraint.add(JOB_NAME_01);
+        constraint.add(JOB_NAME_02);
+        jobService.addRunningConstraint(constraint);
+
+        String jobId2 = "abcd";
+        when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(false);
+        when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(true);
+        when(jobInfoRepository.create(eq(JOB_NAME_02),anyLong(), anyLong(), anyLong(), eq(RunningState.RUNNING), any(JobExecutionPriority.class),anyMap())).thenReturn(jobId2);
+        when(jobInfoRepository.deactivateRunningJob(jobId2)).thenReturn(true);
+
+        jobService.executeJob(JOB_NAME_02);
+
+        verify(jobInfoRepository, times(1)).deactivateRunningJob(jobId2);
+    }
+
+    @Test
+    public void runQueuedJobEvenIfConstraintJobIsQueued() throws Exception {
+        JobRunnable job1 = TestSetup.localJobRunnable(JOB_NAME_01, 0);
+        JobRunnable job2 = TestSetup.localJobRunnable(JOB_NAME_02, 0);
+
+        jobService.registerJob(job1);
+        jobService.registerJob(job2);
+        when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(new StoredJobDefinition(job1.getJobDefinition()));
+        when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(new StoredJobDefinition(job2.getJobDefinition()));
+
+        Set<String> constraint = new HashSet<>();
+        constraint.add(JOB_NAME_01);
+        constraint.add(JOB_NAME_02);
+        jobService.addRunningConstraint(constraint);
+
+        String jobId2 = "abcd";
+        when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.QUEUED)).thenReturn(true);
+        JobInfo jobInfo2 = new JobInfo(JOB_NAME_02, "localhost", "thread", 0L, 0L, 2L, RunningState.QUEUED);
+        JobInfo jobInfo2Spy = spy(jobInfo2);
+        when(jobInfo2Spy.getId()).thenReturn(jobId2);
+        when(jobInfoRepository.activateQueuedJobById(jobId2)).thenReturn(true);
+
+        when(jobInfoRepository.findQueuedJobsSortedAscByCreationTime()).thenReturn(Arrays.asList(jobInfo2Spy));
+
+        jobService.executeQueuedJobs();
+
+        verify(jobInfoRepository).updateHostThreadInformation(jobId2);
+    }
+
+    @Test
     public void testRegisteringJob() throws Exception {
         assertTrue(jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0)));
         assertFalse(jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0)));
@@ -172,7 +227,6 @@ public class JobServiceTest {
 
             }
         });
-
         TestFramework.runOnce(new MultithreadedTestCase() {
 
             public void thread1() throws Exception {
@@ -184,7 +238,6 @@ public class JobServiceTest {
             }
 
         });
-
     }
 
     @Test
@@ -299,7 +352,7 @@ public class JobServiceTest {
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         when(jobDefinitionRepository.find(JOB_NAME_02)).thenReturn(createSimpleJd());
         final JobExecutionException exception = new JobExecutionException("problem while executing");
-        JobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01, 1000, exception);
+        JobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01, 1000, exception, 0);
         jobService.registerJob(runnable);
         jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_02, 0));
 
@@ -432,7 +485,7 @@ public class JobServiceTest {
         when(jobInfoRepository.hasJob(JOB_NAME_01, RunningState.RUNNING)).thenReturn(Boolean.FALSE);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
         final JobExecutionException exception = new JobExecutionException("problem while executing");
-        JobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01, 0, exception);
+        JobRunnable runnable = TestSetup.localJobRunnable(JOB_NAME_01, 0, exception, 0);
 
         jobService.registerJob(runnable);
         String id = jobService.executeJob(JOB_NAME_01, JobExecutionPriority.IGNORE_PRECONDITIONS);
@@ -644,6 +697,20 @@ public class JobServiceTest {
         final Collection<JobRunnable> jobRunnables = jobService.listJobRunnables();
         assertEquals(2, jobRunnables.size());
         assertEquals("job1", jobRunnables.iterator().next().getJobDefinition().getName());
+    }
+
+    @Test
+    public void executesTimedOutJobsCleanup() throws Exception {
+        jobService.cleanupTimedOutJobs();
+
+        verify(jobInfoRepository).cleanupTimedOutJobs();
+    }
+
+    @Test
+    public void executesOldJobsCleanup() throws Exception {
+        jobService.cleanupOldJobs();
+
+        verify(jobInfoRepository).cleanupOldJobs();
     }
 
     private class RemoteMockJobRunnable extends AbstractRemoteJobRunnable {

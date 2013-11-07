@@ -211,7 +211,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      *         false - If no queued job with the current name could be found and thus could not activated
      */
     public boolean deactivateRunningJob(final String id) {
-        logger.info("Aeactivate job={} ...", id);
+        logger.info("Deactivate job={} ...", id);
         return changeState(id, RunningState.QUEUED, null);
     }
 

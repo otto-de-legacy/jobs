@@ -10,6 +10,7 @@ import de.otto.jobstore.service.JobService;
 import de.otto.jobstore.service.exception.JobAlreadyQueuedException;
 import de.otto.jobstore.service.exception.JobAlreadyRunningException;
 import de.otto.jobstore.service.exception.JobNotRegisteredException;
+import de.otto.jobstore.service.exception.JobServiceNotActiveException;
 import de.otto.jobstore.web.representation.JobInfoRepresentation;
 import de.otto.jobstore.web.representation.JobNameRepresentation;
 import org.apache.abdera.model.Entry;
@@ -107,6 +108,14 @@ public class JobInfoResourceTest {
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
         assertEquals(409, response.getStatus());
+    }
+
+    @Test
+    public void testExecuteJobOnInactiveServiceShouldResultInBadRequestResponse() throws Exception {
+        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenThrow(new JobServiceNotActiveException("not active"));
+
+        Response response = jobInfoResource.executeJob("foo", uriInfo);
+        assertEquals(400, response.getStatus());
     }
 
     @Test

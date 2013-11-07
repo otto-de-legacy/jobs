@@ -2,7 +2,7 @@ package de.otto.jobstore.common;
 
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.service.JobInfoService;
-import de.otto.jobstore.service.RemoteJobExecutorService;
+import de.otto.jobstore.service.RemoteJobExecutor;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 import org.slf4j.Logger;
@@ -14,10 +14,10 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    protected final RemoteJobExecutorService remoteJobExecutorService;
+    protected final RemoteJobExecutor remoteJobExecutorService;
     protected final JobInfoService jobInfoService;
 
-    protected AbstractRemoteJobRunnable(RemoteJobExecutorService remoteJobExecutorService, JobInfoService jobInfoService) {
+    protected AbstractRemoteJobRunnable(RemoteJobExecutor remoteJobExecutorService, JobInfoService jobInfoService) {
         this.remoteJobExecutorService = remoteJobExecutorService;
         this.jobInfoService = jobInfoService;
     }

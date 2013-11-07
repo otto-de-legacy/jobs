@@ -28,8 +28,9 @@ public class JobService {
 
     private final Map<String, JobRunnable> jobs = new ConcurrentHashMap<>();
     private final Set<Set<String>> runningConstraints = new CopyOnWriteArraySet<>();
-    private final JobDefinitionRepository jobDefinitionRepository;
-    private final JobInfoRepository jobInfoRepository;
+    private JobDefinitionRepository jobDefinitionRepository;
+    private JobInfoRepository jobInfoRepository;
+    private ActiveChecker activeChecker;
 
     protected int     awaitTerminationSeconds = 30;
     protected boolean desynchronize = true;
@@ -41,11 +42,28 @@ public class JobService {
      *
      * @param jobDefinitionRepository The jobDefinition repository to store definitions in
      * @param jobInfoRepository The jobInfo Repository to store the jobs in
+     * @param activeChecker The activeChecker to determine if this jobService is active or not
      */
-    public JobService(JobDefinitionRepository jobDefinitionRepository, final JobInfoRepository jobInfoRepository) {
+    public JobService(JobDefinitionRepository jobDefinitionRepository, final JobInfoRepository jobInfoRepository, ActiveChecker activeChecker) {
         this.jobDefinitionRepository = jobDefinitionRepository;
         this.jobInfoRepository = jobInfoRepository;
+        this.activeChecker = activeChecker;
         this.jobDefinitionRepository.addOrUpdate(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
+    }
+
+    /**
+     * Creates a JobService Object.
+     *
+     * @param jobDefinitionRepository The jobDefinition repository to store definitions in
+     * @param jobInfoRepository The jobInfo Repository to store the jobs in
+     */
+    public JobService(JobDefinitionRepository jobDefinitionRepository, JobInfoRepository jobInfoRepository) {
+        this(jobDefinitionRepository, jobInfoRepository, new ActiveChecker() {
+            @Override
+            public boolean isActive() {
+                return true;
+            }
+        });
     }
 
     public boolean isExecutionEnabled() {
@@ -155,7 +173,7 @@ public class JobService {
      * @throws JobExecutionDisabledException If job execution has been disabled
      */
     public String executeJob(final String name) throws JobNotRegisteredException, JobAlreadyQueuedException,
-            JobAlreadyRunningException, JobExecutionNotNecessaryException, JobExecutionDisabledException {
+            JobAlreadyRunningException, JobExecutionNotNecessaryException, JobExecutionDisabledException, JobServiceNotActiveException {
         return executeJob(name, JobExecutionPriority.CHECK_PRECONDITIONS);
     }
 
@@ -176,7 +194,8 @@ public class JobService {
      */
     public String executeJob(final String name, final JobExecutionPriority executionPriority) throws JobNotRegisteredException,
             JobAlreadyQueuedException, JobAlreadyRunningException, JobExecutionNotNecessaryException,
-            JobExecutionDisabledException {
+            JobExecutionDisabledException, JobServiceNotActiveException {
+        checkIfJobServiceIsActive();
         checkIfJobExecutionIsEnabled();
         checkIfJobIsRegistered(name);
         checkIfJobIsDisabled(name);
@@ -204,7 +223,7 @@ public class JobService {
     private String executeJobOrQueueIfRunningConstraintsAreViolated(String name, JobExecutionPriority executionPriority, JobRunnable runnable)
             throws JobAlreadyRunningException, JobAlreadyQueuedException {
         final String id = runJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
-        if (violatesRunningConstraints(name)) {
+        if (violatesRunningConstraints(name, true)) {
             LOGGER.info("ltag=JobService.executeJobIsNecessary.violatesRunningConstraints jobInfoName={} jobInfoId={}", name, id);
             if (!jobInfoRepository.deactivateRunningJob(id)) {
                 jobInfoRepository.remove(id);
@@ -238,6 +257,13 @@ public class JobService {
         }
     }
 
+    private void checkIfJobServiceIsActive() throws JobServiceNotActiveException {
+        if  (!activeChecker.isActive()) {
+            throw new JobServiceNotActiveException("Job Service is not active");
+        }
+    }
+
+
     public void abortJob(String id) {
         jobInfoRepository.abortJob(id);
     }
@@ -246,6 +272,11 @@ public class JobService {
      * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
      */
     public void executeQueuedJobs() {
+        if (!activeChecker.isActive()) {
+            LOGGER.info("ltag=JobService not active");
+            return;
+        }
+
         LOGGER.info("ltag=JobService.executeQueuedJobs called");
         try {
             doExecuteQueuedJobs();
@@ -295,6 +326,11 @@ public class JobService {
      * Polls all remote jobs and updates their status if necessary
      */
     public void pollRemoteJobs() {
+        if (!activeChecker.isActive()) {
+            LOGGER.info("ltag=JobService not active");
+            return;
+        }
+
         LOGGER.info("ltag=JobService.pollRemoteJobs called");
         try {
             doPollRemoteJobs();
@@ -482,11 +518,11 @@ public class JobService {
      * - wenn running constraints verletzt, dann job wieder zurueck auf queued
      *
      */
-    protected void executeQueuedJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
+    void executeQueuedJob(JobRunnable runnable, String id, JobExecutionPriority executionPriority) {
         final String name = runnable.getJobDefinition().getName();
         if (!jobInfoRepository.activateQueuedJobById(id)) {
             LOGGER.info("ltag=JobService.executeQueuedJob.activateQueuedJobFailed jobInfoName={} jobInfoId={}", name, id);
-        } else if (violatesRunningConstraints(name)) {
+        } else if (violatesRunningConstraints(name, false)) {
             LOGGER.info("ltag=JobService.executeQueuedJob.violatesRunningConstraints jobInfoName={} jobInfoId={}", name, id);
             jobInfoRepository.deactivateRunningJob(id);
         } else {
@@ -527,7 +563,7 @@ public class JobService {
         }
     }
 
-    private boolean violatesRunningConstraints(final String name) {
+    private boolean violatesRunningConstraints(final String name, boolean alsoCheckForQueuedJobs) {
         for (Set<String> constraint : runningConstraints) {
             if (constraint.contains(name)) {
                 for (String constraintJobName : constraint) {
@@ -536,6 +572,12 @@ public class JobService {
                     }
                     if (jobInfoRepository.hasJob(constraintJobName, RunningState.RUNNING)) {
                         return true;
+                    }
+                    if(alsoCheckForQueuedJobs) {
+                        if (jobInfoRepository.hasJob(constraintJobName, RunningState.QUEUED)) {
+                            return true;
+                        }
+
                     }
                 }
             }
@@ -557,7 +599,7 @@ public class JobService {
     /**
      * Executes all queued jobs registered with this JobService instance asynchronously in the order they were queued.
      */
-    public void retryFailedJobs() {
+    void retryFailedJobs() {
         LOGGER.info("ltag=JobService.retryFailedJobs called");
         try {
             doRetryFailedJobs();
@@ -567,10 +609,12 @@ public class JobService {
         LOGGER.info("ltag=JobService.retryFailedJobs finished");
     }
 
-    protected void doRetryFailedJobs() {
-
+    void doRetryFailedJobs() {
+        if (!activeChecker.isActive()) {
+            LOGGER.info("ltag=JobService not active");
+            return;
+        }
         desynchronize();
-
         for (JobRunnable jobRunnable : jobs.values()) {
             JobDefinition definition = jobRunnable.getJobDefinition();
             String name     = definition.getName();
@@ -616,6 +660,22 @@ public class JobService {
                 }
             }
         }
+    }
+
+    void cleanupOldJobs() {
+        if (!activeChecker.isActive()) {
+            LOGGER.info("ltag=JobService not active");
+            return;
+        }
+        jobInfoRepository.cleanupOldJobs();
+    }
+
+    void cleanupTimedOutJobs() {
+        if (!activeChecker.isActive()) {
+            LOGGER.info("ltag=JobService not active");
+            return;
+        }
+        jobInfoRepository.cleanupTimedOutJobs();
     }
 
     public JobDefinition getJobDefinitionByName(String jobName){
