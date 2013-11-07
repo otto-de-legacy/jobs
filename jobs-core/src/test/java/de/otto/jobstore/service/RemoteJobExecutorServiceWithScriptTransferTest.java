@@ -1,7 +1,6 @@
 package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.RemoteJob;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.testng.annotations.BeforeMethod;
@@ -12,7 +11,6 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.mockito.Mockito.mock;
 import static org.testng.AssertJUnit.assertTrue;
 
 public class RemoteJobExecutorServiceWithScriptTransferTest  {
@@ -20,13 +18,10 @@ public class RemoteJobExecutorServiceWithScriptTransferTest  {
     private static final String JOB_NAME = "demojob";
 
     private RemoteJobExecutorWithScriptTransferService remoteJobExecutorService;
-    private ScriptArchiver scriptArchiver;
-    private HttpClient httpClient;
 
     @BeforeMethod
     public void setUp() {
         remoteJobExecutorService = new RemoteJobExecutorWithScriptTransferService("uri");
-        scriptArchiver = mock(ScriptArchiver.class);
     }
 
     @Test

@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.MediaType;
 import java.net.URI;
 
-public class RemoteJobExecutorService {
+public class RemoteJobExecutorService implements RemoteJobExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorService.class);
     private String jobExecutorUri;
@@ -35,6 +35,7 @@ public class RemoteJobExecutorService {
         this.client = Client.create(cc);
     }
 
+    @Override
     public URI startJob(final RemoteJob job) throws JobException {
         final String startUrl = jobExecutorUri + job.name + "/start";
         try {
@@ -55,6 +56,7 @@ public class RemoteJobExecutorService {
         }
     }
 
+    @Override
     public void stopJob(URI jobUri) throws JobException {
         final String stopUrl = jobUri + "/stop";
         try {
@@ -68,6 +70,7 @@ public class RemoteJobExecutorService {
         }
     }
 
+    @Override
     public RemoteJobStatus getStatus(final URI jobUri) {
         try {
             final ClientResponse response = client.resource(jobUri.toString()).
@@ -86,6 +89,7 @@ public class RemoteJobExecutorService {
         return null; // TODO: this should be avoided
     }
 
+    @Override
     public boolean isAlive() {
         try {
             final ClientResponse response = client.resource(jobExecutorUri).header("Connection", "close").get(ClientResponse.class);

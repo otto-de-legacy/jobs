@@ -5,10 +5,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.testng.annotations.Test;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -18,46 +15,37 @@ import static org.testng.Assert.assertTrue;
 
 public class ScriptArchiverTest {
 
-    private String separator = System.getProperty("file.separator");
-
     @Test
     public void shouldTarFilesForJobName() throws Exception {
-        // Given
         ScriptArchiver scriptArchiver = new ScriptArchiver();
 
-        Path directory = Files.createTempDirectory("jobname");
-        new File(directory.toString()).deleteOnExit();
-        String directoryName = directory.toFile().getAbsolutePath();
-        touchFile(directoryName, "script1");
-        touchFile(directoryName, "script2");
-
-        // When
+        String directoryName = "/jobs/demojob";
         byte[] output = scriptArchiver.createArchive(directoryName);
 
-        // Then
-        assertArchiveContains(directoryName, output, "script1", "script2");
+        assertArchiveContains(output, "demoscript.sh");
     }
 
-    private void assertArchiveContains(String directoryName, byte[] output, String... files) throws IOException {
+    @Test(expectedExceptions = IOException.class)
+    public void shouldThrowIOExceptionWhenFolderNotPresent() throws Exception {
+        ScriptArchiver scriptArchiver = new ScriptArchiver();
+        scriptArchiver.createArchive("/not_present");
+    }
+
+    private void assertArchiveContains(byte[] output, String... files) throws IOException {
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(output);
         TarArchiveInputStream tarInput =  new TarArchiveInputStream(new GZIPInputStream(byteArrayInputStream));
 
         TarArchiveEntry tarEntry = tarInput.getNextTarEntry();
-        List<String> filenames = new ArrayList();
+        List<String> fileNames = new ArrayList();
         while(tarEntry != null) {
-            filenames.add(tarEntry.getName());
+            fileNames.add(tarEntry.getName());
             tarEntry = tarInput.getNextTarEntry();
         }
-        assertEquals(filenames.size(), files.length);
+        assertEquals(fileNames.size(), files.length);
 
         for (String filename : files) {
-            assertTrue(filenames.contains(directoryName.substring(1) + separator + filename));
+            assertTrue(fileNames.contains(filename));
         }
     }
 
-    private void touchFile(String directoryName, String filename) throws IOException {
-        File file = new File(directoryName, filename);
-        file.createNewFile();
-        file.deleteOnExit();
-    }
 }

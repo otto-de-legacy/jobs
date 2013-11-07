@@ -7,11 +7,13 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.zip.GZIPOutputStream;
 
 public class ScriptArchiver {
 
-    public byte[] createArchive(String directory) throws IOException {
+    public byte[] createArchive(String directory) throws IOException, URISyntaxException {
         TarArchiveOutputStream tarArchive = null;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try {
@@ -19,9 +21,9 @@ public class ScriptArchiver {
                     new GZIPOutputStream(
                             new BufferedOutputStream(byteArrayOutputStream)));
 
-            File[] files = new File(directory).listFiles();
-            for (File file : files) {
-                TarArchiveEntry tarArchiveEntry = new TarArchiveEntry(file);
+            String[] fileNames = getResources(directory);
+            for (String fileName : fileNames) {
+                TarArchiveEntry tarArchiveEntry = new TarArchiveEntry(new File(fileName));
                 tarArchive.putArchiveEntry(tarArchiveEntry);
                 tarArchive.closeArchiveEntry();
             }
@@ -30,5 +32,14 @@ public class ScriptArchiver {
         }
 
         return byteArrayOutputStream.toByteArray();
+    }
+
+    public String[] getResources(String path) throws URISyntaxException, IOException {
+        URL dirURL = getClass().getResource(path);
+        if (dirURL==null) {
+            throw new IOException("Could not find directory \"" + path + "\"");
+        }
+        File file = new File(dirURL.toURI());
+        return file.list();
     }
 }

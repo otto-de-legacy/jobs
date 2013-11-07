@@ -28,9 +28,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 
-public class RemoteJobExecutorWithScriptTransferService {
+public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorWithScriptTransferService.class);
+    private static final String JOB_SCRIPT_DIRECTORY = "/jobs";
     private String jobExecutorUri;
     private Client client;
     private HttpClient httpclient =  new DefaultHttpClient();
@@ -53,8 +54,8 @@ public class RemoteJobExecutorWithScriptTransferService {
 
             byte[] tarAsByteArray;
             try {
-                tarAsByteArray = scriptArchiver.createArchive(job.name);
-            } catch (IOException e) {
+                tarAsByteArray = scriptArchiver.createArchive(getJobScriptDirectory(job));
+            } catch (Exception e) {
                 throw new JobExecutionException("Could not create tar with job scripts (folder: " + job.name + ")", e);
             }
 
@@ -144,6 +145,10 @@ public class RemoteJobExecutorWithScriptTransferService {
 
     private URI createJobUri(String path) {
         return URI.create(jobExecutorUri).resolve(path);
+    }
+
+    private String getJobScriptDirectory(RemoteJob job) {
+        return JOB_SCRIPT_DIRECTORY + "/" + job.name;
     }
 
 }
