@@ -22,10 +22,28 @@ import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.nio.charset.Charset;
 
+/**
+ * This class triggers the execution of jobs on a remote server.
+ * The scripts for execution are sent within the request body.
+ *
+ * The remote server has to expose a rest endpoint.
+ * The multipart request sent to the endpoint consists of two parts:
+ *
+ * 1) A binary part containing the tar file:
+ *     Content-Disposition: form-data; name="scripts"; filename="scripts.tar.gz"
+ *     Content-Type: application/octet-stream
+ *     Content-Transfer-Encoding: binary
+ * 2) A part containing the JSON formatted parameters:
+ *     Content-Disposition: form-data; name="params"
+ *     Content-Type: application/json; charset=UTF-8
+ *     Content-Transfer-Encoding: 8bit
+ */
 public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorWithScriptTransferService.class);
@@ -100,11 +118,13 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
         MultipartEntity multipartEntity = new MultipartEntity();
         multipartEntity.addPart("scripts", tarBody);
         try {
-            multipartEntity.addPart("params", new StringBody(job.toJsonObject().toString()));
+            multipartEntity.addPart("params", new StringBody(job.toJsonObject().toString(), MediaType.APPLICATION_JSON, Charset.forName("UTF-8")));
         } catch (UnsupportedEncodingException e) {
             throw new JobExecutionException("Could not generate json", e);
         }
         httpPost.setEntity(multipartEntity);
+        httpPost.setHeader("Connection", "close");
+        httpPost.setHeader("User-Agent", "RemoteJobExecutorService");
         return httpPost;
     }
 
