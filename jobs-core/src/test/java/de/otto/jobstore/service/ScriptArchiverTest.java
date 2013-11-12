@@ -22,7 +22,11 @@ public class ScriptArchiverTest {
         String directoryName = "/jobs/demojob";
         byte[] output = scriptArchiver.createArchive(directoryName);
 
-        assertArchiveContains(output, "demoscript.sh");
+//        OutputStream outputStream = new FileOutputStream("/tmp/test.tar.gz");
+//        outputStream.write(output);
+//        outputStream.close();
+
+        assertArchiveContainsExecutableFiles(output, "demoscript.sh");
     }
 
     @Test(expectedExceptions = IOException.class)
@@ -31,7 +35,7 @@ public class ScriptArchiverTest {
         scriptArchiver.createArchive("/not_present");
     }
 
-    private void assertArchiveContains(byte[] output, String... files) throws IOException {
+    private void assertArchiveContainsExecutableFiles(byte[] output, String... files) throws IOException {
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(output);
         TarArchiveInputStream tarInput =  new TarArchiveInputStream(new GZIPInputStream(byteArrayInputStream));
 
@@ -39,6 +43,7 @@ public class ScriptArchiverTest {
         List<String> fileNames = new ArrayList();
         while(tarEntry != null) {
             fileNames.add(tarEntry.getName());
+            assertEquals(tarEntry.getMode(), 0100755);
             tarEntry = tarInput.getNextTarEntry();
         }
         assertEquals(fileNames.size(), files.length);

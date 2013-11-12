@@ -16,6 +16,8 @@ import java.util.zip.GZIPOutputStream;
 
 public class ScriptArchiver {
 
+    public static final int FOR_ALL_EXECUTABLE_FILE = 0100755;
+
     public byte[] createArchive(String directory) throws IOException, URISyntaxException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
@@ -35,6 +37,7 @@ public class ScriptArchiver {
         try (InputStream fis = new FileInputStream(file)) {
             TarArchiveEntry tarArchiveEntry = new TarArchiveEntry(file.getName());
             tarArchiveEntry.setSize(file.length());
+            tarArchiveEntry.setMode(FOR_ALL_EXECUTABLE_FILE);
             tarArchive.putArchiveEntry(tarArchiveEntry);
             IOUtils.copy(fis, tarArchive);
             tarArchive.closeArchiveEntry();
