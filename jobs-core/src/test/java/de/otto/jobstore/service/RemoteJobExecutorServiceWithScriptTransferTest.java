@@ -15,7 +15,7 @@ import static org.testng.AssertJUnit.assertTrue;
 
 public class RemoteJobExecutorServiceWithScriptTransferTest  {
 
-    private static final String JOB_NAME = "demojob";
+    private static final String JOB_NAME = "jobname";
 
     private RemoteJobExecutorWithScriptTransferService remoteJobExecutorService;
 

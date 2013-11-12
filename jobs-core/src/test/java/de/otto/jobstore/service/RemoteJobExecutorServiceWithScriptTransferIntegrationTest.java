@@ -25,7 +25,7 @@ import static org.testng.AssertJUnit.fail;
 @ContextConfiguration(locations = {"classpath:spring/jobs-context.xml"})
 public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends AbstractTestNGSpringContextTests {
 
-    private static final String JOB_NAME = "demojob";
+    private static final String JOB_NAME = "jobname";
 
     @Resource
     private RemoteJobExecutorWithScriptTransferService remoteJobExecutorService;
@@ -35,7 +35,7 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
 
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         assertNotNull(uri);
-        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/demojob/"));
+        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/jobname/"));
 
         remoteJobExecutorService.stopJob(uri);
     }
@@ -49,7 +49,7 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
             fail("No exception expected when trying to start job");
         }
         assert uri != null;
-        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/demojob/"));
+        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/jobname/"));
 
         try {
             remoteJobExecutorService.startJob(createRemoteJob());
