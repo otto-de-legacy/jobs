@@ -18,6 +18,7 @@ import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +68,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
 
     public URI startJob(final RemoteJob job) throws JobException {
         final String startUrl = jobExecutorUri + job.name + "/start";
+        HttpResponse response = null;
         try {
             LOGGER.info("ltag=RemoteJobExecutorService.startJob Going to start job: {} ...", startUrl);
 
@@ -74,7 +76,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
 
             HttpPost httpPost = createRemoteExecutorMultipartRequest(job, startUrl, tarAsByteArray);
 
-            HttpResponse response = executeRequest(httpPost);
+            response = executeRequest(httpPost);
 
             int statusCode = response.getStatusLine().getStatusCode();
             String link = response.getFirstHeader("Link").getValue();
@@ -88,6 +90,18 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
             throw new JobExecutionException("Could not create JSON object: " + job, e);
         } catch (UniformInterfaceException | ClientHandlerException  e) {
             throw new JobExecutionException("Problem while starting new job: url=" + startUrl, e);
+        } finally {
+            closeResponseConnection(response);
+        }
+    }
+
+    private void closeResponseConnection(HttpResponse response) {
+        if (response != null) {
+            try {
+                EntityUtils.consume(response.getEntity());
+            } catch (IOException e) {
+                LOGGER.warn("Could not close response connection", e);
+            }
         }
     }
 
