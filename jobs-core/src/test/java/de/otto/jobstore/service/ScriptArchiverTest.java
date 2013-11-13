@@ -19,20 +19,37 @@ public class ScriptArchiverTest {
     public void shouldTarFilesForJobName() throws Exception {
         ScriptArchiver scriptArchiver = new ScriptArchiver();
 
-        String directoryName = "/jobs/demojob";
-        byte[] output = scriptArchiver.createArchive(directoryName);
+        String jobDirectory = "/jobs";
+        String jobName = "jobname_env";
+        byte[] output = scriptArchiver.createArchive(jobDirectory, jobName);
 
 //        OutputStream outputStream = new FileOutputStream("/tmp/test.tar.gz");
 //        outputStream.write(output);
 //        outputStream.close();
 
+        assertArchiveContainsExecutableFiles(output, "demoscript.sh", "env.conf");
+    }
+
+    @Test
+    public void shouldTarFilesForJobNameWithoutEnvironmentPrefix() throws Exception {
+        ScriptArchiver scriptArchiver = new ScriptArchiver();
+
+        String jobDirectory = "/jobs";
+        String jobName = "jobWithNoEnv";
+        byte[] output = scriptArchiver.createArchive(jobDirectory, jobName);
+
         assertArchiveContainsExecutableFiles(output, "demoscript.sh");
     }
 
-    @Test(expectedExceptions = IOException.class)
-    public void shouldThrowIOExceptionWhenFolderNotPresent() throws Exception {
+    @Test
+    public void shouldTarFilesForJobNameWithEnvironmentPrefixButNoEnvironmentFolder() throws Exception {
         ScriptArchiver scriptArchiver = new ScriptArchiver();
-        scriptArchiver.createArchive("/not_present");
+
+        String jobDirectory = "/jobs";
+        String jobName = "jobWithEnvButNoEnvFolder_environment";
+        byte[] output = scriptArchiver.createArchive(jobDirectory, jobName);
+
+        assertArchiveContainsExecutableFiles(output, "demoscript.sh");
     }
 
     private void assertArchiveContainsExecutableFiles(byte[] output, String... files) throws IOException {

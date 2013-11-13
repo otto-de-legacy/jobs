@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static org.testng.AssertJUnit.*;
@@ -23,7 +22,7 @@ import static org.testng.AssertJUnit.*;
 @ContextConfiguration(locations = {"classpath:spring/jobs-context.xml"})
 public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSpringContextTests {
 
-    private static final String JOB_NAME = "demojob";
+    private static final String JOB_NAME = "jobname";
 
     @Resource
     private RemoteJobExecutorService remoteJobExecutorService;
@@ -32,7 +31,7 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
     public void testStartingDemoJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         assertNotNull(uri);
-        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/demojob/"));
+        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/jobname/"));
 
         remoteJobExecutorService.stopJob(uri);
     }
@@ -46,7 +45,7 @@ public class RemoteJobExecutorServiceIntegrationTest extends AbstractTestNGSprin
             fail("No exception expected when trying to start job");
         }
         assert uri != null;
-        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/demojob/"));
+        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/jobname/"));
 
         try {
             remoteJobExecutorService.startJob(createRemoteJob());

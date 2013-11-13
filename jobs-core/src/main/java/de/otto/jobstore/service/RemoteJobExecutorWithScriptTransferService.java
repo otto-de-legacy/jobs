@@ -104,7 +104,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     private byte[] createTar(RemoteJob job) throws JobExecutionException {
         byte[] tarAsByteArray;
         try {
-            tarAsByteArray = scriptArchiver.createArchive(getJobScriptDirectory(job));
+            tarAsByteArray = scriptArchiver.createArchive(JOB_SCRIPT_DIRECTORY, job.name);
         } catch (Exception e) {
             throw new JobExecutionException("Could not create tar with job scripts (folder: " + job.name + ")", e);
         }
@@ -153,10 +153,6 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
 
     private URI createJobUri(String path) {
         return URI.create(jobExecutorUri).resolve(path);
-    }
-
-    private String getJobScriptDirectory(RemoteJob job) {
-        return JOB_SCRIPT_DIRECTORY + "/" + job.name;
     }
 
 }
