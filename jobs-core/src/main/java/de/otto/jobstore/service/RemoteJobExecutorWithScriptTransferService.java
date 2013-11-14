@@ -79,6 +79,9 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
             response = executeRequest(httpPost);
 
             int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode != 201 && statusCode != 303) {
+                throw new JobExecutionException("Unable to contact remote executor. Server returned status " + statusCode);
+            }
             String link = response.getFirstHeader("Link").getValue();
             if (statusCode == 201) {
                 return createJobUri(link);

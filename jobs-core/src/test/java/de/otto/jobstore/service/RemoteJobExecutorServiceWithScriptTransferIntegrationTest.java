@@ -51,6 +51,7 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
         assert uri != null;
         assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/jobname/"));
 
+        // When
         try {
             remoteJobExecutorService.startJob(createRemoteJob());
         } finally {
