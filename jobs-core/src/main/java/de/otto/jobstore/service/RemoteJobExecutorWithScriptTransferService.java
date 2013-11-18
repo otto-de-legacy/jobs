@@ -52,7 +52,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     private final RemoteJobExecutorStatusRetriever remoteJobExecutorStatusRetriever;
     private String jobExecutorUri;
     private Client client;
-    private HttpClient httpclient =  new DefaultHttpClient();
+    private HttpClient httpClient =  new DefaultHttpClient();
     private ScriptArchiver scriptArchiver = new ScriptArchiver();
 
     public RemoteJobExecutorWithScriptTransferService(String jobExecutorUri) {
@@ -64,6 +64,13 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
         cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
         this.client = Client.create(cc);
         remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
+    }
+
+
+    RemoteJobExecutorWithScriptTransferService(String remoteExecutorUri, ScriptArchiver scriptArchiver, HttpClient httpClient) {
+        this(remoteExecutorUri);
+        this.scriptArchiver = scriptArchiver;
+        this.httpClient = httpClient;
     }
 
     public URI startJob(final RemoteJob job) throws JobException {
@@ -111,7 +118,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     private HttpResponse executeRequest(HttpPost httpPost) throws JobExecutionException {
         HttpResponse response;
         try {
-            response = httpclient.execute(httpPost);
+            response = httpClient.execute(httpPost);
         } catch (IOException e) {
             throw new JobExecutionException("Could not post scripts", e);
         }
