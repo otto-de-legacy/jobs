@@ -13,7 +13,7 @@ import java.net.URI;
 
 public class RemoteJobExecutorStatusRetriever {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorWithScriptTransferService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorStatusRetriever.class);
     private final Client client;
 
     public RemoteJobExecutorStatusRetriever(Client client) {
