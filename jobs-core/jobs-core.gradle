@@ -20,22 +20,12 @@ test {
     exclude "**/RemoteJobExecutorServiceIntegrationTest*"
 }
 
-task integrationTest(type: Test, dependsOn: 'startJobExec') {
+task integrationTest(type: Test) {
     useTestNG()
     description "Run integration tests"
     testLogging.showStandardStreams = true
     testReportDir = file('build/reports/integration')
     include "**/RemoteJobExecutorServiceIntegrationTest*"
-}
-
-
-task prepareJobExec(type: Exec) {
-    commandLine '../jobs-executor/prepare.sh', '0.8.26'
-}
-
-task startJobExec(type: Exec, dependsOn: prepareJobExec) {
-    workingDir 'jobs-executor'
-    commandLine './start.sh'
 }
 
 // ~~~~~~~~~~~
