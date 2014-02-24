@@ -11,11 +11,13 @@ import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 import de.otto.jobstore.service.exception.RemoteJobNotRunningException;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -25,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.MediaType;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -139,7 +142,16 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     public HttpPost createRemoteExecutorMultipartRequest(RemoteJob job, String startUrl, InputStream tarInputStream) throws JSONException, JobExecutionException {
         HttpPost httpPost = new HttpPost(startUrl);
 
-        InputStreamBody tarBody = new InputStreamBody(tarInputStream, "scripts.tar.gz");
+        // InputStreamBody tarBody = new InputStreamBody(tarInputStream, "scripts.tar.gz");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            IOUtils.copy(tarInputStream, baos);
+            tarInputStream.close();
+        } catch(IOException e) {
+            throw new JobExecutionException("error copying byte arrays", e);
+        }
+        ByteArrayBody tarBody = new ByteArrayBody(baos.toByteArray(), "scripts.tar.gz");
+
         MultipartEntity multipartEntity = new MultipartEntity();
         multipartEntity.addPart("scripts", tarBody);
         try {
