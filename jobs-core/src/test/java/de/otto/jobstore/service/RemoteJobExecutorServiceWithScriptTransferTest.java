@@ -1,7 +1,6 @@
 package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.RemoteJob;
-import de.otto.jobstore.service.RemoteJobExecutorWithScriptTransferService;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.testng.annotations.BeforeMethod;
@@ -25,7 +24,7 @@ public class RemoteJobExecutorServiceWithScriptTransferTest {
 
     @BeforeMethod
     public void setUp() {
-        remoteJobExecutorService = new RemoteJobExecutorWithScriptTransferService("uri", new DirectoryBasedScriptArchiver(JOB_SCRIPT_DIRECTORY));
+        remoteJobExecutorService = new RemoteJobExecutorWithScriptTransferService("uri", new DirectoryBasedTarArchiveProvider(JOB_SCRIPT_DIRECTORY));
     }
 
     @Test
