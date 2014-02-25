@@ -1,5 +1,4 @@
 project.ext.libs = [
-    "apacheIo"          : "commons-io:commons-io:2.1",
     "cobertura"         : "net.sourceforge.cobertura:cobertura:1.9.4.1",
     "commonsCompress"   : "org.apache.commons:commons-compress:1.0",
     "httpClient"        : "org.apache.httpcomponents:httpclient:4.1.1",
