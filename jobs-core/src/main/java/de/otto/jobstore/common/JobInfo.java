@@ -89,21 +89,11 @@ public class JobInfo extends AbstractItem {
     }
 
     public Long getMaxIdleTime() {
-        final Long maxIdleTime = getProperty(JobInfoProperty.MAX_IDLE_TIME);
-        //TODO This is only for backward compability for the time, the new version of this library is running, with formerly started jobs
-        if(maxIdleTime == null){
-            return getProperty(JobInfoProperty.TIMEOUT_PERIOD);
-        }
-        return maxIdleTime;
+        return getProperty(JobInfoProperty.MAX_IDLE_TIME);
     }
 
     public Long getMaxExecutionTime() {
-        final Long maxExecutionTime = getProperty(JobInfoProperty.MAX_EXECUTION_TIME);
-        //TODO This is only for backward compability for the time, the new version of this library is running, with formerly started jobs
-        if(maxExecutionTime == null){
-            return Long.valueOf(1000*60*60*2);
-        }
-        return maxExecutionTime;
+        return getProperty(JobInfoProperty.MAX_EXECUTION_TIME);
     }
 
     public Long getRetries() {
