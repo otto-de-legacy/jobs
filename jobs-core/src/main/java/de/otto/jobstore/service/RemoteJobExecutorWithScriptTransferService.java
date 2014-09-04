@@ -11,6 +11,7 @@ import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 import de.otto.jobstore.service.exception.RemoteJobNotRunningException;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -26,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.MediaType;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -55,11 +57,11 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     private String jobExecutorUri;
     private Client client;
     private HttpClient httpclient =  new DefaultHttpClient();
-    private ScriptArchiver scriptArchiver;
+    private TarArchiveProvider tarArchiveProvider;
 
-    public RemoteJobExecutorWithScriptTransferService(String jobExecutorUri, ScriptArchiver scriptArchiver) {
+    public RemoteJobExecutorWithScriptTransferService(String jobExecutorUri, TarArchiveProvider tarArchiveProvider) {
         this.jobExecutorUri = jobExecutorUri;
-        this.scriptArchiver = scriptArchiver;
+        this.tarArchiveProvider = tarArchiveProvider;
 
         // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
         //    see: https://github.com/mitsuhiko/flask/issues/367
@@ -131,7 +133,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
 
     private InputStream createTar(RemoteJob job) throws JobExecutionException {
         try {
-            return scriptArchiver.createArchive(job);
+            return tarArchiveProvider.getArchiveAsInputStream(job);
         } catch (Exception e) {
             throw new JobExecutionException("Could not create tar with job scripts (folder: " + job.name + ")", e);
         }
@@ -140,7 +142,16 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     public HttpPost createRemoteExecutorMultipartRequest(RemoteJob job, String startUrl, InputStream tarInputStream) throws JSONException, JobExecutionException {
         HttpPost httpPost = new HttpPost(startUrl);
 
-        InputStreamBody tarBody = new InputStreamBody(tarInputStream, "scripts.tar.gz");
+        // InputStreamBody tarBody = new InputStreamBody(tarInputStream, "scripts.tar.gz");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            IOUtils.copy(tarInputStream, baos);
+            tarInputStream.close();
+        } catch(IOException e) {
+            throw new JobExecutionException("error copying byte arrays", e);
+        }
+        ByteArrayBody tarBody = new ByteArrayBody(baos.toByteArray(), "scripts.tar.gz");
+
         MultipartEntity multipartEntity = new MultipartEntity();
         multipartEntity.addPart("scripts", tarBody);
         try {

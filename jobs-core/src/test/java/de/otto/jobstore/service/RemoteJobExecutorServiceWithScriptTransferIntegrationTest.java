@@ -22,9 +22,9 @@ import static org.testng.AssertJUnit.*;
 @ContextConfiguration(locations = {"classpath:spring/jobs-context.xml"})
 public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends AbstractTestNGSpringContextTests {
 
-    private static final String JOB_NAME = "jobname";
+    private static final String JOB_NAME = "demojob1";
 
-    // TODO:
+    @Resource
     private RemoteJobExecutorWithScriptTransferService remoteJobExecutorService;
 
     @Test(enabled = false)
@@ -32,7 +32,6 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
 
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         assertNotNull(uri);
-        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/jobname/"));
 
         remoteJobExecutorService.stopJob(uri);
     }
