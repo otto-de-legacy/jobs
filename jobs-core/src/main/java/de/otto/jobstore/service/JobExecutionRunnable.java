@@ -34,8 +34,8 @@ final class JobExecutionRunnable implements Runnable {
         try {
             LOGGER.info("ltag=JobService.JobExecutionRunnable.run start jobName={} jobId={}", name, context.getId());
             if (jobRunnable.prepare(context)) {
-                // save parameters directly before execution
-                jobInfoRepository.saveParameters(context.getId(),jobRunnable.getParameters());
+                // add parameters coming from JobRunnable directly before execution, keep old ones!
+                jobInfoRepository.appendParameters(context.getId(), jobRunnable.getParameters());
                 jobRunnable.execute(context);
                 if (!jobDefinition.isRemote()) {
                     LOGGER.info("ltag=JobService.JobExecutionRunnable.run finished jobName={} jobId={}", name, context.getId());
@@ -58,5 +58,4 @@ final class JobExecutionRunnable implements Runnable {
             jobInfoRepository.markAsFinished(context.getId(), e);
         }
     }
-
 }

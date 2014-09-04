@@ -26,6 +26,8 @@ public class JobService {
     private static final long JOB_INFO_CACHE_UPDATE_INTERVAL = 10000;
     private static final Logger LOGGER = LoggerFactory.getLogger(JobService.class);
 
+    static final Map<String, String> NO_PARAMETERS = Collections.emptyMap();
+
     private final Map<String, JobRunnable> jobs = new ConcurrentHashMap<>();
     private final Set<Set<String>> runningConstraints = new CopyOnWriteArraySet<>();
     private JobDefinitionRepository jobDefinitionRepository;
@@ -174,7 +176,28 @@ public class JobService {
      */
     public String executeJob(final String name) throws JobNotRegisteredException, JobAlreadyQueuedException,
             JobAlreadyRunningException, JobExecutionNotNecessaryException, JobExecutionDisabledException, JobServiceNotActiveException {
-        return executeJob(name, JobExecutionPriority.CHECK_PRECONDITIONS);
+        return executeJob(name, NO_PARAMETERS);
+    }
+
+    /**
+     * Executes a job with the given name and returns its ID. If a job is already running or running it would violate
+     * running constraints it this job will be added to the queue. If a job is already queued an exception will be thrown.
+     *
+     * @param name The name of the job to execute
+     * @param parameters parameters to use
+     * @return The id of the executing or queued job
+     * @throws java.lang.NullPointerException if parameters are null
+     * @throws JobNotRegisteredException Thrown if no job with the given name was registered with this JobService instance
+     * @throws JobAlreadyQueuedException If a job with the given name is already queued for execution or another
+     * JobService instance queued the job while this method was executed
+     * @throws JobAlreadyRunningException If another JobService instance executed a job with the given name while this
+     * method was executed
+     * @throws JobExecutionNotNecessaryException If the execution of the job was not necessary
+     * @throws JobExecutionDisabledException If job execution has been disabled
+     */
+    public String executeJob(final String name, Map<String, String> parameters) throws JobNotRegisteredException, JobAlreadyQueuedException,
+            JobAlreadyRunningException, JobExecutionNotNecessaryException, JobExecutionDisabledException, JobServiceNotActiveException {
+        return executeJob(name, JobExecutionPriority.CHECK_PRECONDITIONS, parameters);
     }
 
     /**
@@ -195,6 +218,30 @@ public class JobService {
     public String executeJob(final String name, final JobExecutionPriority executionPriority) throws JobNotRegisteredException,
             JobAlreadyQueuedException, JobAlreadyRunningException, JobExecutionNotNecessaryException,
             JobExecutionDisabledException, JobServiceNotActiveException {
+        return executeJob(name, executionPriority, NO_PARAMETERS);
+    }
+
+    /**
+     * Executes a job with the given name and returns its ID. If a job is already running or running it would violate
+     * running constraints it this job will be added to the queue. If a job is already queued an exception will be thrown.
+     *
+     * @param name The name of the job to execute
+     * @param executionPriority The priority with which the job is to be executed
+     * @param parameters parameters to use
+     * @return The id of the executing or queued job
+     * @throws java.lang.NullPointerException if parameters are null
+     * @throws JobNotRegisteredException Thrown if no job with the given name was registered with this JobService instance
+     * @throws JobAlreadyQueuedException If a job with the given name is already queued for execution or another
+     * JobService instance queued the job while this method was executed
+     * @throws JobAlreadyRunningException If another JobService instance executed a job with the given name while this
+     * method was executed
+     * @throws JobExecutionNotNecessaryException If the execution of the job was not necessary
+     * @throws JobExecutionDisabledException If job execution has been disabled
+     */
+    public String executeJob(final String name, final JobExecutionPriority executionPriority, Map<String, String> parameters) throws JobNotRegisteredException,
+            JobAlreadyQueuedException, JobAlreadyRunningException, JobExecutionNotNecessaryException,
+            JobExecutionDisabledException, JobServiceNotActiveException {
+        checkParameters(parameters);
         checkIfJobServiceIsActive();
         checkIfJobExecutionIsEnabled();
         checkIfJobIsRegistered(name);
@@ -202,27 +249,33 @@ public class JobService {
         final JobRunnable runnable = jobs.get(name);
         final JobInfo queuedJobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.QUEUED);
         if (queuedJobInfo == null) {
-            return executeJobIsNecessaryAndPossible(name, executionPriority, runnable);
+            return executeJobIsNecessaryAndPossible(name, executionPriority, runnable, parameters);
         } else {
-            return queueJobIfNecessaryAndPossible(name, executionPriority, runnable, queuedJobInfo);
+            return queueJobIfNecessaryAndPossible(name, executionPriority, parameters, runnable, queuedJobInfo);
         }
     }
 
-    private String executeJobIsNecessaryAndPossible(String name, JobExecutionPriority executionPriority, JobRunnable runnable)
+    private void checkParameters(Map<String, String> parameters) {
+        if(parameters == null) {
+            throw new NullPointerException("parameters may not be null");
+        }
+    }
+
+    private String executeJobIsNecessaryAndPossible(String name, JobExecutionPriority executionPriority, JobRunnable runnable, Map<String, String> parameters)
             throws JobAlreadyRunningException, JobAlreadyQueuedException, JobExecutionNotNecessaryException {
         final JobInfo runningJobInfo = jobInfoRepository.findByNameAndRunningState(name, RunningState.RUNNING);
         if (runningJobInfo == null) {
-            return executeJobOrQueueIfRunningConstraintsAreViolated(name, executionPriority, runnable);
+            return executeJobOrQueueIfRunningConstraintsAreViolated(name, executionPriority, parameters, runnable);
         } else if (runningJobInfo.hasLowerPriority(executionPriority)) {
-            return queueJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
+            return queueJob(runnable, executionPriority, parameters, "A job with name " + name + " is already running and queued for execution");
         } else {
             throw new JobExecutionNotNecessaryException("Execution of job " + name + " was not necessary");
         }
     }
 
-    private String executeJobOrQueueIfRunningConstraintsAreViolated(String name, JobExecutionPriority executionPriority, JobRunnable runnable)
+    private String executeJobOrQueueIfRunningConstraintsAreViolated(String name, JobExecutionPriority executionPriority, Map<String, String> parameters, JobRunnable runnable)
             throws JobAlreadyRunningException, JobAlreadyQueuedException {
-        final String id = runJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
+        final String id = runJob(runnable, executionPriority, parameters, "A job with name " + name + " is already running and queued for execution");
         if (violatesRunningConstraints(name, true)) {
             LOGGER.info("ltag=JobService.executeJobIsNecessary.violatesRunningConstraints jobInfoName={} jobInfoId={}", name, id);
             if (!jobInfoRepository.deactivateRunningJob(id)) {
@@ -236,10 +289,10 @@ public class JobService {
         return id;
     }
 
-    private String queueJobIfNecessaryAndPossible(String name, JobExecutionPriority executionPriority, JobRunnable runnable, JobInfo queuedJobInfo) throws JobAlreadyQueuedException {
+    private String queueJobIfNecessaryAndPossible(String name, JobExecutionPriority executionPriority, Map<String, String> parameters, JobRunnable runnable, JobInfo queuedJobInfo) throws JobAlreadyQueuedException {
         if (queuedJobInfo.hasLowerPriority(executionPriority)) {
             jobInfoRepository.remove(queuedJobInfo.getId());
-            return queueJob(runnable, executionPriority, "A job with name " + name + " is already running and queued for execution");
+            return queueJob(runnable, executionPriority, parameters, "A job with name " + name + " is already running and queued for execution");
         } else {
             throw new JobAlreadyQueuedException("A job with name " + name + " is already queued for execution");
         }
@@ -532,29 +585,29 @@ public class JobService {
         }
     }
 
-    private String queueJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, String exceptionMessage)
+    private String queueJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, Map<String, String> parameters, String exceptionMessage)
             throws JobAlreadyQueuedException{
-        final String id = createJob(runnable, jobExecutionPriority, RunningState.QUEUED);
+        final String id = createJob(runnable, jobExecutionPriority, RunningState.QUEUED, parameters);
         if (id == null) {
             throw new JobAlreadyQueuedException(exceptionMessage);
         }
         return id;
     }
 
-    private String runJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, String exceptionMessage)
+    private String runJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, Map<String, String> parameters, String exceptionMessage)
             throws JobAlreadyRunningException{
-        final String id = createJob(runnable, jobExecutionPriority, RunningState.RUNNING);
+        final String id = createJob(runnable, jobExecutionPriority, RunningState.RUNNING, parameters);
         if (id == null) {
             throw new JobAlreadyRunningException(exceptionMessage);
         }
         return id;
     }
 
-    private String createJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, RunningState runningState) {
+    private String createJob(JobRunnable runnable, JobExecutionPriority jobExecutionPriority, RunningState runningState, Map<String, String> parameters) {
         final JobDefinition jobDefinition = runnable.getJobDefinition();
         // TODO: create-Methode mit JobRunnable in jobInfoRepository erzeugen
         return jobInfoRepository.create(jobDefinition.getName(), jobDefinition.getMaxIdleTime(), jobDefinition.getMaxExecutionTime(),
-                jobDefinition.getMaxRetries(), runningState, jobExecutionPriority, null);
+                jobDefinition.getMaxRetries(), runningState, jobExecutionPriority, parameters);
     }
 
     private void checkIfJobIsRegistered(final String name) throws JobNotRegisteredException {

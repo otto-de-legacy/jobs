@@ -19,18 +19,18 @@ public class JobInfo extends AbstractItem {
     }
 
     public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state) {
-        this(name, host, thread, maxIdleTime, maxExecutionTime, retries, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        this(name, host, thread, maxIdleTime, maxExecutionTime, retries, state, JobExecutionPriority.CHECK_PRECONDITIONS, Collections.<String, String>emptyMap());
     }
 
     public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state) {
-        this(dt, name, host, thread, maxIdleTime, maxExecutionTime, retries, state, JobExecutionPriority.CHECK_PRECONDITIONS, null);
+        this(dt, name, host, thread, maxIdleTime, maxExecutionTime, retries, state, JobExecutionPriority.CHECK_PRECONDITIONS, Collections.<String, String> emptyMap());
     }
 
-    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
-        this(new Date(), name, host, thread, maxIdleTime, maxExecutionTime, retries, state, executionPriority, additionalData);
+    public JobInfo(String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state, JobExecutionPriority executionPriority, Map<String, String> parameters) {
+        this(new Date(), name, host, thread, maxIdleTime, maxExecutionTime, retries, state, executionPriority, parameters);
     }
 
-    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state, JobExecutionPriority executionPriority, Map<String, String> additionalData) {
+    public JobInfo(Date dt, String name, String host, String thread, Long maxIdleTime, Long maxExecutionTime, Long retries, RunningState state, JobExecutionPriority executionPriority, Map<String, String> parameters) {
         addProperty(JobInfoProperty.NAME, name);
         addProperty(JobInfoProperty.HOST, host);
         addProperty(JobInfoProperty.THREAD, thread);
@@ -45,8 +45,8 @@ public class JobInfo extends AbstractItem {
         addProperty(JobInfoProperty.MAX_EXECUTION_TIME, maxExecutionTime);
         addProperty(JobInfoProperty.RETRIES, retries);
 
-        if (additionalData != null) {
-            addProperty(JobInfoProperty.ADDITIONAL_DATA, new BasicDBObject(additionalData));
+        if (parameters != null) {
+            addProperty(JobInfoProperty.PARAMETERS, new BasicDBObject(parameters));
         }
     }
 
@@ -76,7 +76,12 @@ public class JobInfo extends AbstractItem {
     }
 
     public Map<String, String> getParameters() {
-        return getProperty(JobInfoProperty.PARAMETERS);
+        final DBObject parameters = getProperty(JobInfoProperty.PARAMETERS);
+        if (parameters == null) {
+            return new HashMap<>();
+        } else {
+            return parameters.toMap();
+        }
     }
 
     public void setParameters(Map<String, String> parameters) {
