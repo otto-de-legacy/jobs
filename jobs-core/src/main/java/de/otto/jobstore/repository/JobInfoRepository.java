@@ -103,7 +103,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     public long evaluateRetriesBasedOnPreviouslyFailedJobs(String name, long maxRetries) {
         JobInfo jobInfo = findMostRecentFinished(name);
-        if(jobInfo == null || jobInfo.getResultState() == ResultCode.SUCCESSFUL || jobInfo.getResultState() == ResultCode.NOT_EXECUTED) {
+        if(jobInfo == null || jobInfo.getResultState() == ResultCode.SUCCESSFUL) {
             return maxRetries;
         } else {
             return Math.max(0, jobInfo.getRetries()-1);

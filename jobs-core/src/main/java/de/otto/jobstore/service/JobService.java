@@ -688,7 +688,7 @@ public class JobService {
 
             if (retries > 0) {
 
-                if (jobInfo.getResultState() == ResultCode.SUCCESSFUL || jobInfo.getResultState() == ResultCode.NOT_EXECUTED) {
+                if (jobInfo.getResultState() == ResultCode.SUCCESSFUL) {
                     LOGGER.debug("ltag=JobService.retryFailedJobs jobInfoName={} last execution was resultCode={}, skipping job", name, jobInfo.getResultState());
                     continue;
                 }

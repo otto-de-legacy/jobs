@@ -13,8 +13,4 @@ public enum ResultCode {
 
     ABORTED,
 
-    /** If job gets skipped because preconditions not fulfilled */
-    @Deprecated
-    NOT_EXECUTED
-
 }
