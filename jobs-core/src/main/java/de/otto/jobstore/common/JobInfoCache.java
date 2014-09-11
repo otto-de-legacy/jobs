@@ -2,6 +2,8 @@ package de.otto.jobstore.common;
 
 import de.otto.jobstore.repository.JobInfoRepository;
 
+import java.util.Map;
+
 public class JobInfoCache {
 
     private final String id;
@@ -25,6 +27,10 @@ public class JobInfoCache {
         return getJobInfo().isTimedOut();
     }
 
+    public Map<String, String> getParameters() {
+        return getJobInfo().getParameters();
+    }
+
     private JobInfo getJobInfo() {
         final long currentTime = System.currentTimeMillis();
         if (lastUpdate + updateInterval < currentTime) {
@@ -37,5 +43,4 @@ public class JobInfoCache {
         }
         return jobInfo;
     }
-
 }
