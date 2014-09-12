@@ -2,6 +2,7 @@ package de.otto.jobstore.web;
 
 import com.mongodb.BasicDBObject;
 import com.sun.jersey.api.uri.UriBuilderImpl;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
 import de.otto.jobstore.common.JobExecutionPriority;
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.properties.JobInfoProperty;
@@ -18,6 +19,7 @@ import org.apache.abdera.model.Feed;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
@@ -25,14 +27,14 @@ import javax.xml.bind.Unmarshaller;
 import java.io.StringReader;
 import java.util.*;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertTrue;
 
+@SuppressWarnings("unchecked")
 public class JobInfoResourceTest {
 
     private JobInfoResource jobInfoResource;
@@ -87,7 +89,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExecuteJobWhichIsNotRegistered() throws Exception {
-        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenThrow(new JobNotRegisteredException(""));
+        when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenThrow(new JobNotRegisteredException(""));
         //when(jobService.executeJob("foo", false)).thenThrow(new JobNotRegisteredException(""));
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
@@ -96,7 +98,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExecuteJobWhichIsAlreadyQueued() throws Exception {
-        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenThrow(new JobAlreadyQueuedException(""));
+        when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenThrow(new JobAlreadyQueuedException(""));
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
         assertEquals(409, response.getStatus());
@@ -104,7 +106,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExecuteJobWhichIsAlreadyRunning() throws Exception {
-        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenThrow(new JobAlreadyRunningException(""));
+        when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenThrow(new JobAlreadyRunningException(""));
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
         assertEquals(409, response.getStatus());
@@ -112,7 +114,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExecuteJobOnInactiveServiceShouldResultInBadRequestResponse() throws Exception {
-        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenThrow(new JobServiceNotActiveException("not active"));
+        when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenThrow(new JobServiceNotActiveException("not active"));
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
         assertEquals(400, response.getStatus());
@@ -120,7 +122,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExecuteJob() throws Exception {
-        when(jobService.executeJob("foo", JobExecutionPriority.FORCE_EXECUTION)).thenReturn("1234");
+        when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenReturn("1234");
         when(jobInfoService.getById("1234")).thenReturn(JOB_INFO);
 
         Response response = jobInfoResource.executeJob("foo", uriInfo);
@@ -234,6 +236,36 @@ public class JobInfoResourceTest {
         doThrow(new JobNotRegisteredException("")).when(jobService).setJobExecutionEnabled("test", false);
         Response response = jobInfoResource.disableJob("test");
         assertEquals(404, response.getStatus());
+    }
+
+    @Test
+    public void testExtractParameters() throws Exception {
+        MultivaluedMap<String,String> queryParameters = new MultivaluedMapImpl();
+        queryParameters.put("key1", Arrays.asList("v1"));
+        queryParameters.put("key2", Arrays.asList("v2"));
+
+        Map<String, String> parameters
+                = jobInfoResource.extractFirstParameters(queryParameters);
+        assertEquals(2, parameters.size(), 1);
+        assertEquals("v1", parameters.get("key1"));
+        assertEquals("v2", parameters.get("key2"));
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void testExtractParametersFailOnNull() throws Exception {
+        MultivaluedMap<String,String> queryParameters = new MultivaluedMapImpl();
+        queryParameters.put("key1", Arrays.asList("v1"));
+        queryParameters.put("key2", null);
+
+        jobInfoResource.extractFirstParameters(queryParameters);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void testExtractParametersFailOnMultipleValuesPerKey() throws Exception {
+        MultivaluedMap<String,String> queryParameters = new MultivaluedMapImpl();
+        queryParameters.put("key1", Arrays.asList("v1", "v2"));
+
+        jobInfoResource.extractFirstParameters(queryParameters);
     }
 
     // ~~

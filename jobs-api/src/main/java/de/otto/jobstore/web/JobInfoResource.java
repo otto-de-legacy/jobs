@@ -11,10 +11,7 @@ import org.apache.abdera.model.Entry;
 import org.apache.abdera.model.Feed;
 
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.*;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -95,7 +92,8 @@ public class JobInfoResource {
     }
 
     /**
-     * Executes a job and its content location.
+     * Executes a job and its content location. You can provide parameters as normal query parameters.
+     * The service will fail if a query parameter has multiple or no values.
      *
      * @param name The name of the job to execute
      * @param uriInfo The uriInfo injected by Jax-RS
@@ -104,8 +102,14 @@ public class JobInfoResource {
     @POST
     @Path("/{name}")
     public Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo)  {
+        Map<String, String> parameters;
         try {
-            final String jobId = jobService.executeJob(name, JobExecutionPriority.FORCE_EXECUTION);
+            parameters = extractFirstParameters(uriInfo.getQueryParameters());
+        } catch(IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        }
+        try {
+            final String jobId = jobService.executeJob(name, JobExecutionPriority.FORCE_EXECUTION, parameters);
             final JobInfo jobInfo = jobInfoService.getById(jobId);
             final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(jobInfo.getName()).path(jobId).build();
             return Response.created(uri).build();
@@ -120,6 +124,23 @@ public class JobInfoResource {
         } catch (JobServiceNotActiveException e) {
             return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
         }
+    }
+
+    Map<String, String> extractFirstParameters(MultivaluedMap<String, String> queryParameters) {
+        Map<String, String> parameters = new HashMap<>();
+        if(queryParameters == null) {
+            return parameters;
+        }
+        for(String key : queryParameters.keySet()) {
+            List<String> value = queryParameters.get(key);
+            if (value == null || value.size() != 1) {
+                throw new IllegalArgumentException("value for key '"+key+"' is ambiguous ("+value+")");
+            }
+            parameters.put(key, value.get(0));
+
+
+        }
+        return parameters;
     }
 
     /**
