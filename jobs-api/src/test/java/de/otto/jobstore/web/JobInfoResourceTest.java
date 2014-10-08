@@ -216,6 +216,12 @@ public class JobInfoResourceTest {
         assertEquals(0, history.get("foo").size());
     }
 
+    @Test
+    public void testStatusJob() throws Exception {
+        Response response = jobInfoResource.statusOfAllJobs();
+        assertEquals(200, response.getStatus());
+        assertTrue(((String)response.getEntity()).contains("runningJobs"));
+    }
 
     @Test
     public void testEnablingJob() throws Exception {

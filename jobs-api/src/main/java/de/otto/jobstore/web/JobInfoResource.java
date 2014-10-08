@@ -211,6 +211,12 @@ public class JobInfoResource {
         }
     }
 
+    @GET
+    @Path("/status")
+    public Response statusOfAllJobs() {
+        boolean executionEnabled = jobService.isExecutionEnabled();
+        return Response.ok(buildStatusJson(executionEnabled)).build();
+    }
 
     /**
      * Returns the job with the given name and id
@@ -307,7 +313,21 @@ public class JobInfoResource {
     }
 
     private String buildStatusJson(boolean newStatus) {
-        return "{\"status\" : " + (newStatus ? "\"enabled\"" : "\"disabled\"") + "}";
+        Collection<String> jobs = jobService.listJobNames();
+        List<String> runningJobs = new ArrayList<>();
+        for(String job : jobs) {
+            JobInfo jobInfo = jobInfoService.getByNameAndRunningState(job, RunningState.RUNNING);
+            if(jobInfo != null) {
+                runningJobs.add(job);
+                break;
+            }
+        }
+
+        return "{"+
+                "  \"status\" : " + (newStatus ? "\"enabled\"" : "\"disabled\"") +
+                "  ," +
+                "  \"runningJobs\" : " + runningJobs.isEmpty() +
+                "}";
     }
 
     private Feed createFeed(final Abdera abdera, String title, final String subTitle, final URI feedLink) {
