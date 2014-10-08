@@ -17,7 +17,7 @@ buildscript {
 
 allprojects {
     apply plugin: 'idea'
-    version = '0.12.1'
+    version = '0.13.1'
     if (!project.hasProperty('isRelease')) {
          version += '-SNAPSHOT'
     }
