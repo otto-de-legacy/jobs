@@ -17,6 +17,8 @@ import javax.annotation.Resource;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.testng.AssertJUnit.*;
 import static org.testng.AssertJUnit.assertEquals;
 
@@ -308,32 +310,10 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         JobInfo jobInfo2 = newJobInfo(1000L, RunningState.RUNNING);
         jobInfoRepository.save(jobInfo2);
         jobInfoRepository.markAsFinished(jobInfo2.getId(), ResultCode.TIMED_OUT);
-        JobInfo jobInfo3 = newJobInfo(1000L, RunningState.RUNNING);
-        jobInfoRepository.save(jobInfo3);
-        jobInfoRepository.markAsFinished(jobInfo3.getId(), ResultCode.NOT_EXECUTED);
-
-        JobInfo notExecuted = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
-                EnumSet.of(ResultCode.NOT_EXECUTED));
-        assertEquals(ResultCode.NOT_EXECUTED, notExecuted.getResultState());
 
         JobInfo timedOut = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
-                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)));
+                EnumSet.allOf(ResultCode.class));
         assertEquals(ResultCode.TIMED_OUT, timedOut.getResultState());
-    }
-
-    @Test
-    public void testFindMostRecentByResultStateOnlyNotExecuted() throws Exception {
-        JobInfo jobInfo = newJobInfo(1000L, RunningState.RUNNING);
-        jobInfoRepository.save(jobInfo);
-        jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.NOT_EXECUTED);
-
-        JobInfo notExecuted = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
-                EnumSet.of(ResultCode.NOT_EXECUTED));
-        assertEquals(ResultCode.NOT_EXECUTED, notExecuted.getResultState());
-
-        JobInfo job = jobInfoRepository.findMostRecentByNameAndResultState(TESTVALUE_JOBNAME,
-                EnumSet.complementOf(EnumSet.of(ResultCode.NOT_EXECUTED)));
-        assertNull(job);
     }
 
     @Test
@@ -506,6 +486,29 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         BasicDBObject dbObject = new BasicDBObject(JobInfoProperty.CREATION_TIME.val(),list);
 
         assertNotNull(dbObject);
+
+    }
+
+    @Test
+    public void testParameterMerge() {
+        JobInfo jobInfo = mock(JobInfo.class);
+
+        Map<String, String> startupParameters = new HashMap<>();
+        startupParameters.put("a", "aa");
+        startupParameters.put("b", "bb");
+
+        when(jobInfo.getParameters()).thenReturn(startupParameters);
+
+        Map<String, String> runtimeParameters = new HashMap<>();
+        runtimeParameters.put("a", "aaa");
+        runtimeParameters.put("c", "cc");
+
+
+        Map<String, String> expectedParameters = new HashMap<>();
+        expectedParameters.putAll(startupParameters);
+        expectedParameters.put("c", "cc");
+
+        assertEquals(jobInfoRepository.appendParameters(jobInfo, runtimeParameters), expectedParameters);
 
     }
 }

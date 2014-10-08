@@ -46,7 +46,7 @@ public final class SimpleJobRunnableExample extends AbstractLocalJobRunnable {
     public void execute(JobExecutionContext executionContext) throws JobExecutionException {
         if (JobExecutionPriority.CHECK_PRECONDITIONS.equals(executionContext.getExecutionPriority())
                 || new GregorianCalendar().get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
-            executionContext.setResultCode(ResultCode.NOT_EXECUTED);
+            executionContext.setResultCode(ResultCode.FAILED);
         }
         Random r = new Random();
         for (int i = 0; i < 100; i++) {

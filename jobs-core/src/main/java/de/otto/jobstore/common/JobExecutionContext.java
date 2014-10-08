@@ -3,7 +3,7 @@ package de.otto.jobstore.common;
 import de.otto.jobstore.service.exception.JobExecutionAbortedException;
 import de.otto.jobstore.service.exception.JobExecutionTimeoutException;
 
-import java.util.Date;
+import java.util.Map;
 
 public class JobExecutionContext {
 
@@ -63,6 +63,10 @@ public class JobExecutionContext {
             throw JobExecutionTimeoutException.fromJobName(getId());
         }
 
+    }
+
+    public Map<String, String> getParameters() {
+        return jobInfoCache.getParameters();
     }
 
     @Override

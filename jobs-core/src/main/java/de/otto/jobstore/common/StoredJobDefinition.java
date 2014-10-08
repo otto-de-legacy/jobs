@@ -5,6 +5,7 @@ import com.mongodb.DBObject;
 import de.otto.jobstore.common.properties.JobDefinitionProperty;
 
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 public final class StoredJobDefinition extends AbstractItem implements JobDefinition {
 
@@ -38,17 +39,13 @@ public final class StoredJobDefinition extends AbstractItem implements JobDefini
 
 
     public long getMaxIdleTime() {
-        Long maxIdleTime = getProperty(JobDefinitionProperty.MAX_IDLE_TIME);
-        if(maxIdleTime == null){
-            maxIdleTime = getProperty(JobDefinitionProperty.TIMEOUT_PERIOD);
-        }
-        return maxIdleTime;
+        return getProperty(JobDefinitionProperty.MAX_IDLE_TIME);
     }
 
     public long getMaxExecutionTime() {
         Long maxExecutionTime = getProperty(JobDefinitionProperty.MAX_EXECUTION_TIME);
         if(maxExecutionTime == null){
-            maxExecutionTime = Long.valueOf(1000*60*60*2);
+            maxExecutionTime = TimeUnit.HOURS.toMillis(2);
         }
         return maxExecutionTime;
     }
