@@ -314,11 +314,11 @@ public class JobInfoResource {
 
     private String buildStatusJson(boolean newStatus) {
         Collection<String> jobs = jobService.listJobNames();
-        List<String> runningJobs = new ArrayList<>();
-        for(String job : jobs) {
-            JobInfo jobInfo = jobInfoService.getByNameAndRunningState(job, RunningState.RUNNING);
-            if(jobInfo != null) {
-                runningJobs.add(job);
+
+        List<String> localRunningJobs = new ArrayList<>();
+        for (String job : jobs) {
+            if (isRunningAndNotRemote(job)) {
+                localRunningJobs.add(job);
                 break;
             }
         }
@@ -326,8 +326,13 @@ public class JobInfoResource {
         return "{"+
                 "  \"status\" : " + (newStatus ? "\"enabled\"" : "\"disabled\"") +
                 "  ," +
-                "  \"runningJobs\" : " + runningJobs.isEmpty() +
+                "  \"localRunningJobs\" : " + !localRunningJobs.isEmpty() +
                 "}";
+    }
+
+    private boolean isRunningAndNotRemote(String job) {
+        JobInfo jobInfo = jobInfoService.getByNameAndRunningState(job, RunningState.RUNNING);
+        return jobInfo != null && !jobService.getJobDefinitionByName(job).isRemote();
     }
 
     private Feed createFeed(final Abdera abdera, String title, final String subTitle, final URI feedLink) {

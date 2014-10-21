@@ -5,6 +5,7 @@ import com.sun.jersey.api.uri.UriBuilderImpl;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 import de.otto.jobstore.common.JobExecutionPriority;
 import de.otto.jobstore.common.JobInfo;
+import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.service.JobInfoService;
 import de.otto.jobstore.service.JobService;
@@ -27,6 +28,8 @@ import javax.xml.bind.Unmarshaller;
 import java.io.StringReader;
 import java.util.*;
 
+import static de.otto.jobstore.TestSetup.localJobDefinition;
+import static de.otto.jobstore.TestSetup.remoteJobDefinition;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -220,8 +223,49 @@ public class JobInfoResourceTest {
     public void testStatusJob() throws Exception {
         Response response = jobInfoResource.statusOfAllJobs();
         assertEquals(200, response.getStatus());
-        assertTrue(((String)response.getEntity()).contains("runningJobs"));
+        assertTrue(((String)response.getEntity()).contains("localRunningJobs"));
     }
+
+    @Test
+    public void testStatusWithNoRunningJobs() throws Exception {
+        when(jobService.listJobNames()).thenReturn(Arrays.asList("local", "remote"));
+        when(jobService.getJobDefinitionByName("local")).thenReturn(localJobDefinition("local", 10));
+        when(jobService.getJobDefinitionByName("remote")).thenReturn(remoteJobDefinition("remote", 10, 10));
+
+
+        Response response = jobInfoResource.statusOfAllJobs();
+        assertEquals(200, response.getStatus());
+        assertTrue(((String)response.getEntity()).contains("\"localRunningJobs\" : false"));
+    }
+
+    @Test
+    public void testStatusWithLocalRunningJobs() throws Exception {
+        when(jobService.listJobNames()).thenReturn(Arrays.asList("local", "remote"));
+        when(jobService.getJobDefinitionByName("local")).thenReturn(localJobDefinition("local", 10));
+        when(jobService.getJobDefinitionByName("remote")).thenReturn(remoteJobDefinition("remote", 10, 10));
+
+        JobInfo jobInfo = mock(JobInfo.class);
+        when(jobInfoService.getByNameAndRunningState("local", RunningState.RUNNING)).thenReturn(jobInfo);
+
+        Response response = jobInfoResource.statusOfAllJobs();
+        assertEquals(200, response.getStatus());
+        assertTrue(((String)response.getEntity()).contains("\"localRunningJobs\" : true"));
+    }
+
+    @Test
+    public void testStatusWithRemoteRunningJobs() throws Exception {
+        when(jobService.listJobNames()).thenReturn(Arrays.asList("local", "remote"));
+        when(jobService.getJobDefinitionByName("local")).thenReturn(localJobDefinition("local", 10));
+        when(jobService.getJobDefinitionByName("remote")).thenReturn(remoteJobDefinition("remote", 10, 10));
+
+        JobInfo jobInfo = mock(JobInfo.class);
+        when(jobInfoService.getByNameAndRunningState("remote", RunningState.RUNNING)).thenReturn(jobInfo);
+
+        Response response = jobInfoResource.statusOfAllJobs();
+        assertEquals(200, response.getStatus());
+        assertTrue(((String)response.getEntity()).contains("\"localRunningJobs\" : false"));
+    }
+
 
     @Test
     public void testEnablingJob() throws Exception {
