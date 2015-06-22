@@ -1,7 +1,6 @@
 apply from: 'gradle/libraries.gradle'
 
-// from: https://github.com/ben-manes/gradle-versions-plugin
-apply plugin: 'versions'
+apply plugin: 'com.github.ben-manes.versions'
 
 buildscript {
 
@@ -11,7 +10,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.github.ben-manes:gradle-versions-plugin:0.3'
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.9'
     }
 }
 
@@ -28,6 +27,10 @@ idea {
   project {
     languageLevel = '1.7'
   }
+}
+
+task wrapper(type: Wrapper) {
+  gradleVersion = '2.4'
 }
 
 subprojects {
