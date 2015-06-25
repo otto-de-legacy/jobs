@@ -45,4 +45,14 @@ public interface JobRunnable {
      */
     void afterExecution(JobExecutionContext context) throws JobException;
 
+    /**
+     * This method is called if an exception occurred. It can be used for side effects in response to exceptions.
+     * If a client uses the default template methods and an exception occurs there, first this method is called
+     * and then the exception gets thrown anyway.
+     */
+    void onException(JobExecutionContext context, Exception e, State state) throws JobException;
+
+    enum State {
+       PREPARE, EXECUTE, AFTER_EXECUTION
+    }
 }

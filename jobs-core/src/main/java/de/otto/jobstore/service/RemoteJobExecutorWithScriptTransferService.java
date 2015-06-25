@@ -87,7 +87,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
             String link = extractLink(response);
             if (statusCode == 201) {
                 return createJobUri(link);
-            } else if (statusCode == 303) {
+            } else if (statusCode == 200 || statusCode == 303) {
                 throw new RemoteJobAlreadyRunningException("Remote job is already running, url=" + startUrl, createJobUri(link));
             }
             throw new JobExecutionException("Unable to start remote job: url=" + startUrl + " rc=" + statusCode);

@@ -45,7 +45,7 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
             fail("No exception expected when trying to start job");
         }
         assert uri != null;
-        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/jobname/"));
+        assertTrue("Expected valid job uri", uri.getPath().startsWith("/jobs/" + JOB_NAME));
 
         try {
             remoteJobExecutorService.startJob(createRemoteJob());
@@ -113,7 +113,7 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
 
     private RemoteJob createRemoteJob() {
         Map<String, String> params = new HashMap<String, String>();
-        params.put("sample_file", "/var/log/mongodb/mongodb.log");
+        params.put("host", "127.0.0.1");
         return new RemoteJob(JOB_NAME, "2311", params);
     }
 
