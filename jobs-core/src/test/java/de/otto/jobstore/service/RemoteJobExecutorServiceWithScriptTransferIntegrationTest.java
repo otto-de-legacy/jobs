@@ -23,11 +23,12 @@ import static org.testng.AssertJUnit.*;
 public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends AbstractTestNGSpringContextTests {
 
     private static final String JOB_NAME = "demojob1";
+    public static final boolean ENABLE_TESTS = false;
 
     @Resource
     private RemoteJobExecutorWithScriptTransferService remoteJobExecutorService;
 
-    @Test(enabled = false)
+    @Test(enabled = ENABLE_TESTS)
     public void testStartingDemoJob() throws Exception {
 
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
@@ -36,7 +37,7 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(enabled = false, expectedExceptions = RemoteJobAlreadyRunningException.class)
+    @Test(enabled = ENABLE_TESTS, expectedExceptions = RemoteJobAlreadyRunningException.class)
     public void testStartingDemoJobWhichIsAlreadyRunning() throws Exception {
         URI uri = null;
         try {
@@ -54,16 +55,16 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
         }
     }
 
-    @Test(enabled = false, expectedExceptions = RemoteJobNotRunningException.class)
+    @Test(enabled = ENABLE_TESTS, expectedExceptions = RemoteJobNotRunningException.class)
     public void testStoppingJobTwice() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         remoteJobExecutorService.stopJob(uri);
         remoteJobExecutorService.stopJob(uri);
     }
 
-    @Test(enabled = false, expectedExceptions = RemoteJobNotRunningException.class)
+    @Test(enabled = ENABLE_TESTS, expectedExceptions = RemoteJobNotRunningException.class)
     public void testStoppingNotExistingJob() throws Exception {
-        remoteJobExecutorService.stopJob(URI.create("http://localhost:5000/jobs/" + JOB_NAME + "/12345")); // TODO: configure URL
+        remoteJobExecutorService.stopJob(URI.create(remoteJobExecutorService.getJobExecutorUri() + JOB_NAME + "/12345"));
     }
 
 
@@ -83,7 +84,7 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
         }
     }
 
-    @Test(enabled = false)
+    @Test(enabled = ENABLE_TESTS)
     public void testGettingStatusOfRunningJob() throws Exception {
         final URI uri = remoteJobExecutorService.startJob(createRemoteJob());
 
@@ -95,11 +96,9 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
         exec.awaitTermination(10, TimeUnit.SECONDS);
 
         remoteJobExecutorService.stopJob(uri);
-
-        //assertNull(status.result);
     }
 
-    @Test(enabled = false)
+    @Test(enabled = ENABLE_TESTS)
     public void testGettingStatusOfFinishedJob() throws Exception {
         URI uri = remoteJobExecutorService.startJob(createRemoteJob());
         remoteJobExecutorService.stopJob(uri);
@@ -108,7 +107,9 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
         assertNotNull(status);
         assertEquals(RemoteJobStatus.Status.FINISHED, status.status);
         assertNotNull(status.result);
-        assertTrue(status.result.ok);
+        // Job was aborted
+        assertFalse(status.result.ok);
+        assertEquals(-1, status.result.exitCode);
     }
 
     private RemoteJob createRemoteJob() {

@@ -18,7 +18,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
-import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
@@ -56,8 +55,13 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     private final RemoteJobExecutorStatusRetriever remoteJobExecutorStatusRetriever;
     private String jobExecutorUri;
     private Client client;
-    private HttpClient httpclient =  new DefaultHttpClient();
+    private HttpClient httpclient = new DefaultHttpClient();
     private TarArchiveProvider tarArchiveProvider;
+
+    @Override
+    public String getJobExecutorUri() {
+        return jobExecutorUri;
+    }
 
     public RemoteJobExecutorWithScriptTransferService(String jobExecutorUri, TarArchiveProvider tarArchiveProvider) {
         this.jobExecutorUri = jobExecutorUri;
@@ -147,7 +151,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
         try {
             IOUtils.copy(tarInputStream, baos);
             tarInputStream.close();
-        } catch(IOException e) {
+        } catch (IOException e) {
             throw new JobExecutionException("error copying byte arrays", e);
         }
         ByteArrayBody tarBody = new ByteArrayBody(baos.toByteArray(), "scripts.tar.gz");
