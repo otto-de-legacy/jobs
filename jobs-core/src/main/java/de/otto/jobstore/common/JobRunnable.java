@@ -64,6 +64,6 @@ public interface JobRunnable {
         /**
          * @return whether the job has successfully recovered from the specific exception.
          */
-        boolean hasRecovered() throws JobException;
+        boolean hasRecovered();
     }
 }

@@ -21,7 +21,7 @@ public abstract class AbstractLocalJobRunnable implements JobRunnable {
      * By default returns true. If an exception occurs, returns false.
      */
     @Override
-    public boolean prepare(JobExecutionContext context) throws JobException {
+    public boolean prepare(JobExecutionContext context) {
         try {
             return doPrepare(context);
         } catch (Exception e) {

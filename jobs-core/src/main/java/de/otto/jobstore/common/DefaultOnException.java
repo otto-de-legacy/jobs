@@ -18,7 +18,7 @@ public class DefaultOnException implements JobRunnable.OnException {
     }
 
     @Override
-    public boolean hasRecovered() throws JobException {
+    public boolean hasRecovered() {
         return false;
     }
 }
