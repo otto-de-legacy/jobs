@@ -113,7 +113,7 @@ public class RemoteJobExecutorServiceWithScriptTransferIntegrationTest extends A
     }
 
     private RemoteJob createRemoteJob() {
-        Map<String, String> params = new HashMap<String, String>();
+        Map<String, String> params = new HashMap<>();
         params.put("host", "127.0.0.1");
         return new RemoteJob(JOB_NAME, "2311", params);
     }

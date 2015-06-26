@@ -13,6 +13,7 @@ import org.bson.types.ObjectId;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -23,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.AssertJUnit.assertTrue;
 
 public class JobServiceTest {
@@ -36,6 +38,7 @@ public class JobServiceTest {
     private static final String JOB_NAME_01 = "test";
     private static final String JOB_NAME_02 = "test2";
     private JobExecutionException jobExecutionException;
+    private RemoteMockJobRunnable jobRunnable;
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -48,6 +51,7 @@ public class JobServiceTest {
         jobService.awaitTerminationSeconds=1;
         jobService.desynchronize = false;
         jobService.startup();
+        jobRunnable = new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0);
     }
 
     @Test
@@ -597,7 +601,7 @@ public class JobServiceTest {
 
     @Test
     public void testPollRemoteJobsJobStillRunning() throws Exception {
-        jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0));
+        jobService.registerJob(jobRunnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L, 1000L, 0L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
         final ObjectId id = new ObjectId();
@@ -614,7 +618,7 @@ public class JobServiceTest {
 
     @Test(enabled = false)
     public void testPollRemoteJobsJobIsFinishedNotSuccessfully() throws Exception {
-        jobService.registerJob(new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0));
+        jobService.registerJob(jobRunnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L, 1000L, 0L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
         ReflectionTestUtils.invokeMethod(job, "addProperty", JobInfoProperty.ID, new ObjectId());
@@ -630,7 +634,7 @@ public class JobServiceTest {
 
     @Test
     public void testPollRemoteJobsJobIsFinishedSuccessfully() throws Exception {
-        RemoteMockJobRunnable runnable = new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0);
+        RemoteMockJobRunnable runnable = jobRunnable;
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L, 1000L, 0L);
         job.putAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), "http://example.com");
@@ -650,7 +654,7 @@ public class JobServiceTest {
 
     @Test
     public void testPollRemoteJobsJobIsFinishedSuccessfullyAfterExecutionException() throws Exception {
-        RemoteMockJobRunnable runnable = new RemoteMockJobRunnable(JOB_NAME_01, remoteJobExecutorService, jobInfoService, 0, 0);
+        RemoteMockJobRunnable runnable = jobRunnable;
         runnable.throwExceptionInAfterExecution = true;
         jobService.registerJob(runnable);
         JobInfo job = new JobInfo(JOB_NAME_01, "host", "thread", 1000L, 1000L, 0L);
@@ -667,6 +671,7 @@ public class JobServiceTest {
         Thread.sleep(100);
         verify(jobInfoRepository, times(1)).markAsFinished(job.getId(), jobExecutionException);
         assertEquals(ResultCode.SUCCESSFUL, runnable.afterSuccessContext.getResultCode());
+        assertTrue(jobRunnable.onExceptionCalled);
     }
 
     @Test
@@ -718,6 +723,7 @@ public class JobServiceTest {
         public JobExecutionContext afterSuccessContext = null;
         public boolean throwExceptionInAfterExecution = false;
         private AbstractRemoteJobDefinition remoteJobDefinition;
+        private boolean onExceptionCalled = false;
 
         private RemoteMockJobRunnable(String name, RemoteJobExecutorService rjes, JobInfoService jis, long timeoutPeriod, long pollingInterval) {
             super(rjes, jis);
@@ -735,12 +741,18 @@ public class JobServiceTest {
         }
 
         @Override
-        public void afterExecution(JobExecutionContext context) throws JobException {
+        public void doAfterExecution(JobExecutionContext context) throws JobException {
             afterSuccessContext = context;
             if (throwExceptionInAfterExecution) {
                 jobExecutionException = new JobExecutionException("bar");
                 throw jobExecutionException;
             }
+        }
+
+        @Override
+        public OnException onException(JobExecutionContext context, Exception e, State state) {
+            this.onExceptionCalled = true;
+            return super.onException(context, e, state);
         }
     }
 

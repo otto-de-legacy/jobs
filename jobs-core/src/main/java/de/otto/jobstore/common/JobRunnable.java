@@ -46,13 +46,24 @@ public interface JobRunnable {
     void afterExecution(JobExecutionContext context) throws JobException;
 
     /**
-     * This method is called if an exception occurred. It can be used for side effects in response to exceptions.
-     * If a client uses the default template methods and an exception occurs there, first this method is called
-     * and then the exception gets thrown anyway.
+     * Extension point for side effects after an exception occurred.
+     * Clients decide on rethrowing exceptions.
      */
-    void onException(JobExecutionContext context, Exception e, State state) throws JobException;
+    OnException onException(JobExecutionContext context, Exception e, State state);
 
     enum State {
        PREPARE, EXECUTE, AFTER_EXECUTION
+    }
+
+    interface OnException {
+        /**
+         * Do nothing if successfully recovered from the specific exception. Rethrow if not.
+         */
+        void doThrow() throws JobException;
+
+        /**
+         * @return whether the job has successfully recovered from the specific exception.
+         */
+        boolean hasRecovered() throws JobException;
     }
 }
