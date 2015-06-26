@@ -534,28 +534,23 @@ public class JobService {
             final JobExecutionContext context = createJobExecutionContext(jobInfo.getId(), jobInfo.getName(), jobInfo.getExecutionPriority(), remoteJobStatus.logLines);
             context.setResultCode(remoteJobStatus.result.ok ? ResultCode.SUCCESSFUL : ResultCode.FAILED);
             context.setResultMessage(remoteJobStatus.message);
-            try {
-                if (remoteJobStatus.result.ok) {
+            if (remoteJobStatus.result.ok) {
+                try {
                     runnable.afterExecution(context);
                     jobInfoRepository.markAsFinished(context.getId(), context.getResultCode(), remoteJobStatus.result.message);
-                } else {
-                    LOGGER.warn("ltag=JobService.updateJobStatus.resultNotOk jobName={} jobId={} exitCode={} message={}",
-                            jobInfo.getName(), jobInfo.getId(), remoteJobStatus.result.exitCode, remoteJobStatus.result.message);
-                    runnable.afterExecution(context);
-                    jobInfoRepository.addAdditionalData(jobInfo.getId(), "exitCode", String.valueOf(remoteJobStatus.result.exitCode));
-                    jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.FAILED, remoteJobStatus.result.message);
+                } catch (Exception e) {
+                    LOGGER.error("ltag=JobService.updateJobStatus.afterExecution jobName=" + jobInfo.getName() + " jobId=" + jobInfo.getId() + " failed: " + e.getMessage(), e);
+                    jobInfoRepository.markAsFinished(context.getId(), e);
+                    runnable.onException(context, e, JobRunnable.State.AFTER_EXECUTION);
                 }
-            } catch (Exception e) {
-                LOGGER.error("ltag=JobService.updateJobStatus.afterExecution failed:"
-                        +" jobName=" + jobInfo.getName()
-                        + " jobId=" + jobInfo.getId()
-                        + " exitCode=" + remoteJobStatus.result.exitCode
-                        + " message=" + e.getMessage(), e);
-                jobInfoRepository.markAsFinished(context.getId(), e);
-                runnable.onException(context, e, JobRunnable.State.AFTER_EXECUTION);
+            } else {
+                LOGGER.warn("ltag=JobService.updateJobStatus.resultNotOk jobName={} jobId={} exitCode={} message={}",
+                        jobInfo.getName(), jobInfo.getId(), remoteJobStatus.result.exitCode, remoteJobStatus.result.message);
+                jobInfoRepository.addAdditionalData(jobInfo.getId(), "exitCode", String.valueOf(remoteJobStatus.result.exitCode));
+                jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.FAILED, remoteJobStatus.result.message);
+                runnable.onException(context, new RemoteJobFailedException(jobInfo, remoteJobStatus), JobRunnable.State.EXECUTE);
             }
         }
-
     }
 
     private ExecutorService jobExecutorService = Executors.newCachedThreadPool();

@@ -88,7 +88,6 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
                     this.getClass().getSimpleName(), getJobDefinition().getName(), context.getId(), e.getMessage());
             jobLogger.insertOrUpdateAdditionalData("resumedAlreadyRunningJob", e.getJobUri().toString());
             jobLogger.insertOrUpdateAdditionalData(JobInfoProperty.REMOTE_JOB_URI.val(), e.getJobUri().toString());
-            onException(context, e, State.EXECUTE);
         }
     }
 
