@@ -45,4 +45,25 @@ public interface JobRunnable {
      */
     void afterExecution(JobExecutionContext context) throws JobException;
 
+    /**
+     * Extension point for side effects after an exception occurred.
+     * Clients decide on rethrowing exceptions.
+     */
+    OnException onException(JobExecutionContext context, Exception e, State state);
+
+    enum State {
+       PREPARE, EXECUTE, AFTER_EXECUTION
+    }
+
+    interface OnException {
+        /**
+         * Do nothing if successfully recovered from the specific exception. Rethrow if not.
+         */
+        void doThrow() throws JobException;
+
+        /**
+         * @return whether the job has successfully recovered from the specific exception.
+         */
+        boolean hasRecovered();
+    }
 }

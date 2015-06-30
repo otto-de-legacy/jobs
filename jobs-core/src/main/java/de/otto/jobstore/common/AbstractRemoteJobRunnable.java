@@ -40,19 +40,42 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
     }
 
     /**
-     * By default returns true, override for your custom needs,
+     * By default returns true. If an exception occurs, returns false.
      */
     @Override
     public boolean prepare(JobExecutionContext context) {
+        try {
+            return doPrepare(context);
+        } catch (Exception e) {
+            return onException(context, e, State.PREPARE).hasRecovered();
+        }
+    }
+
+    /**
+     * Template method of de.otto.jobstore.common.AbstractRemoteJobRunnable#prepare(de.otto.jobstore.common.JobExecutionContext)
+     */
+    protected boolean doPrepare(JobExecutionContext context) throws JobException {
         return true;
     }
 
     /**
      * Only triggers the remote job, poll to check wether job is finished or not.
+     *
      * @see de.otto.jobstore.service.JobService#pollRemoteJobs()
      */
     @Override
     public void execute(JobExecutionContext context) throws JobException {
+        try {
+            doExecute(context);
+        } catch (Exception e) {
+            onException(context, e, State.EXECUTE).doThrow();
+        }
+    }
+
+    /**
+     * Template method for de.otto.jobstore.common.AbstractRemoteJobRunnable#execute(de.otto.jobstore.common.JobExecutionContext)
+     */
+    protected void doExecute(JobExecutionContext context) throws JobException {
         final JobLogger jobLogger = context.getJobLogger();
         try {
             log.info("ltag={}.execute Trigger remote job jobName={} jobId={} ...",
@@ -73,6 +96,21 @@ public abstract class AbstractRemoteJobRunnable implements JobRunnable {
      */
     @Override
     public void afterExecution(JobExecutionContext context) throws JobException {
+        try {
+            doAfterExecution(context);
+        } catch (Exception e) {
+            onException(context, e, State.AFTER_EXECUTION).doThrow();
+        }
     }
 
+    /**
+     * Template method for de.otto.jobstore.common.AbstractRemoteJobRunnable#afterExecution(de.otto.jobstore.common.JobExecutionContext)
+     */
+    protected void doAfterExecution(JobExecutionContext context) throws JobException {
+    }
+
+    @Override
+    public OnException onException(JobExecutionContext context, final Exception e, State state) {
+        return new DefaultOnException(e);
+    }
 }

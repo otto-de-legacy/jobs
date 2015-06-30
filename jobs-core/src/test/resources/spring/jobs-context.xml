@@ -31,7 +31,7 @@
 
     <!-- Executor services -->
     <bean class="de.otto.jobstore.service.RemoteJobExecutorService">
-        <constructor-arg index="0" value="http://127.0.0.1:5000/jobs/"/>
+        <constructor-arg index="0" value="http://127.0.0.1:5001/jobs/"/>
     </bean>
 
     <bean class="de.otto.jobstore.service.DirectoryBasedTarArchiveProvider" id="remoteJobTarProvider">
@@ -39,7 +39,7 @@
     </bean>
 
     <bean class="de.otto.jobstore.service.RemoteJobExecutorWithScriptTransferService" id="remoteJobExecutorWithScriptTransferService">
-        <constructor-arg value="http://127.0.0.1:5000/jobs/"/>
+        <constructor-arg value="http://127.0.0.1:5001/jobs/"/>
         <constructor-arg ref="remoteJobTarProvider"/>
     </bean>
 

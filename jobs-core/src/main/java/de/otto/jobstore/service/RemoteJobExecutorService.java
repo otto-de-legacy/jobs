@@ -23,6 +23,7 @@ public class RemoteJobExecutorService implements RemoteJobExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorService.class);
     private final RemoteJobExecutorStatusRetriever remoteJobExecutorStatusRetriever;
+
     private String jobExecutorUri;
     private Client client;
 
@@ -35,6 +36,11 @@ public class RemoteJobExecutorService implements RemoteJobExecutor {
         cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
         this.client = Client.create(cc);
         remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
+    }
+
+    @Override
+    public String getJobExecutorUri() {
+        return jobExecutorUri;
     }
 
     @Override
