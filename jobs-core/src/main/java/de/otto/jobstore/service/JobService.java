@@ -152,11 +152,26 @@ public class JobService {
      * false - If the running constraint already exists
      * @throws de.otto.jobstore.service.exception.JobNotRegisteredException Thrown if the constraint contains a name of
      *                                                                      a job which is not registered with this JobService instance
+     *
+     * deprecated, use addRunningConstraintWithoutChecks instead. There is no reason to check for non existing jobs, this only enforces a strange order
      */
+    @Deprecated
     public boolean addRunningConstraint(final Set<String> constraint) throws JobNotRegisteredException {
         for (String name : constraint) {
             checkIfJobIsRegistered(name);
         }
+        return addRunningConstraintWithoutChecks(constraint);
+    }
+
+    /**
+     * Adds a running constraint to this JobService instance.
+     *
+     * @param constraint The names of the jobs that are not allowed to run at the same time
+     * @return true - If the running constraint was successfully added<br>
+     * false - If the running constraint already exists
+     *
+     */
+    public boolean addRunningConstraintWithoutChecks(final Set<String> constraint) {
         return runningConstraints.add(Collections.unmodifiableSet(constraint));
     }
 

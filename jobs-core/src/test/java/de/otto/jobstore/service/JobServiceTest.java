@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.AssertJUnit.fail;
 import static org.testng.AssertJUnit.assertTrue;
 
 public class JobServiceTest {
@@ -113,12 +114,28 @@ public class JobServiceTest {
         assertFalse(jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0)));
     }
 
-    @Test(expectedExceptions = JobNotRegisteredException.class)
+    @Test
     public void testAddingRunningConstraintForNotExistingJob() throws Exception {
         Set<String> constraint = new HashSet<>();
         constraint.add(JOB_NAME_01);
         constraint.add(JOB_NAME_02);
-        jobService.addRunningConstraint(constraint);
+
+        try {
+            jobService.addRunningConstraint(constraint);
+            fail("expected exception not found");
+        } catch(Exception e) {
+            assertTrue(e instanceof JobNotRegisteredException);
+        }
+
+    }
+
+    @Test
+    public void testAddingRunningConstraintWithoutCheckForNotExistingJob() throws Exception {
+        Set<String> constraint = new HashSet<>();
+        constraint.add(JOB_NAME_01);
+        constraint.add(JOB_NAME_02);
+        boolean result = jobService.addRunningConstraintWithoutChecks(constraint);
+        assertTrue(result);
     }
 
     @Test
@@ -415,14 +432,19 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(0)).activateQueuedJobById(anyString());
     }
 
-    @Test(expectedExceptions = JobAlreadyQueuedException.class)
+    @Test
     public void testExecuteJobWithSamePriorityOfJobWhichIsAlreadyQueued() throws Exception {
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.QUEUED)).
                 thenReturn(createJobInfo(JOB_NAME_01, JobExecutionPriority.CHECK_PRECONDITIONS, RunningState.QUEUED));
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
 
-        jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
-        jobService.executeJob(JOB_NAME_01);
+        try {
+            jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
+            jobService.executeJob(JOB_NAME_01);
+            fail("expected exception not found");
+        } catch(Exception e) {
+            assertTrue(e instanceof JobAlreadyQueuedException);
+        }
     }
 
     @Test
@@ -438,14 +460,21 @@ public class JobServiceTest {
         assertEquals("1234", id);
     }
 
-    @Test(expectedExceptions = JobExecutionNotNecessaryException.class)
+    @Test
     public void testExecuteJobWithSamePriorityOfJobWhichIsAlreadyRunning() throws Exception {
         when(jobInfoRepository.findByNameAndRunningState(JOB_NAME_01, RunningState.RUNNING)).
                 thenReturn(createJobInfo(JOB_NAME_01, JobExecutionPriority.CHECK_PRECONDITIONS, RunningState.RUNNING));
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
 
-        jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
-        jobService.executeJob(JOB_NAME_01);
+
+        try {
+            jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
+            jobService.executeJob(JOB_NAME_01);
+            fail("expected exception not found");
+        } catch(Exception e) {
+            assertTrue(e instanceof JobExecutionNotNecessaryException);
+        }
+
     }
 
     @Test
@@ -498,7 +527,7 @@ public class JobServiceTest {
         verify(jobInfoRepository, times(1)).markAsFinished(id, exception);
     }
 
-    @Test(expectedExceptions = JobExecutionDisabledException.class)
+    @Test
     public void testJobExecutedDisabled() throws Exception {
         reset(jobDefinitionRepository);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(createSimpleJd());
@@ -507,18 +536,29 @@ public class JobServiceTest {
         when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(disabledJob);
         JobService jobServiceImpl = new JobService(jobDefinitionRepository, jobInfoRepository);
 
-        jobServiceImpl.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
-        jobServiceImpl.executeJob(JOB_NAME_01);
+        try {
+            jobServiceImpl.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
+            jobServiceImpl.executeJob(JOB_NAME_01);
+            fail("expected exception not found");
+        } catch(Exception e) {
+            assertTrue(e instanceof JobExecutionDisabledException);
+        }
     }
 
-    @Test(expectedExceptions = JobExecutionDisabledException.class)
+    @Test
     public void testExecutingJobWhichIsDisabled() throws Exception {
         StoredJobDefinition jd = createSimpleJd();
         jd.setDisabled(true);
         when(jobDefinitionRepository.find(JOB_NAME_01)).thenReturn(jd);
 
-        jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
-        jobService.executeJob(JOB_NAME_01);
+        try {
+            jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 0));
+            jobService.executeJob(JOB_NAME_01);
+            fail("expected exception not found");
+        } catch(Exception e) {
+            assertTrue(e instanceof JobExecutionDisabledException);
+        }
+
     }
 
     @Test
