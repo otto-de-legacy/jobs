@@ -290,7 +290,7 @@ public class JobInfoResource {
         final Collection<String> allJobNames = jobService.listJobNames();
         final Date dt = new Date(new Date().getTime() - TimeUnit.HOURS.toMillis(hours));
 
-        final Map<String, List<JobInfoRepresentation>> jobs = new HashMap<>();
+        final Map<String, List<JobInfoRepresentation>> jobs = new LinkedHashMap<>();
         for (String jobName : allJobNames) {
             final List<JobInfoRepresentation> jobInfoRepresentations = new ArrayList<>();
 
