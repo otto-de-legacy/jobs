@@ -406,9 +406,9 @@ public class JobService {
                         runningJob.getAdditionalData().containsKey(JobInfoProperty.REMOTE_JOB_URI.val())) {
                     final JobRunnable runnable = jobs.get(definition.getName());
                     final RemoteJobStatus remoteJobStatus = runnable.getRemoteStatus(
-                            createJobExecutionContext(runningJob.getId(), runningJob.getName(), runningJob.getExecutionPriority(), null));
+                            createJobExecutionContext(runningJob.getId(), definition, runningJob.getExecutionPriority(), null));
                     if (remoteJobStatus != null) {
-                        updateJobStatus(runningJob, runnable, remoteJobStatus);
+                        updateJobStatus(runningJob, runnable, remoteJobStatus, definition);
                     }
                 } else {
                     LOGGER.info("ltag=JobService.pollRemoteJobs jobName={} " + runningJob == null ? "has no running instance." : "is still fresh.", definition.getName());
@@ -521,7 +521,7 @@ public class JobService {
         return new Date(currentTime - interval).after(lastModificationTime);
     }
 
-    private void updateJobStatus(JobInfo jobInfo, JobRunnable runnable, RemoteJobStatus remoteJobStatus) {
+    private void updateJobStatus(JobInfo jobInfo, JobRunnable runnable, RemoteJobStatus remoteJobStatus, JobDefinition jobDefinition) {
         LOGGER.info("ltag=JobService.updateJobStatus jobName={} jobId={} status={}", jobInfo.getName(), jobInfo.getId(), remoteJobStatus.status);
         if (remoteJobStatus.logLines != null && !remoteJobStatus.logLines.isEmpty()) {
             jobInfoRepository.appendLogLines(jobInfo.getId(), remoteJobStatus.logLines);
@@ -531,7 +531,7 @@ public class JobService {
         }
         if (remoteJobStatus.status == RemoteJobStatus.Status.FINISHED) {
             LOGGER.info("ltag=JobService.updateJobStatus.statusFinish jobName={} result={}", jobInfo.getName(), remoteJobStatus.result);
-            final JobExecutionContext context = createJobExecutionContext(jobInfo.getId(), jobInfo.getName(), jobInfo.getExecutionPriority(), remoteJobStatus.logLines);
+            final JobExecutionContext context = createJobExecutionContext(jobInfo.getId(), jobDefinition, jobInfo.getExecutionPriority(), remoteJobStatus.logLines);
             context.setResultCode(remoteJobStatus.result.ok ? ResultCode.SUCCESSFUL : ResultCode.FAILED);
             context.setResultMessage(remoteJobStatus.message);
             if (remoteJobStatus.result.ok) {
@@ -559,13 +559,13 @@ public class JobService {
         final JobDefinition definition = runnable.getJobDefinition();
 
         jobExecutorService.execute(new JobExecutionRunnable(
-                runnable, jobInfoRepository, jobDefinitionRepository, createJobExecutionContext(id, definition.getName(), executionPriority, null)));
+                runnable, jobInfoRepository, jobDefinitionRepository, createJobExecutionContext(id, definition, executionPriority, null)));
     }
 
-    private JobExecutionContext createJobExecutionContext(String jobId, String jobName, JobExecutionPriority priority, List<String> logLines) {
-        final JobLogger jobLogger = new SimpleJobLogger(jobId, jobName, jobInfoRepository, logLines);
+    private JobExecutionContext createJobExecutionContext(String jobId, JobDefinition jobDefinition, JobExecutionPriority priority, List<String> logLines) {
+        final JobLogger jobLogger = new SimpleJobLogger(jobId, jobInfoRepository, logLines);
         final JobInfoCache jobInfoCache = new JobInfoCache(jobId, jobInfoRepository, JOB_INFO_CACHE_UPDATE_INTERVAL);
-        return new JobExecutionContext(jobId, jobLogger, jobInfoCache, priority);
+        return new JobExecutionContext(jobId, jobLogger, jobInfoCache, priority, jobDefinition);
     }
 
     /**
