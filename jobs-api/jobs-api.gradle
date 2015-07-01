@@ -12,6 +12,7 @@ uploadArchives {
 
 dependencies {
     compile project(':jobs-core')
+    testCompile project(':jobs-core').sourceSets.test.output
     compile libs.jerseyAbdera, libs.jerseyClient, libs.jerseyCore
 
     testCompile libs.testng, libs.mockito

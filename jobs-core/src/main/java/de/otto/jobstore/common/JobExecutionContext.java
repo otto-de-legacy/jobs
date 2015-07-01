@@ -10,16 +10,18 @@ public class JobExecutionContext {
     private final String id;
     private final JobLogger jobLogger;
     private final JobExecutionPriority executionPriority;
+    private final JobDefinition jobDefinition;
     private final JobInfoCache jobInfoCache;
 
     private volatile ResultCode resultCode = ResultCode.SUCCESSFUL;
     private String resultMessage;
 
-    public JobExecutionContext(String id, JobLogger jobLogger, JobInfoCache jobInfoCache, JobExecutionPriority executionPriority) {
+    public JobExecutionContext(String id, JobLogger jobLogger, JobInfoCache jobInfoCache, JobExecutionPriority executionPriority, JobDefinition jobDefinition) {
         this.id = id;
         this.jobLogger = jobLogger;
         this.jobInfoCache = jobInfoCache;
         this.executionPriority = executionPriority;
+        this.jobDefinition = jobDefinition;
     }
 
     public JobLogger getJobLogger() {
@@ -78,4 +80,7 @@ public class JobExecutionContext {
                 '}';
     }
 
+    public JobDefinition getJobDefinition() {
+        return jobDefinition;
+    }
 }

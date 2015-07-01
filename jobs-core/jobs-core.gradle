@@ -20,13 +20,15 @@ test {
 }
 
 task integrationTest(type: Test) {
-    useTestNG()
+    useTestNG() {
+        listeners << 'org.testng.reporters.XMLReporter'// erzeuge neben dem html-report auch einen xml-report
+        includeGroups 'integration'
+    }
     description "Run integration tests"
     testLogging.showStandardStreams = true
-    testReportDir = file('build/reports/integration')
+    reports.html.destination = file('build/reports/integration')
     include "**/RemoteJobExecutorServiceIntegrationTest*"
 }
-
 // ~~~~~~~~~~~
 
 uploadArchives {

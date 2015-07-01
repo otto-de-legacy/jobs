@@ -8,7 +8,7 @@ import java.util.List;
 @XmlRootElement
 public final class RemoteJobStatus {
 
-    public static enum Status {
+    public enum Status {
         RUNNING,
         FINISHED
     }
