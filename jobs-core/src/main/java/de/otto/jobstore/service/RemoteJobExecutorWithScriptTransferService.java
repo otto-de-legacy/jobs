@@ -15,11 +15,14 @@ import org.apache.commons.compress.utils.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.config.SocketConfig;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.StringBody;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
@@ -55,7 +58,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     private final RemoteJobExecutorStatusRetriever remoteJobExecutorStatusRetriever;
     private String jobExecutorUri;
     private Client client;
-    private HttpClient httpclient = new DefaultHttpClient();
+    private HttpClient httpclient;
     private TarArchiveProvider tarArchiveProvider;
 
     @Override
@@ -73,6 +76,23 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
         cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
         this.client = Client.create(cc);
         remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
+
+        httpclient = createMultithreadSafeClient();
+
+    }
+
+    private HttpClient createMultithreadSafeClient() {
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+        cm.setMaxTotal(100);
+        cm.setDefaultMaxPerRoute(100);
+
+        cm.setDefaultSocketConfig(SocketConfig.custom()
+                .setSoTimeout(5000)
+                .build());
+
+        return HttpClients.custom()
+                .setConnectionManager(cm)
+                .build();
     }
 
     public URI startJob(final RemoteJob job) throws JobException {
@@ -128,6 +148,9 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     private HttpResponse executeRequest(HttpPost httpPost) throws JobExecutionException {
         HttpResponse response;
         try {
+            httpPost.setConfig(RequestConfig.custom()
+                    .setConnectTimeout(60000) // wait max 60 seconds
+                    .build());
             response = httpclient.execute(httpPost);
         } catch (IOException e) {
             throw new JobExecutionException("Could not post scripts", e);
