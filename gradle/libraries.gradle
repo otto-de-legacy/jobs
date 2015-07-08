@@ -1,8 +1,8 @@
 project.ext.libs = [
     "cobertura"         : "net.sourceforge.cobertura:cobertura:1.9.4.1",
     "commonsCompress"   : "org.apache.commons:commons-compress:1.0",
-    "httpClient"        : "org.apache.httpcomponents:httpclient:4.1.1",
-    "httpMime"          : "org.apache.httpcomponents:httpmime:4.1.1",
+    "httpClient"        : 'org.apache.httpcomponents:httpclient:4.3.4',
+    "httpMime"          : "org.apache.httpcomponents:httpmime:4.3.4",
     "jerseyAbdera"      : "com.sun.jersey.contribs:jersey-atom-abdera:1.17.1",
     "jerseyApache"      : "com.sun.jersey.contribs:jersey-apache-client4:1.17.1",
     "jerseyClient"      : "com.sun.jersey:jersey-client:1.17.1",

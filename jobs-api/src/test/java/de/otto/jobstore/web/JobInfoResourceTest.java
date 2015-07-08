@@ -61,21 +61,20 @@ public class JobInfoResourceTest {
     public void testGetJobs() throws Exception {
         JAXBContext ctx = JAXBContext.newInstance(JobNameRepresentation.class);
         Unmarshaller unmarshaller = ctx.createUnmarshaller();
-        Set<String> names = new HashSet<>();
-        names.add("foo"); names.add("bar");
-        when(jobService.listJobNames()).thenReturn(names);
+
+        when(jobService.listJobNames()).thenReturn(Arrays.asList("bar", "foo"));
         Response response = jobInfoResource.getJobs(uriInfo);
         assertEquals(200, response.getStatus());
         Feed feed = (Feed) response.getEntity();
 
         List<Entry> entries = feed.getEntries();
         assertEquals(2, entries.size());
-        Entry foo = entries.get(0);
-        JobNameRepresentation fooRep = (JobNameRepresentation) unmarshaller.unmarshal(new StringReader(foo.getContent()));
-        assertEquals("foo", fooRep.getName());
-        Entry bar = entries.get(1);
+        Entry bar = entries.get(0);
         JobNameRepresentation barRep = (JobNameRepresentation) unmarshaller.unmarshal(new StringReader(bar.getContent()));
         assertEquals("bar", barRep.getName());
+        Entry foo = entries.get(1);
+        JobNameRepresentation fooRep = (JobNameRepresentation) unmarshaller.unmarshal(new StringReader(foo.getContent()));
+        assertEquals("foo", fooRep.getName());
     }
 
     @Test
@@ -190,13 +189,11 @@ public class JobInfoResourceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testGetJobHistory() throws Exception {
-        Set<String> names = new HashSet<>();
-        names.add("foo");
-        when(jobService.listJobNames()).thenReturn(names);
+        when(jobService.listJobNames()).thenReturn(Arrays.asList("foo"));
         when(jobInfoService.getByNameAndTimeRange(anyString(), any(Date.class), any(Date.class), any(Set.class))).
                 thenReturn(createJobs(5, "foo"));
 
-        Response response = jobInfoResource.getJobsHistory(5, null, new HashSet(jobService.listJobNames()));
+        Response response = jobInfoResource.getJobsHistory(5, null, new HashSet<>(jobService.listJobNames()));
         assertEquals(200, response.getStatus());
         Map<String, List<JobInfoRepresentation>> history = (Map<String, List<JobInfoRepresentation>>) response.getEntity();
         assertEquals(1, history.size());
@@ -206,9 +203,7 @@ public class JobInfoResourceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testGetJobHistory2() throws Exception {
-        Set<String> names = new HashSet<>();
-        names.add("foo");
-        when(jobService.listJobNames()).thenReturn(names);
+        when(jobService.listJobNames()).thenReturn(Arrays.asList("foo"));
         when(jobInfoService.getByNameAndTimeRange(anyString(), any(Date.class), any(Date.class), any(Set.class))).
                 thenReturn(createJobs(5, "foo"));
 
