@@ -554,19 +554,32 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         collection.ensureIndex(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
 
-        // remove later on, this is a hack
-        {
-            try {
-                collection.dropIndex("lastModificationTime_1");
-            } catch (CommandFailureException ignore) {
-            }
-        }
+        dropIfExists(collection, "lastModificationTime_1");
+        dropIfExists(collection, "lastModificationTime_1_TTL");
+
 
         collection.ensureIndex(new BasicDBObject().
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1),
                 new BasicDBObject().
-                        append("name", "lastModificationTime_1_TTL").
+                        append("name", "lastModificationTime_TTL").
                         append("expireAfterSeconds", sevenDaysInSeconds()));
+    }
+
+    private void dropIfExists(DBCollection collection, String name) {
+        if (indexExists(collection, name)) {
+            collection.dropIndex(name);
+        }
+    }
+
+
+    private boolean indexExists(DBCollection collection, String name) {
+        for (DBObject indexInfo: collection.getIndexInfo()) {
+            if (name.equals(indexInfo.get("name"))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private int sevenDaysInSeconds() {
