@@ -566,11 +566,11 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1),
                 new BasicDBObject().
                         append("name", "lastModificationTime_1_TTL").
-                        append("expireAfterSeconds", fourteenDaysInSeconds()));
+                        append("expireAfterSeconds", sevenDaysInSeconds()));
     }
 
-    private int fourteenDaysInSeconds() {
-        return (int) TimeUnit.DAYS.toSeconds(14);
+    private int sevenDaysInSeconds() {
+        return (int) TimeUnit.DAYS.toSeconds(7);
     }
 
     protected JobInfo fromDbObject(final DBObject dbObject) {
