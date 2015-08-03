@@ -733,14 +733,6 @@ public class JobService {
         }
     }
 
-    void cleanupOldJobs() {
-        if (!activeChecker.isActive()) {
-            LOGGER.info("ltag=JobService not active");
-            return;
-        }
-        jobInfoRepository.cleanupOldJobs();
-    }
-
     void cleanupTimedOutJobs() {
         if (!activeChecker.isActive()) {
             LOGGER.info("ltag=JobService not active");
