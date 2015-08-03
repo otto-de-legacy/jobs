@@ -1,16 +1,18 @@
 dependencies {
     compile libs.mongoDb
     compile libs.slfApi, libs.slfLog4j
-    compile libs.jerseyClient, libs.jerseyCore, libs.jerseyClientJSON
+//    compile libs.jerseyClient, libs.jerseyCore, libs.jerseyClientJSON
+    compile libs.jerseyClient
     compile libs.commonsCompress
     compile libs.httpClient
     compile libs.httpMime
+    compile libs.jettisonJSON
 
     testCompile libs.testng, libs.mockito
     testCompile libs.multithreadedtc
     testCompile libs.cobertura
     testCompile libs.springContext, libs.springCore, libs.springBeans, libs.springTest
-    testCompile libs.jerseyApache
+//    testCompile libs.jerseyApache
 }
 
 // ~~~~~~~~~~~

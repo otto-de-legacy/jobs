@@ -1,10 +1,5 @@
 package de.otto.jobstore.service;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.sun.jersey.api.client.UniformInterfaceException;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
@@ -25,9 +20,14 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.codehaus.jettison.json.JSONException;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.MediaType;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -72,9 +72,9 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
 
         // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
         //    see: https://github.com/mitsuhiko/flask/issues/367
-        final ClientConfig cc = new DefaultClientConfig();
-        cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
-        this.client = Client.create(cc);
+        final ClientConfig cc = new ClientConfig();
+        cc.property(ClientProperties.CHUNKED_ENCODING_SIZE, null);
+        this.client = ClientBuilder.newClient(cc);
         remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
 
         httpclient = createMultithreadSafeClient();
@@ -117,7 +117,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
             throw new JobExecutionException("Unable to start remote job: url=" + startUrl + " rc=" + statusCode);
         } catch (JSONException e) {
             throw new JobExecutionException("Could not create JSON object: " + job, e);
-        } catch (UniformInterfaceException | ClientHandlerException e) {
+        } catch (Exception e) {
             throw new JobExecutionException("Problem while starting new job: url=" + startUrl, e);
         } finally {
             closeResponseConnection(response);
@@ -196,8 +196,8 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
         final String stopUrl = jobUri + "/stop";
         try {
             LOGGER.info("ltag=RemoteJobExecutorService.stopJob Going to stop job: {} ...", stopUrl);
-            client.resource(stopUrl).header("Connection", "close").post();
-        } catch (UniformInterfaceException e) {
+            client.target(stopUrl).request().header("Connection", "close").post(null, String.class);
+        } catch (WebApplicationException e) {
             if (e.getResponse().getStatus() == 403) {
                 throw new RemoteJobNotRunningException("Remote job is not running: url=" + stopUrl);
             }
