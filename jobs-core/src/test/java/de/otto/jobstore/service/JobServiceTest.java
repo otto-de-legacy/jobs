@@ -755,13 +755,6 @@ public class JobServiceTest {
         verify(jobInfoRepository).cleanupTimedOutJobs();
     }
 
-    @Test
-    public void executesOldJobsCleanup() throws Exception {
-        jobService.cleanupOldJobs();
-
-        verify(jobInfoRepository).cleanupOldJobs();
-    }
-
     private class RemoteMockJobRunnable extends AbstractRemoteJobRunnable {
 
         public JobExecutionContext afterSuccessContext = null;
