@@ -365,14 +365,14 @@ public class JobService {
                 checkIfJobIsDisabled(jobInfo.getName());
             } catch (JobNotRegisteredException e) {
                 LOGGER.info("ltag=JobService.executeQueuedJobs.notRegistered jobName={}", jobInfo.getName());
-                break;
+                continue;
             } catch (JobExecutionDisabledException e) {
                 LOGGER.info("ltag=JobService.executeQueuedJobs.isDisabled jobName={}", jobInfo.getName());
-                break;
+                continue;
             }
             if (jobInfoRepository.hasJob(jobInfo.getName(), RunningState.RUNNING)) {
                 LOGGER.info("ltag=JobService.executeQueuedJobs.alreadyRunning jobInfoName={}", jobInfo.getName());
-                break;
+                continue;
             }
             final JobRunnable runnable = jobs.get(jobInfo.getName());
             executeQueuedJob(runnable, jobInfo.getId(), jobInfo.getExecutionPriority());
