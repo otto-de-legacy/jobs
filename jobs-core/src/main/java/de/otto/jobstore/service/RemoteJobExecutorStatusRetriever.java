@@ -1,13 +1,13 @@
 package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.RemoteJobStatus;
-import org.glassfish.jersey.client.ClientResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.net.URI;
 
 public class RemoteJobExecutorStatusRetriever {
@@ -21,10 +21,10 @@ public class RemoteJobExecutorStatusRetriever {
 
     public RemoteJobStatus getStatus(final URI jobUri) {
         try {
-            final ClientResponse response = client.target(jobUri.toString()).request().
+            final Response response = client.target(jobUri.toString()).request().
                     accept(MediaType.APPLICATION_JSON).
                     header("Connection", "close").
-                    get(ClientResponse.class);
+                    get(Response.class);
             if (response.getStatus() == 200) {
                 final RemoteJobStatus status = response.readEntity(RemoteJobStatus.class);
                 LOGGER.info("ltag=RemoteJobExecutorService.getStatus Response from server: {}", status);
@@ -41,9 +41,9 @@ public class RemoteJobExecutorStatusRetriever {
 
     public boolean isAlive(String jobExecutorUri) {
         try {
-            final ClientResponse response = client.target(jobExecutorUri).
+            final Response response = client.target(jobExecutorUri).
                     request().header("Connection", "close").
-                    get(ClientResponse.class);
+                    get(Response.class);
             final boolean alive = response.getStatus() == 200;
             response.close();
             return alive;
