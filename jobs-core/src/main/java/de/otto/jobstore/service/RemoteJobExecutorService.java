@@ -9,7 +9,6 @@ import de.otto.jobstore.service.exception.RemoteJobNotRunningException;
 import org.codehaus.jettison.json.JSONException;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
-import org.glassfish.jersey.client.ClientResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +18,7 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.net.URI;
 
 public class RemoteJobExecutorService implements RemoteJobExecutor {
@@ -50,13 +50,13 @@ public class RemoteJobExecutorService implements RemoteJobExecutor {
         final String startUrl = jobExecutorUri + job.name + "/start";
         try {
             LOGGER.info("ltag=RemoteJobExecutorService.startJob Going to start job: {} ...", startUrl);
-            final ClientResponse response = client.target(startUrl).request()
+            final Response response = client.target(startUrl).request()
                     .accept(MediaType.APPLICATION_JSON).header("Connection", "close").header("User-Agent", "RemoteJobExecutorService")
-                    .post(Entity.entity(job.toJsonObject(), MediaType.APPLICATION_JSON_TYPE), ClientResponse.class);
+                    .post(Entity.entity(job.toJsonObject(), MediaType.APPLICATION_JSON_TYPE), Response.class);
             if (response.getStatus() == 201) {
-                return createJobUri(response.getHeaders().getFirst("Link"));
+                return createJobUri(response.getHeaderString("Link"));
             } else if (response.getStatus() == 303) {
-                throw new RemoteJobAlreadyRunningException("Remote job is already running, url=" + startUrl, createJobUri(response.getHeaders().getFirst("Link")));
+                throw new RemoteJobAlreadyRunningException("Remote job is already running, url=" + startUrl, createJobUri(response.getHeaderString("Link")));
             }
             throw new JobExecutionException("Unable to start remote job: url=" + startUrl + " rc=" + response.getStatus());
         } catch (JSONException e) {
