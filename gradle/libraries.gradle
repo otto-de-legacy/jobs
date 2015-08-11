@@ -10,8 +10,6 @@ project.ext.libs = [
 
     "jerseyClient"      : "org.glassfish.jersey.core:jersey-client:2.19",
 
-    "jerseyClientJSON"  : "com.sun.jersey:jersey-json:1.17.1",
-    "jerseyCore"        : "com.sun.jersey:jersey-core:1.17.1",
     "mockito"           : "org.mockito:mockito-all:1.8.5",
     "mongoDb"           : 'org.mongodb:mongo-java-driver:2.11.1',
     "slfApi"            : "org.slf4j:slf4j-api:1.7.2",
