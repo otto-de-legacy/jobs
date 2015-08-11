@@ -2,7 +2,6 @@ package de.otto.jobstore.service;
 
 import de.otto.jobstore.TestSetup;
 import de.otto.jobstore.common.ActiveChecker;
-import de.otto.jobstore.common.RunningState;
 import de.otto.jobstore.common.StoredJobDefinition;
 import de.otto.jobstore.repository.JobDefinitionRepository;
 import de.otto.jobstore.repository.JobInfoRepository;
@@ -59,13 +58,6 @@ public class JobServiceNotActiveTest {
         jobService.retryFailedJobs();
 
         verify(jobInfoRepository, never()).findMostRecentFinished(JOB_NAME_01);
-    }
-
-    @Test
-    public void doesNotCleanupOldJobsIfNotActive() throws Exception {
-        jobService.cleanupOldJobs();
-
-        verify(jobInfoRepository, never()).cleanupOldJobs();
     }
 
     @Test

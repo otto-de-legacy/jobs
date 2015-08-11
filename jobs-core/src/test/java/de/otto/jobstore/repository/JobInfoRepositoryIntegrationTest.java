@@ -9,7 +9,6 @@ import de.otto.jobstore.common.util.InternetUtils;
 import org.bson.types.ObjectId;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -20,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.AssertJUnit.*;
-import static org.testng.AssertJUnit.assertEquals;
 
 @ContextConfiguration(locations = {"classpath:spring/jobs-context.xml"})
 public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContextTests {
@@ -254,27 +252,6 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     @Test
     public void testFindByInvalidId() throws Exception {
         assertNull(jobInfoRepository.findById("1234"));
-    }
-
-    @Test
-    public void testCleanupOldRunningJobs() throws Exception {
-        jobInfoRepository.setHoursAfterWhichOldJobsAreDeleted(1);
-        JobInfo jobInfo = newJobInfo(1000L, RunningState.RUNNING);
-        ReflectionTestUtils.invokeMethod(jobInfo, "addProperty", JobInfoProperty.LAST_MODIFICATION_TIME, new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 5));
-        jobInfoRepository.save(jobInfo);
-        assertEquals(1L, jobInfoRepository.count());
-        jobInfoRepository.cleanupOldJobs();
-        assertNotNull(jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME)); //Job should still be there as it is running
-    }
-
-    @Test
-    public void testCleanupOldJobs() throws Exception {
-        jobInfoRepository.setHoursAfterWhichOldJobsAreDeleted(1);
-        JobInfo jobInfo = new JobInfo(new Date(new Date().getTime() - TimeUnit.DAYS.toMillis(12)), TESTVALUE_JOBNAME, TESTVALUE_HOST, TESTVALUE_THREAD, 1000L, 1000L, 0L, RunningState.FINISHED);
-        jobInfoRepository.save(jobInfo);
-        assertEquals(1L, jobInfoRepository.count());
-        jobInfoRepository.cleanupOldJobs();
-        assertNull(jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME)); //Job should be gone
     }
 
     @Test
