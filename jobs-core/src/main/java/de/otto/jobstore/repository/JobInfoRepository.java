@@ -24,16 +24,36 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
     private int hoursAfterWhichNotExecutedJobsAreDeleted = 2;
 
+    /**
+     * @deprecated Please use {@link #JobInfoRepository(MongoClient, String, String)} instead}
+     */
+    @Deprecated
     public JobInfoRepository(Mongo mongo, String dbName, String collectionName) {
+        super(createMongoClient(mongo, dbName, null, null), dbName, collectionName);
+    }
+
+    /**
+     * @deprecated Please use {@link #JobInfoRepository(MongoClient, String, String)} instead}
+     */
+    @Deprecated
+    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password) {
+        super(createMongoClient(mongo, dbName, username, password), dbName, collectionName);
+    }
+
+    /**
+     * @deprecated Please use {@link #JobInfoRepository(MongoClient, String, String, WriteConcern)} instead}
+     */
+    @Deprecated
+    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password, WriteConcern safeWriteConcern) {
+        super(createMongoClient(mongo, dbName, username, password), dbName, collectionName, safeWriteConcern);
+    }
+
+    public JobInfoRepository(MongoClient mongo, String dbName, String collectionName) {
         super(mongo, dbName, collectionName);
     }
 
-    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password) {
-        super(mongo, dbName, collectionName, username, password);
-    }
-
-    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password, WriteConcern safeWriteConcern) {
-        super(mongo, dbName, collectionName, username, password, safeWriteConcern);
+    public JobInfoRepository(MongoClient mongo, String dbName, String collectionName, WriteConcern safeWriteConcern) {
+        super(mongo, dbName, collectionName, safeWriteConcern);
     }
 
     /**
@@ -81,7 +101,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
             save(jobInfo);
             return jobInfo.getId();
-        } catch (MongoException.DuplicateKey e) {
+        } catch (DuplicateKeyException e) {
             logger.warn("job={} with state={} already exists, creation skipped!", name, runningState);
             return null;
         }
@@ -210,7 +230,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         try {
             final WriteResult result = collection.update(createIdQuery(id), update, false, false, getSafeWriteConcern());
             return result.getN() == 1;
-        } catch (MongoException.DuplicateKey e){
+        } catch (DuplicateKeyException e){
             return false;
         }
     }
@@ -546,19 +566,19 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     }
 
     protected void prepareCollection() {
-        collection.ensureIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
-        collection.ensureIndex(new BasicDBObject().
+        collection.createIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
+        collection.createIndex(new BasicDBObject().
                 append(JobInfoProperty.RUNNING_STATE.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "runningState_creationTime");
-        collection.ensureIndex(new BasicDBObject().
+        collection.createIndex(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "name_creationTime");
-        collection.ensureIndex(new BasicDBObject().
+        collection.createIndex(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
 
         dropIfExists(collection, "lastModificationTime_1");
         dropIfExists(collection, "lastModificationTime_1_TTL");
 
 
-        collection.ensureIndex(new BasicDBObject().
+        collection.createIndex(new BasicDBObject().
                         append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1),
                 new BasicDBObject().
                         append("name", "lastModificationTime_TTL").
@@ -618,16 +638,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
         final WriteResult result = collection.update(query, update, false, false, getSafeWriteConcern());
-        String lastConcern = null;
-        boolean updateCount = false;
-        try {
-            lastConcern = String.valueOf(result.getLastConcern());
-            updateCount = result.getN() == 1;
-        } catch (IllegalStateException e) {
-            logger.error("Exception occured during update lastConcern=" + lastConcern + " updateCount=" + updateCount + " ExceptionMessage: " + e.getMessage());
-            throw e;
-        }
-        return updateCount;
+        return result.getN() == 1;
     }
 
     private BasicDBObject createFindByNameAndRunningStateQuery(final String name, final String state) {

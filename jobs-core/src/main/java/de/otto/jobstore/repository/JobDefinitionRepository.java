@@ -9,13 +9,38 @@ import java.util.Date;
 
 public class JobDefinitionRepository extends AbstractRepository<StoredJobDefinition> {
 
+    /**
+     * @deprecated Please use {@link #JobDefinitionRepository(MongoClient, String, String)} instead}
+     */
+    @Deprecated
     public JobDefinitionRepository(Mongo mongo, String dbName, String collectionName) {
+        super(createMongoClient(mongo, dbName, null, null), dbName, collectionName);
+    }
+
+    /**
+     * @deprecated Please use {@link #JobDefinitionRepository(MongoClient, String, String)} instead}
+     */
+    @Deprecated
+    public JobDefinitionRepository(Mongo mongo, String dbName, String collectionName, String username, String password) {
+        super(createMongoClient(mongo, dbName, username, password), dbName, collectionName);
+    }
+
+    /**
+     * @deprecated Please use {@link #JobDefinitionRepository(MongoClient, String, String, WriteConcern)} instead}
+     */
+    @Deprecated
+    public JobDefinitionRepository(Mongo mongo, String dbName, String collectionName, String username, String password, WriteConcern safeWriteConcern) {
+        super(createMongoClient(mongo, dbName, username, password), dbName, collectionName, safeWriteConcern);
+    }
+
+    public JobDefinitionRepository(MongoClient mongo, String dbName, String collectionName) {
         super(mongo, dbName, collectionName);
     }
 
-    public JobDefinitionRepository(Mongo mongo, String dbName, String collectionName, String username, String password) {
-        super(mongo, dbName, collectionName, username, password);
+    public JobDefinitionRepository(MongoClient mongo, String dbName, String collectionName, WriteConcern safeWriteConcern) {
+        super(mongo, dbName, collectionName, safeWriteConcern);
     }
+
 
     public StoredJobDefinition find(String name) {
         final DBObject object = collection.findOne(new BasicDBObject(JobDefinitionProperty.NAME.val(), name));
@@ -24,7 +49,7 @@ public class JobDefinitionRepository extends AbstractRepository<StoredJobDefinit
 
     @Override
     protected void prepareCollection() {
-        collection.ensureIndex(new BasicDBObject(JobDefinitionProperty.NAME.val(), 1), "name", true);
+        collection.createIndex(new BasicDBObject(JobDefinitionProperty.NAME.val(), 1), "name", true);
     }
 
     @Override

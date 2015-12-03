@@ -14,7 +14,7 @@ public class DefaultOnException implements JobRunnable.OnException {
         if (e instanceof JobException) {
             throw (JobException) e;
         }
-        throw new JobException("Unexpected exeption.", e){};
+        throw new JobException("Unexpected exception.", e){};
     }
 
     @Override
