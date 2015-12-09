@@ -5,7 +5,7 @@
 
     <!-- MongoDB configuration -->
 
-    <bean id="mongo" class="com.mongodb.Mongo">
+    <bean id="mongo" class="com.mongodb.MongoClient">
         <constructor-arg index="0" value="127.0.0.1"/>
     </bean>
 

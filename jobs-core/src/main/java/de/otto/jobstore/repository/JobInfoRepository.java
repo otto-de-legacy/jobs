@@ -9,6 +9,7 @@ import org.bson.types.ObjectId;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A repository which stores information on jobs. For each distinct job name only one job can be running or queued.
@@ -18,36 +19,41 @@ import java.util.*;
  */
 public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
-    private static final String JOB_NAME_CLEANUP              = "JobInfo_Cleanup";
     private static final String JOB_NAME_TIMED_OUT_CLEANUP    = "JobInfo_TimedOut_Cleanup";
     private static final long FIVE_MINUTES = 5 * 60 * 1000;
 
-    private int hoursAfterWhichOldJobsAreDeleted         = 7 * 24;
     private int hoursAfterWhichNotExecutedJobsAreDeleted = 2;
 
+    /**
+     * @deprecated Please use {@link #JobInfoRepository(MongoClient, String, String)} instead}
+     */
+    @Deprecated
     public JobInfoRepository(Mongo mongo, String dbName, String collectionName) {
-        super(mongo, dbName, collectionName);
-    }
-
-    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password) {
-        super(mongo, dbName, collectionName, username, password);
-    }
-
-    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password, WriteConcern safeWriteConcern) {
-        super(mongo, dbName, collectionName, username, password, safeWriteConcern);
-    }
-
-    public int getHoursAfterWhichOldJobsAreDeleted() {
-        return hoursAfterWhichOldJobsAreDeleted;
+        super(createMongoClient(mongo, dbName, null, null), dbName, collectionName);
     }
 
     /**
-     * Sets the number of hours after which old jobs are removed.
-     *
-     * @param hours The number of hours
+     * @deprecated Please use {@link #JobInfoRepository(MongoClient, String, String)} instead}
      */
-    public void setHoursAfterWhichOldJobsAreDeleted(int hours) {
-        this.hoursAfterWhichOldJobsAreDeleted = hours;
+    @Deprecated
+    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password) {
+        super(createMongoClient(mongo, dbName, username, password), dbName, collectionName);
+    }
+
+    /**
+     * @deprecated Please use {@link #JobInfoRepository(MongoClient, String, String, WriteConcern)} instead}
+     */
+    @Deprecated
+    public JobInfoRepository(Mongo mongo, String dbName, String collectionName, String username, String password, WriteConcern safeWriteConcern) {
+        super(createMongoClient(mongo, dbName, username, password), dbName, collectionName, safeWriteConcern);
+    }
+
+    public JobInfoRepository(MongoClient mongo, String dbName, String collectionName) {
+        super(mongo, dbName, collectionName);
+    }
+
+    public JobInfoRepository(MongoClient mongo, String dbName, String collectionName, WriteConcern safeWriteConcern) {
+        super(mongo, dbName, collectionName, safeWriteConcern);
     }
 
     /**
@@ -95,7 +101,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
 
             save(jobInfo);
             return jobInfo.getId();
-        } catch (MongoException.DuplicateKey e) {
+        } catch (DuplicateKeyException e) {
             logger.warn("job={} with state={} already exists, creation skipped!", name, runningState);
             return null;
         }
@@ -224,7 +230,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         try {
             final WriteResult result = collection.update(createIdQuery(id), update, false, false, getSafeWriteConcern());
             return result.getN() == 1;
-        } catch (MongoException.DuplicateKey e){
+        } catch (DuplicateKeyException e){
             return false;
         }
     }
@@ -549,38 +555,6 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         return numberOfRemovedJobs;
     }
 
-    public int cleanupOldJobs() {
-        logger.info("cleanupOldJobs called");
-        try {
-            return doCleanupOldJobs();
-        } catch(Exception e) {
-            logger.error("cleanupOldJobs exception occurred",e);
-        } finally {
-            logger.info("cleanupOldJobs finished");
-        }
-        return 0;
-    }
-
-    private int doCleanupOldJobs() {
-        final Date currentDate = new Date();
-        removeJobIfTimedOut(JOB_NAME_CLEANUP, currentDate);
-        int numberOfRemovedJobs = 0;
-        if (!hasJob(JOB_NAME_CLEANUP, RunningState.RUNNING)) {
-            /* register clean up job with max execution time */
-            final String id = create(JOB_NAME_CLEANUP, FIVE_MINUTES, FIVE_MINUTES, 0, RunningState.RUNNING, JobExecutionPriority.CHECK_PRECONDITIONS, new HashMap<String, String>());
-            if (id != null) { //Job konnte wirklich von diesem Server erzeugt werden.
-                final Date beforeDate = new Date(currentDate.getTime() - hoursAfterWhichOldJobsAreDeleted * 60 * 60 * 1000);
-                logger.info("Going to delete not runnnig jobs before {} ...", beforeDate);
-                /* ... good bye ... */
-                numberOfRemovedJobs = cleanupNotRunning(beforeDate);
-                logger.info("Deleted {} not runnnig jobs.", numberOfRemovedJobs);
-                addAdditionalData(id, "numberOfRemovedJobs", String.valueOf(numberOfRemovedJobs));
-                markAsFinished(id, ResultCode.SUCCESSFUL);
-            }
-        }
-        return numberOfRemovedJobs;
-    }
-
     // ~~
 
     protected int cleanupNotRunning(Date clearJobsBefore) {
@@ -592,14 +566,44 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
     }
 
     protected void prepareCollection() {
-        collection.ensureIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
-        collection.ensureIndex(new BasicDBObject(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1));
-        collection.ensureIndex(new BasicDBObject().
+        collection.createIndex(new BasicDBObject(JobInfoProperty.NAME.val(), 1));
+        collection.createIndex(new BasicDBObject().
                 append(JobInfoProperty.RUNNING_STATE.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "runningState_creationTime");
-        collection.ensureIndex(new BasicDBObject().
+        collection.createIndex(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.CREATION_TIME.val(), 1), "name_creationTime");
-        collection.ensureIndex(new BasicDBObject().
+        collection.createIndex(new BasicDBObject().
                 append(JobInfoProperty.NAME.val(), 1).append(JobInfoProperty.RUNNING_STATE.val(), 1), "name_state", true);
+
+        dropIfExists(collection, "lastModificationTime_1");
+        dropIfExists(collection, "lastModificationTime_1_TTL");
+
+
+        collection.createIndex(new BasicDBObject().
+                        append(JobInfoProperty.LAST_MODIFICATION_TIME.val(), 1),
+                new BasicDBObject().
+                        append("name", "lastModificationTime_TTL").
+                        append("expireAfterSeconds", sevenDaysInSeconds()));
+    }
+
+    private void dropIfExists(DBCollection collection, String name) {
+        if (indexExists(collection, name)) {
+            collection.dropIndex(name);
+        }
+    }
+
+
+    private boolean indexExists(DBCollection collection, String name) {
+        for (DBObject indexInfo: collection.getIndexInfo()) {
+            if (name.equals(indexInfo.get("name"))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int sevenDaysInSeconds() {
+        return (int) TimeUnit.DAYS.toSeconds(7);
     }
 
     protected JobInfo fromDbObject(final DBObject dbObject) {
@@ -634,16 +638,7 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
         }
         final DBObject update = new BasicDBObject().append(MongoOperator.SET.op(), set.get());
         final WriteResult result = collection.update(query, update, false, false, getSafeWriteConcern());
-        String lastConcern = null;
-        boolean updateCount = false;
-        try {
-            lastConcern = String.valueOf(result.getLastConcern());
-            updateCount = result.getN() == 1;
-        } catch (IllegalStateException e) {
-            logger.error("Exception occured during update lastConcern=" + lastConcern + " updateCount=" + updateCount + " ExceptionMessage: " + e.getMessage());
-            throw e;
-        }
-        return updateCount;
+        return result.getN() == 1;
     }
 
     private BasicDBObject createFindByNameAndRunningStateQuery(final String name, final String state) {

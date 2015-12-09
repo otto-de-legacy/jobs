@@ -1,15 +1,13 @@
 package de.otto.jobstore.repository;
 
 import com.mongodb.*;
-import de.otto.jobstore.common.*;
-import de.otto.jobstore.common.properties.JobInfoProperty;
-import org.bson.types.ObjectId;
+import de.otto.jobstore.common.AbstractItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public abstract class AbstractRepository<E extends AbstractItem> {
 
@@ -19,34 +17,72 @@ public abstract class AbstractRepository<E extends AbstractItem> {
 
     private WriteConcern safeWriteConcern = WriteConcern.SAFE;
 
-    public AbstractRepository(final Mongo mongo, final String dbName, final String collectionName) {
-        this(mongo, dbName, collectionName, null, null);
-    }
-
-    public AbstractRepository(final Mongo mongo, final String dbName, final String collectionName, final String username, final String password) {
-        final DB db = mongo.getDB(dbName);
-        if (username != null && !username.isEmpty()) {
-            if (!db.isAuthenticated()) {
-                final boolean authenticateSuccess = db.authenticate(username, password.toCharArray());
-                if (!authenticateSuccess) {
-                    throw new RuntimeException("The authentication at the database: " + dbName + " on the host: " +
-                            mongo.getAddress() + " with the username: " + username + " and the given password was not successful");
-                } else {
-                    logger.info("Login at database {} on the host {} was successful", dbName, mongo.getAddress());
-                }
-            }
-        }
-        collection = db.getCollection(collectionName);
-        logger.info("Prepare access to MongoDB collection '{}' on {}/{}", new Object[]{collectionName, mongo, dbName});
+    public AbstractRepository(MongoClient mongoClient, String dbName, String collectionName) {
+        this.collection = mongoClient.getDB(dbName).getCollection(collectionName);
+        logger.info("Prepare access to MongoDB collection '{}' on {}/{}", collectionName, mongoClient, dbName);
         prepareCollection();
     }
 
-    public AbstractRepository(final Mongo mongo, final String dbName, final String collectionName, final String username, final String password, WriteConcern safeWriteConcern) {
-        this(mongo, dbName, collectionName, username, password);
+    public AbstractRepository(MongoClient mongo, String dbName, String collectionName, WriteConcern safeWriteConcern) {
+        this(mongo, dbName, collectionName);
         if(safeWriteConcern == null) {
             throw new NullPointerException("writeConcern may not be null");
         }
         this.safeWriteConcern = safeWriteConcern;
+    }
+
+    @Deprecated
+    static MongoClient createMongoClient(Mongo mongo, String dbName, String username, String password) {
+        MongoOptions mongoOptions = mongo.getMongoOptions();
+        return new MongoClient(mongo.getAllAddress(),
+                credentials(dbName, username, password),
+                mongoClientOptions(mongoOptions));
+    }
+
+    @Deprecated
+    private static MongoClientOptions mongoClientOptions(MongoOptions options) {
+        MongoClientOptions.Builder builder = MongoClientOptions.builder()
+                .connectionsPerHost(options.getConnectionsPerHost())
+                .threadsAllowedToBlockForConnectionMultiplier(options.getThreadsAllowedToBlockForConnectionMultiplier())
+                .maxWaitTime(options.getMaxWaitTime())
+                .connectTimeout(options.getConnectTimeout())
+                .socketTimeout(options.getSocketTimeout())
+                .socketKeepAlive(options.isSocketKeepAlive())
+                ;
+
+        if (options.getReadPreference() != null) {
+            builder.readPreference(options.getReadPreference());
+        }
+        if (options.getDbDecoderFactory() != null) {
+            builder.dbDecoderFactory(options.getDbDecoderFactory());
+        }
+        if (options.getDbEncoderFactory() != null) {
+            builder.dbEncoderFactory(options.getDbEncoderFactory());
+        }
+        if (options.getSocketFactory() != null) {
+            builder.socketFactory(options.getSocketFactory());
+        }
+        if (options.getSocketFactory() != null) {
+            builder.socketFactory(options.getSocketFactory());
+        }
+        if (options.getWriteConcern() != null) {
+            builder.writeConcern(options.getWriteConcern());
+        }
+        return builder
+                .description(options.getDescription())
+                .cursorFinalizerEnabled(options.isCursorFinalizerEnabled())
+                .alwaysUseMBeans(options.isAlwaysUseMBeans())
+                .requiredReplicaSetName(options.getRequiredReplicaSetName())
+                .build();
+    }
+
+    private static List<MongoCredential> credentials(String dbName, String userName, String password) {
+        if (userName != null && userName.trim().length() > 0) {
+            return Collections.singletonList(
+                    MongoCredential.createMongoCRCredential(userName, dbName, password.toCharArray()));
+        } else {
+            return Collections.emptyList();
+        }
     }
 
     public WriteConcern getSafeWriteConcern() {
@@ -55,10 +91,11 @@ public abstract class AbstractRepository<E extends AbstractItem> {
 
     public void save(E item) {
         final DBObject obj = item.toDbObject();
-        final WriteResult wr = collection.save(obj,getSafeWriteConcern());
-        final CommandResult cr = wr.getLastError();
-        if (!cr.ok()) {
-            logger.error("Unable to save job info object={} wr={}: ", wr, obj);
+        try {
+            collection.save(obj, getSafeWriteConcern());
+        } catch (MongoException e) {
+            logger.error("Unable to save job info object={}, error={}", obj, e.getMessage());
+            throw e;
         }
     }
 
@@ -73,12 +110,12 @@ public abstract class AbstractRepository<E extends AbstractItem> {
             collection.drop();
             prepareCollection();
         } else {
-            final WriteResult wr = collection.remove(new BasicDBObject());
-            final CommandResult cr = wr.getLastError(getSafeWriteConcern());
-            if (cr.ok()) {
+            try {
+                collection.remove(new BasicDBObject(), this.safeWriteConcern);
                 logger.info("Cleared all entities successfully on collection: {}", collection.getFullName());
-            } else {
-                logger.error("Could not clear entities on collection {}: {}", collection.getFullName(), cr.getErrorMessage());
+            } catch (MongoException e) {
+                logger.error("Could not clear entities on collection {}: {}", collection.getFullName(), e.getMessage());
+                throw e;
             }
         }
     }

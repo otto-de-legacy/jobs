@@ -62,13 +62,6 @@ public class JobServiceNotActiveTest {
     }
 
     @Test
-    public void doesNotCleanupOldJobsIfNotActive() throws Exception {
-        jobService.cleanupOldJobs();
-
-        verify(jobInfoRepository, never()).cleanupOldJobs();
-    }
-
-    @Test
     public void doesNotCleanupTimedOutJobsIfNotActive() throws Exception {
         jobService.cleanupTimedOutJobs();
 

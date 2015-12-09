@@ -97,23 +97,6 @@ public class JobScheduler {
         schedules.add(new JobSchedule() {
             @Override
             public long interval() {
-                return TimeUnit.DAYS.toMillis(1);
-            }
-
-            @Override
-            public void schedule() {
-                jobService.cleanupOldJobs();
-            }
-
-            @Override
-            public String getName() {
-                return "jobInfoRepository.cleanupOldJobs()";
-            }
-        });
-
-        schedules.add(new JobSchedule() {
-            @Override
-            public long interval() {
                 return TimeUnit.MINUTES.toMillis(1);
             }
 
