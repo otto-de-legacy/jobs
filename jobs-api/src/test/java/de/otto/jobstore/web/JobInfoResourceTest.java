@@ -1,8 +1,6 @@
 package de.otto.jobstore.web;
 
 import com.mongodb.BasicDBObject;
-import com.sun.jersey.api.uri.UriBuilderImpl;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
 import de.otto.jobstore.common.JobExecutionPriority;
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.RunningState;
@@ -17,12 +15,11 @@ import de.otto.jobstore.web.representation.JobInfoRepresentation;
 import de.otto.jobstore.web.representation.JobNameRepresentation;
 import org.apache.abdera.model.Entry;
 import org.apache.abdera.model.Feed;
+import org.glassfish.jersey.uri.internal.JerseyUriBuilder;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.*;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 import java.io.StringReader;
@@ -53,7 +50,7 @@ public class JobInfoResourceTest {
         jobInfoResource = new JobInfoResource(jobService, jobInfoService);
 
         uriInfo = mock(UriInfo.class);
-        when(uriInfo.getBaseUriBuilder()).thenReturn(new UriBuilderImpl());
+        when(uriInfo.getBaseUriBuilder()).thenReturn(new JerseyUriBuilder());
         JOB_INFO = new JobInfo(new BasicDBObject().append(JobInfoProperty.ID.val(), "1234").append(JobInfoProperty.NAME.val(), "foo"));
     }
 
@@ -285,7 +282,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExtractParameters() throws Exception {
-        MultivaluedMap<String,String> queryParameters = new MultivaluedMapImpl();
+        MultivaluedMap<String,String> queryParameters = new MultivaluedHashMap<>();
         queryParameters.put("key1", Arrays.asList("v1"));
         queryParameters.put("key2", Arrays.asList("v2"));
 
@@ -298,7 +295,7 @@ public class JobInfoResourceTest {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testExtractParametersFailOnNull() throws Exception {
-        MultivaluedMap<String,String> queryParameters = new MultivaluedMapImpl();
+        MultivaluedMap<String,String> queryParameters = new MultivaluedHashMap();
         queryParameters.put("key1", Arrays.asList("v1"));
         queryParameters.put("key2", null);
 
@@ -307,7 +304,7 @@ public class JobInfoResourceTest {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testExtractParametersFailOnMultipleValuesPerKey() throws Exception {
-        MultivaluedMap<String,String> queryParameters = new MultivaluedMapImpl();
+        MultivaluedMap<String,String> queryParameters = new MultivaluedHashMap();
         queryParameters.put("key1", Arrays.asList("v1", "v2"));
 
         jobInfoResource.extractFirstParameters(queryParameters);

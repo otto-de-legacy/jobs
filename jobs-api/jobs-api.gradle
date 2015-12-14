@@ -12,9 +12,8 @@ uploadArchives {
 
 dependencies {
     compile project(':jobs-core')
+    compile libs.abdera
     testCompile project(':jobs-core').sourceSets.test.output
-    compile libs.jerseyAbdera, libs.jerseyClient, libs.jerseyCore
-
     testCompile libs.testng, libs.mockito
     testCompile libs.cobertura
     testCompile libs.springContext, libs.springCore, libs.springBeans, libs.springTest
