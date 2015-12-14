@@ -26,6 +26,7 @@ if (JavaVersion.current().isJava8Compatible()) {
 allprojects {
     apply plugin: 'idea'
     version = '0.13.8'
+    version += '.jersey2' // remove once feature is done
     if (!project.hasProperty('isRelease')) {
          version += '-SNAPSHOT'
     }
