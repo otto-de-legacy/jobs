@@ -9,6 +9,7 @@ project.ext.libs = [
     "jerseyApache"      : "com.sun.jersey.contribs:jersey-apache-client4:1.17.1",
 
     "jerseyClient"      : "org.glassfish.jersey.core:jersey-client:2.19",
+    "jerseyJSON"	: "org.glassfish.jersey.media:jersey-media-json-jackson:2.19",
 
     "mockito"           : "org.mockito:mockito-all:1.8.5",
     "mongoDb"           : 'org.mongodb:mongo-java-driver:2.13.0',

@@ -1,5 +1,8 @@
 package de.otto.jobstore.service;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
@@ -32,12 +35,25 @@ public class RemoteJobExecutorService implements RemoteJobExecutor {
     public RemoteJobExecutorService(String jobExecutorUri) {
         this.jobExecutorUri = jobExecutorUri;
 
+        client = createClient();
+
+        remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
+    }
+
+    public static Client createClient() {
+        // Create your own Jackson ObjectMapper to ignore unknown properties
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        // Create your own JacksonJaxbJsonProvider and then assign it to the config.
+        JacksonJaxbJsonProvider jacksonProvider = new JacksonJaxbJsonProvider();
+        jacksonProvider.setMapper(mapper);
+        final ClientConfig cc = new ClientConfig(jacksonProvider);
+
         // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
         //    see: https://github.com/mitsuhiko/flask/issues/367
-        final ClientConfig cc = new ClientConfig();
         cc.property(ClientProperties.CHUNKED_ENCODING_SIZE, null);
-        client = ClientBuilder.newClient(cc);
-        remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
+
+        return ClientBuilder.newClient(cc);
     }
 
     @Override

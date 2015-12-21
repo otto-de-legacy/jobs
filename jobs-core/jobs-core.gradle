@@ -1,7 +1,7 @@
 dependencies {
     compile libs.mongoDb
     compile libs.slfApi, libs.slfLog4j
-    compile libs.jerseyClient
+    compile libs.jerseyClient, libs.jerseyJSON
     compile libs.commonsCompress
     compile libs.httpClient
     compile libs.httpMime

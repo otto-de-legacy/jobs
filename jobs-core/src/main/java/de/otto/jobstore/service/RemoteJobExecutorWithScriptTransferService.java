@@ -20,14 +20,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.codehaus.jettison.json.JSONException;
-import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.client.ClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.MediaType;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -70,11 +67,8 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
         this.jobExecutorUri = jobExecutorUri;
         this.tarArchiveProvider = tarArchiveProvider;
 
-        // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
-        //    see: https://github.com/mitsuhiko/flask/issues/367
-        final ClientConfig cc = new ClientConfig();
-        cc.property(ClientProperties.CHUNKED_ENCODING_SIZE, null);
-        this.client = ClientBuilder.newClient(cc);
+        client = RemoteJobExecutorService.createClient();
+
         remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
 
         httpclient = createMultithreadSafeClient();
