@@ -94,7 +94,6 @@ public abstract class AbstractRepository<E extends AbstractItem> {
         try {
             collection.save(obj, getSafeWriteConcern());
         } catch (MongoException e) {
-            logger.error("Unable to save job info object={}, error={}", obj, e.getMessage());
             throw e;
         }
     }
