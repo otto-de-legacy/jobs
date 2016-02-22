@@ -113,7 +113,35 @@ public class JobService {
         }
     }
 
-    private boolean isJobRegistered(String name) {
+    /**
+     * Deregisters a job with the given runnable in this job service
+     *
+     * @param jobName The jobName
+     * @return true - The job was successfully deregistered<br>
+     * false - A job with the given name does not exist
+     */
+    public boolean deregisterJob(String jobName) {
+        if (!isJobRegistered(jobName)) {
+            LOGGER.info("ltag=JobService.createJob.deregisterJob Tried to dereregister job with name={}", jobName);
+            return false;
+        }
+
+        final JobInfo mostRecent = jobInfoRepository.findMostRecent(jobName);
+        if (mostRecent != null && RunningState.RUNNING.name().equals(mostRecent.getRunningState())) {
+            LOGGER.info("ltag=JobService.createJob.deregisterJob Tried to dereregister running job with name={}", jobName);
+            return false;
+        }
+        jobs.remove(jobName);
+        return true;
+    }
+
+    /**
+     * Check that a job is registered
+     *
+     * @param name the name of the job
+     * @return true if the job is registered
+     */
+    protected boolean isJobRegistered(String name) {
         return jobs.containsKey(name);
     }
 
@@ -152,8 +180,7 @@ public class JobService {
      * false - If the running constraint already exists
      * @throws de.otto.jobstore.service.exception.JobNotRegisteredException Thrown if the constraint contains a name of
      *                                                                      a job which is not registered with this JobService instance
-     *
-     * deprecated, use addRunningConstraintWithoutChecks instead. There is no reason to check for non existing jobs, this only enforces a strange order
+     * @deprecated, use addRunningConstraintWithoutChecks instead. There is no reason to check for non existing jobs, this only enforces a strange order
      */
     @Deprecated
     public boolean addRunningConstraint(final Set<String> constraint) throws JobNotRegisteredException {
@@ -169,7 +196,6 @@ public class JobService {
      * @param constraint The names of the jobs that are not allowed to run at the same time
      * @return true - If the running constraint was successfully added<br>
      * false - If the running constraint already exists
-     *
      */
     public boolean addRunningConstraintWithoutChecks(final Set<String> constraint) {
         return runningConstraints.add(Collections.unmodifiableSet(constraint));

@@ -36,6 +36,7 @@ public class JobServiceTest {
 
     private static final String JOB_NAME_01 = "test";
     private static final String JOB_NAME_02 = "test2";
+    private static final String JOB_RUNNING = "running";
     private JobExecutionException jobExecutionException;
     private RemoteMockJobRunnable jobRunnable;
 
@@ -821,6 +822,39 @@ public class JobServiceTest {
 
         verify(jobInfoRepository).cleanupTimedOutJobs();
     }
+
+    @Test
+    public void shouldNotDeregisterIfJobIsNotRegistered() throws Exception {
+        assertFalse(jobService.deregisterJob("JobNichtVorhanden"));
+    }
+
+    @Test
+    public void shouldNotDeregisterIfJobIsRunning() throws Exception {
+        jobService.registerJob(TestSetup.localJobRunnable(JOB_RUNNING, 1));
+        final JobInfo runningJobInfo = new JobInfo(JOB_RUNNING, "localhost", "thread", 0L, 0L, 2L, RunningState.RUNNING);
+
+        when(jobInfoRepository.findMostRecent(JOB_RUNNING)).thenReturn(runningJobInfo);
+
+        assertTrue(jobService.isJobRegistered(JOB_RUNNING));
+        assertFalse(jobService.deregisterJob(JOB_RUNNING));
+        verify(jobInfoRepository).findMostRecent(JOB_RUNNING);
+    }
+
+    @Test
+    public void shouldDeregisterJob() throws Exception {
+        jobService.registerJob(TestSetup.localJobRunnable(JOB_NAME_01, 1));
+        final JobInfo finishedJob = new JobInfo(JOB_NAME_01, "localhost", "thread", 0L, 0L, 2L, RunningState.FINISHED);
+
+        when(jobInfoRepository.findMostRecent(JOB_NAME_01)).thenReturn(finishedJob);
+
+        assertTrue(jobService.isJobRegistered(JOB_NAME_01));
+        assertTrue(jobService.deregisterJob(JOB_NAME_01));
+        assertFalse(jobService.isJobRegistered(JOB_NAME_01));
+        verify(jobInfoRepository).findMostRecent(JOB_NAME_01);
+
+    }
+
+
 
     private class RemoteMockJobRunnable extends AbstractRemoteJobRunnable {
 
