@@ -9,7 +9,6 @@ import de.otto.jobstore.common.util.InternetUtils;
 import org.bson.types.ObjectId;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -20,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.AssertJUnit.*;
-import static org.testng.AssertJUnit.assertEquals;
 
 @ContextConfiguration(locations = {"classpath:spring/jobs-context.xml"})
 public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContextTests {
@@ -103,15 +101,6 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         createJobInfo(TESTVALUE_JOBNAME, 300, RunningState.RUNNING);
         jobInfoRepository.clear(true);
         assertEquals(0L, jobInfoRepository.count());
-    }
-
-    @Test
-    public void testMarkAsFinished() throws Exception {
-        assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING));
-        String id = createJobInfo(TESTVALUE_JOBNAME, 5, RunningState.RUNNING);
-        assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getFinishTime());
-        jobInfoRepository.markAsFinished(id, ResultCode.SUCCESSFUL);
-        assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME, null).get(0).getFinishTime());
     }
 
     @Test
@@ -430,6 +419,19 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         jobInfoRepository.setStatusMessage(id, "foo");
         JobInfo jobInfo = jobInfoRepository.findById(id);
         assertEquals("foo", jobInfo.getStatusMessage());
+    }
+
+
+    @Test
+    public void testFindNMostRecentJobs() {
+        for (int i = 0; i < 4; i++) {
+            JobInfo jobInfo = newJobInfo(1000, RunningState.RUNNING);
+            jobInfoRepository.save(jobInfo);
+            jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL);
+        }
+        List<JobInfo> testJobs = jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME, 3);
+
+        assertEquals(testJobs.size(), 3);
     }
 
     private String createJobInfo(String name, long timeoutPeriod, RunningState runningState) {
