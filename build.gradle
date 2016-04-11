@@ -45,7 +45,11 @@ artifactory {
     //The base Artifactory URL if not overridden by the publisher/resolver
     publish {
         repository {
-            repoKey = 'maven-san-snapshots-local'
+            if (!project.hasProperty('isRelease')) {
+                repoKey = 'maven-san-snapshots-local'
+            } else {
+                repoKey = 'maven-san-releases-local'
+            }
             username = artifactoryUsername
             password = artifactoryPassword
         }
