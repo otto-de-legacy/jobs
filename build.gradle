@@ -6,11 +6,14 @@ buildscript {
 
     // I need build script classpath for foreign plugins
     repositories {
-        maven { url 'http://nexus.lhotse.ov.otto.de:8080/content/groups/public' }
+        maven {
+            url artifactoryUrl + '/plugins-release-virtual'
+        }
     }
 
     dependencies {
         classpath 'com.github.ben-manes:gradle-versions-plugin:0.9'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:+'
     }
 }
 
@@ -24,13 +27,50 @@ if (JavaVersion.current().isJava8Compatible()) {
 }
 
 allprojects {
+    apply plugin: 'com.jfrog.artifactory'
     apply plugin: 'idea'
-    version = '0.13.8'
+    version = '0.13.9'
     if (!project.hasProperty('isRelease')) {
          version += '-SNAPSHOT'
     }
     group = 'de.otto'
 }
+
+configurations {
+    archives
+}
+
+artifactory {
+    contextUrl = artifactoryUrl
+    //The base Artifactory URL if not overridden by the publisher/resolver
+    publish {
+        repository {
+            if (!project.hasProperty('isRelease')) {
+                repoKey = 'maven-san-snapshots-local'
+            } else {
+                repoKey = 'maven-san-releases-local'
+            }
+            username = artifactoryUsername
+            password = artifactoryPassword
+        }
+        defaults {
+            // Reference to Gradle publications defined in the build script.
+            // This is how we tell the Artifactory Plugin which artifacts should be
+            // published to Artifactory.
+            publishConfigs('archives')
+            publishArtifacts = true
+            // Publish generated POM files to Artifactory (true by default)
+            publishPom = true
+        }
+    }
+    resolve {
+        repository {
+            repoKey = 'libs-release-virtual'
+        }
+    }
+}
+
+artifactoryPublish.skip = true
 
 idea {
   project {
@@ -53,8 +93,8 @@ subprojects {
         useTestNG()
     }
 
-    repositories {
-        maven { url 'http://nexus.lhotse.ov.otto.de:8080/content/groups/public' }
+    manifest {
+        attributes 'provider': 'gradle'
     }
 
     configurations {
@@ -69,6 +109,10 @@ subprojects {
     task javadocJar(type: Jar, dependsOn: javadoc) {
         classifier = 'javadoc'
         from javadoc.destinationDir
+    }
+
+    artifactoryPublish {
+        dependsOn sourcesJar, javadocJar
     }
 
     artifacts {
