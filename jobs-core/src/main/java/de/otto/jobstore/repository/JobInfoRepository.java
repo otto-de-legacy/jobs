@@ -387,10 +387,18 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
      * @return The job with the given name and the most current timestamp or null if none could be found.
      */
     public JobInfo findMostRecent(final String name) {
-        final DBCursor cursor = collection.find(new BasicDBObject().
-                append(JobInfoProperty.NAME.val(), name)).
-                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val())).limit(1);
-        return getFirst(cursor);
+
+        return getFirst(mostRecentJobsInfos(name, 1));
+    }
+
+    /**
+     * Returns the last n jobs with the given name and the most current last modified timestamp.
+     *
+     * @param name The name of the job
+     * @return The jobs with the given name and the most current timestamp or an empty list if none could be found.
+     */
+    public List<JobInfo> findMostRecent(final String name, int limit) {
+        return getAll(mostRecentJobsInfos(name, limit));
     }
 
     public JobInfo findMostRecentFinished(String name) {
@@ -523,6 +531,12 @@ public class JobInfoRepository extends AbstractRepository<JobInfo> {
             logger.info("cleanupTimedOutJobs finished");
         }
         return 0;
+    }
+
+    private DBCursor mostRecentJobsInfos(String name, int limit) {
+        return collection.find(new BasicDBObject().
+                append(JobInfoProperty.NAME.val(), name)).
+                sort(new BasicDBObject(JobInfoProperty.CREATION_TIME.val(), SortOrder.DESC.val())).limit(limit);
     }
 
     private int doCleanupTimedOutJobs() {

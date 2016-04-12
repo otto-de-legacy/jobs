@@ -104,15 +104,6 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
     }
 
     @Test
-    public void testMarkAsFinished() throws Exception {
-        assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING));
-        String id = createJobInfo(TESTVALUE_JOBNAME, 5, RunningState.RUNNING);
-        assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING).getFinishTime());
-        jobInfoRepository.markAsFinished(id, ResultCode.SUCCESSFUL);
-        assertNotNull(jobInfoRepository.findByName(TESTVALUE_JOBNAME, null).get(0).getFinishTime());
-    }
-
-    @Test
     public void testMarkAsFinishedById() throws Exception {
         assertNull(jobInfoRepository.findByNameAndRunningState(TESTVALUE_JOBNAME, RunningState.RUNNING));
         String id = createJobInfo(TESTVALUE_JOBNAME, 5, RunningState.RUNNING);
@@ -428,6 +419,19 @@ public class JobInfoRepositoryIntegrationTest extends AbstractTestNGSpringContex
         jobInfoRepository.setStatusMessage(id, "foo");
         JobInfo jobInfo = jobInfoRepository.findById(id);
         assertEquals("foo", jobInfo.getStatusMessage());
+    }
+
+
+    @Test
+    public void testFindNMostRecentJobs() {
+        for (int i = 0; i < 4; i++) {
+            JobInfo jobInfo = newJobInfo(1000, RunningState.RUNNING);
+            jobInfoRepository.save(jobInfo);
+            jobInfoRepository.markAsFinished(jobInfo.getId(), ResultCode.SUCCESSFUL);
+        }
+        List<JobInfo> testJobs = jobInfoRepository.findMostRecent(TESTVALUE_JOBNAME, 3);
+
+        assertEquals(testJobs.size(), 3);
     }
 
     private String createJobInfo(String name, long timeoutPeriod, RunningState runningState) {
