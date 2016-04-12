@@ -29,7 +29,7 @@ if (JavaVersion.current().isJava8Compatible()) {
 allprojects {
     apply plugin: 'com.jfrog.artifactory'
     apply plugin: 'idea'
-    version = '0.13.9'
+    version = '0.13.10'
     if (!project.hasProperty('isRelease')) {
          version += '-SNAPSHOT'
     }
