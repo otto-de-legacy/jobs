@@ -79,7 +79,7 @@ public abstract class AbstractRepository<E extends AbstractItem> {
     private static List<MongoCredential> credentials(String dbName, String userName, String password) {
         if (userName != null && userName.trim().length() > 0) {
             return Collections.singletonList(
-                    MongoCredential.createMongoCRCredential(userName, dbName, password.toCharArray()));
+                    MongoCredential.createCredential(userName, dbName, password.toCharArray()));
         } else {
             return Collections.emptyList();
         }
