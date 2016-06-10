@@ -31,14 +31,3 @@ task integrationTest(type: Test) {
 }
 // ~~~~~~~~~~~
 
-uploadArchives {
-    configuration = configurations.archives
-    repositories {
-        mavenDeployer {
-            pom {
-                groupId = 'de.otto'
-                artifactId = 'jobs-core'
-            }
-        }
-    }
-}

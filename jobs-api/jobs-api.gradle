@@ -1,15 +1,3 @@
-uploadArchives {
-    configuration = configurations.archives
-    repositories {
-        mavenDeployer {
-            pom {
-                groupId = 'de.otto'
-                artifactId = 'jobs-api'
-            }
-        }
-    }
-}
-
 dependencies {
     compile project(':jobs-core')
     testCompile project(':jobs-core').sourceSets.test.output
