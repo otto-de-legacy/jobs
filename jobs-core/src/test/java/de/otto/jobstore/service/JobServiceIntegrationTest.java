@@ -39,7 +39,7 @@ public class JobServiceIntegrationTest extends AbstractTestNGSpringContextTests 
     @Resource
     private JobDefinitionRepository jobDefinitionRepository;
 
-    private RemoteJobExecutorService remoteJobExecutorService = mock(RemoteJobExecutorService.class);
+    private RemoteJobExecutor remoteJobExecutorService = mock(RemoteJobExecutor.class);
     private JobRunnable jobRunnable;
 
     private static final String JOB_NAME_1 = "test_job_1";

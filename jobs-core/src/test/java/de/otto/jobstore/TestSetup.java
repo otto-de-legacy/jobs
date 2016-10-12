@@ -3,7 +3,7 @@ package de.otto.jobstore;
 
 import de.otto.jobstore.common.*;
 import de.otto.jobstore.service.JobInfoService;
-import de.otto.jobstore.service.RemoteJobExecutorService;
+import de.otto.jobstore.service.RemoteJobExecutor;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
 
@@ -28,7 +28,7 @@ public class TestSetup {
     }
 
 
-    public static AbstractRemoteJobRunnable remoteJobRunnable(final RemoteJobExecutorService remoteJobExecutorService, final JobInfoService jobInfoService,
+    public static AbstractRemoteJobRunnable remoteJobRunnable(final RemoteJobExecutor remoteJobExecutorService, final JobInfoService jobInfoService,
                                                               final Map<String, String> parameters, final AbstractRemoteJobDefinition jobDefinition) {
         return new AbstractRemoteJobRunnable(remoteJobExecutorService, jobInfoService) {
 

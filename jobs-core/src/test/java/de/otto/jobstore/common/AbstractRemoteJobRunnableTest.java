@@ -3,7 +3,7 @@ package de.otto.jobstore.common;
 import de.otto.jobstore.TestSetup;
 import de.otto.jobstore.common.properties.JobInfoProperty;
 import de.otto.jobstore.service.JobInfoService;
-import de.otto.jobstore.service.RemoteJobExecutorService;
+import de.otto.jobstore.service.RemoteJobExecutor;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -20,7 +20,7 @@ import static org.testng.AssertJUnit.assertEquals;
 
 public class AbstractRemoteJobRunnableTest {
 
-    private RemoteJobExecutorService remoteJobExecutorService;
+    private RemoteJobExecutor remoteJobExecutorService;
     private JobInfoService jobInfoService;
 
     private Map<String, String> parameters = new HashMap<>();
@@ -29,7 +29,7 @@ public class AbstractRemoteJobRunnableTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        remoteJobExecutorService = mock(RemoteJobExecutorService.class);
+        remoteJobExecutorService = mock(RemoteJobExecutor.class);
         jobInfoService = mock(JobInfoService.class);
         parameters.put("key", "value");
     }

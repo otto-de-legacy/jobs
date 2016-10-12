@@ -46,14 +46,17 @@ public class JobInfoResource {
     @GET
     @Produces(MediaType.APPLICATION_ATOM_XML)
     public Response getJobs(@Context final UriInfo uriInfo) {
+        return getJobs(new DefaultURIFactory(this.getClass(), uriInfo));
+    };
+
+    Response getJobs(URIFactory uriFactory) {
         final Abdera abdera = new Abdera();
-        final Feed feed = createFeed(abdera, "Job Names", "A list of the available distinct job names",
-                uriInfo.getBaseUriBuilder().path(this.getClass()).build());
+        final Feed feed = createFeed(abdera, "Job Names", "A list of the available distinct job names", uriFactory.create());
         try {
             final JAXBContext ctx = JAXBContext.newInstance(JobNameRepresentation.class);
             final Marshaller marshaller = ctx.createMarshaller();
             for (String name : jobService.listJobNames()) {
-                final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(name).build();
+                final URI uri = uriFactory.create(name);
                 final StringWriter writer = new StringWriter();
                 marshaller.marshal(new JobNameRepresentation(name), writer);
                 final Entry entry = abdera.newEntry();
@@ -101,17 +104,21 @@ public class JobInfoResource {
      */
     @POST
     @Path("/{name}")
-    public Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo)  {
+    public Response executeJob(@PathParam("name") final String name, @Context final UriInfo uriInfo) {
+        return executeJob(name, new DefaultURIFactory(this.getClass(), uriInfo), new DefaultParameterExtractor(uriInfo));
+    }
+
+    Response executeJob(final String name, final URIFactory uriFactory, final ParameterExtractor extractor)  {
         Map<String, String> parameters;
         try {
-            parameters = extractFirstParameters(uriInfo.getQueryParameters());
+            parameters = extractFirstParameters(extractor.getQueryParameters());
         } catch(IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
         }
         try {
             final String jobId = jobService.executeJob(name, JobExecutionPriority.FORCE_EXECUTION, parameters);
             final JobInfo jobInfo = jobInfoService.getById(jobId);
-            final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(jobInfo.getName()).path(jobId).build();
+            final URI uri = uriFactory.create(name, jobInfo.getName());
             return Response.created(uri).build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
@@ -126,7 +133,7 @@ public class JobInfoResource {
         }
     }
 
-    Map<String, String> extractFirstParameters(MultivaluedMap<String, String> queryParameters) {
+    Map<String, String> extractFirstParameters(Map<String, List<String>> queryParameters) {
         Map<String, String> parameters = new HashMap<>();
         if(queryParameters == null) {
             return parameters;
@@ -137,8 +144,6 @@ public class JobInfoResource {
                 throw new IllegalArgumentException("value for key '"+key+"' is ambiguous ("+value+")");
             }
             parameters.put(key, value.get(0));
-
-
         }
         return parameters;
     }
@@ -156,14 +161,20 @@ public class JobInfoResource {
     @Produces(MediaType.APPLICATION_ATOM_XML)
     public Response getJobsByName(@PathParam("name") final String name, @QueryParam("size") @DefaultValue("10") final int size,
                                   @Context final UriInfo uriInfo) {
+        return getJobsByName(name, size, new DefaultURIFactory(this.getClass(), uriInfo));
+    }
+
+    Response getJobsByName(final String name, final int size, final URIFactory uriFactory) {
         final Abdera abdera = new Abdera();
-        final Feed feed = createFeed(abdera, "JobInfo Objects", "A list of the " + size + " most recent jobInfo objects with name " + name,
-                uriInfo.getBaseUriBuilder().path(this.getClass()).path(name).build());
+        final Feed feed = createFeed(
+                abdera,
+                "JobInfo Objects", "A list of the " + size + " most recent jobInfo objects with name " + name,
+                uriFactory.create(name));
         try {
             final JAXBContext ctx = JAXBContext.newInstance(JobInfoRepresentation.class);
             final Marshaller marshaller = ctx.createMarshaller();
             for (JobInfo jobInfo : jobInfoService.getByName(name, size)) {
-                final URI uri = uriInfo.getBaseUriBuilder().path(this.getClass()).path(name).path(jobInfo.getId()).build();
+                final URI uri = uriFactory.create(name, jobInfo.getId());
                 final StringWriter writer = new StringWriter();
                 marshaller.marshal(JobInfoRepresentation.fromJobInfo(jobInfo, MAX_LOG_LINES), writer);
                 final Entry entry = abdera.newEntry();

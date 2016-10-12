@@ -1,9 +1,12 @@
 dependencies {
     compile project(':jobs-core')
-    testCompile project(':jobs-core').sourceSets.test.output
-    compile libs.jerseyAbdera, libs.jerseyClient, libs.jerseyCore
+    compile libs.abdera
+    compile libs.jerseyAPI1
 
+    testCompile project(':jobs-core').sourceSets.test.output
     testCompile libs.testng, libs.mockito
     testCompile libs.cobertura
     testCompile libs.springContext, libs.springCore, libs.springBeans, libs.springTest
+    // necessary for integration test
+    testCompile libs.jerseyClient1
 }

@@ -31,7 +31,7 @@ public class JobServiceTest {
     private JobService jobService;
     private JobInfoRepository jobInfoRepository;
     private JobDefinitionRepository jobDefinitionRepository;
-    private RemoteJobExecutorService remoteJobExecutorService;
+    private RemoteJobExecutor remoteJobExecutorService;
     private JobInfoService jobInfoService;
 
     private static final String JOB_NAME_01 = "test";
@@ -44,7 +44,7 @@ public class JobServiceTest {
     public void setUp() throws Exception {
         jobInfoRepository = mock(JobInfoRepository.class);
         jobDefinitionRepository = mock(JobDefinitionRepository.class);
-        remoteJobExecutorService = mock(RemoteJobExecutorService.class);
+        remoteJobExecutorService = mock(RemoteJobExecutor.class);
         jobService = new JobService(jobDefinitionRepository, jobInfoRepository);
         jobInfoService = new JobInfoService(jobInfoRepository);
         when(jobDefinitionRepository.find(StoredJobDefinition.JOB_EXEC_SEMAPHORE.getName())).thenReturn(StoredJobDefinition.JOB_EXEC_SEMAPHORE);
@@ -863,7 +863,7 @@ public class JobServiceTest {
         private AbstractRemoteJobDefinition remoteJobDefinition;
         private State onExceptionCalled = null;
 
-        private RemoteMockJobRunnable(String name, RemoteJobExecutorService rjes, JobInfoService jis, long timeoutPeriod, long pollingInterval) {
+        private RemoteMockJobRunnable(String name, RemoteJobExecutor rjes, JobInfoService jis, long timeoutPeriod, long pollingInterval) {
             super(rjes, jis);
             remoteJobDefinition = TestSetup.remoteJobDefinition(name, timeoutPeriod, pollingInterval);
         }

@@ -1,11 +1,9 @@
 dependencies {
-    compile libs.mongoDb
-    compile libs.slfApi, libs.slfLog4j
-    compile libs.commonsCompress
-    compile libs.jettisonJSON
+    compile project(':jobs-core')
+    compile libs.jerseyClient1
+    compile libs.httpClient, libs.httpMime
 
     testCompile libs.testng, libs.mockito
-    testCompile libs.multithreadedtc
     testCompile libs.cobertura
     testCompile libs.springContext, libs.springCore, libs.springBeans, libs.springTest
 }

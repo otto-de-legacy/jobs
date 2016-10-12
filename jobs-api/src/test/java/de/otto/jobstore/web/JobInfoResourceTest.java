@@ -1,8 +1,6 @@
 package de.otto.jobstore.web;
 
 import com.mongodb.BasicDBObject;
-import com.sun.jersey.api.uri.UriBuilderImpl;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
 import de.otto.jobstore.common.JobExecutionPriority;
 import de.otto.jobstore.common.JobInfo;
 import de.otto.jobstore.common.RunningState;
@@ -20,20 +18,20 @@ import org.apache.abdera.model.Feed;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 import java.io.StringReader;
+import java.net.URI;
 import java.util.*;
 
 import static de.otto.jobstore.TestSetup.localJobDefinition;
 import static de.otto.jobstore.TestSetup.remoteJobDefinition;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyMap;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertTrue;
 
@@ -43,8 +41,30 @@ public class JobInfoResourceTest {
     private JobInfoResource jobInfoResource;
     private JobService jobService;
     private JobInfoService jobInfoService;
-    private UriInfo uriInfo;
     private JobInfo JOB_INFO;
+    private URIFactory uriFactory = new URIFactory() {
+        @Override
+        public URI create() {
+            return URI.create("http://localhost");
+        }
+
+        @Override
+        public URI create(String name) {
+            return URI.create("http://localhost/"+name);
+        }
+
+        @Override
+        public URI create(String name, String id) {
+            return URI.create("http://localhost/"+name+"/"+id);
+        }
+    };
+
+    private ParameterExtractor extractor = new ParameterExtractor() {
+        @Override
+        public Map<String, List<String>> getQueryParameters() {
+            return new HashMap<>();
+        }
+    };
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -52,18 +72,19 @@ public class JobInfoResourceTest {
         jobInfoService = mock(JobInfoService.class);
         jobInfoResource = new JobInfoResource(jobService, jobInfoService);
 
-        uriInfo = mock(UriInfo.class);
-        when(uriInfo.getBaseUriBuilder()).thenReturn(new UriBuilderImpl());
         JOB_INFO = new JobInfo(new BasicDBObject().append(JobInfoProperty.ID.val(), "1234").append(JobInfoProperty.NAME.val(), "foo"));
     }
 
     @Test
     public void testGetJobs() throws Exception {
+        // given
         JAXBContext ctx = JAXBContext.newInstance(JobNameRepresentation.class);
         Unmarshaller unmarshaller = ctx.createUnmarshaller();
 
         when(jobService.listJobNames()).thenReturn(Arrays.asList("bar", "foo"));
-        Response response = jobInfoResource.getJobs(uriInfo);
+
+        // when
+        Response response = jobInfoResource.getJobs(uriFactory);
         assertEquals(200, response.getStatus());
         Feed feed = (Feed) response.getEntity();
 
@@ -81,7 +102,7 @@ public class JobInfoResourceTest {
     public void testGetJobsEmpty() throws Exception {
         when(jobService.listJobNames()).thenReturn(new HashSet<String>());
 
-        Response response = jobInfoResource.getJobs(uriInfo);
+        Response response = jobInfoResource.getJobs(uriFactory);
         assertEquals(200, response.getStatus());
         Feed feed = (Feed) response.getEntity();
 
@@ -94,7 +115,7 @@ public class JobInfoResourceTest {
         when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenThrow(new JobNotRegisteredException(""));
         //when(jobService.executeJob("foo", false)).thenThrow(new JobNotRegisteredException(""));
 
-        Response response = jobInfoResource.executeJob("foo", uriInfo);
+        Response response = jobInfoResource.executeJob("foo", uriFactory, extractor);
         assertEquals(404, response.getStatus());
     }
 
@@ -102,7 +123,7 @@ public class JobInfoResourceTest {
     public void testExecuteJobWhichIsAlreadyQueued() throws Exception {
         when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenThrow(new JobAlreadyQueuedException(""));
 
-        Response response = jobInfoResource.executeJob("foo", uriInfo);
+        Response response = jobInfoResource.executeJob("foo", uriFactory, extractor);
         assertEquals(409, response.getStatus());
     }
 
@@ -110,7 +131,7 @@ public class JobInfoResourceTest {
     public void testExecuteJobWhichIsAlreadyRunning() throws Exception {
         when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenThrow(new JobAlreadyRunningException(""));
 
-        Response response = jobInfoResource.executeJob("foo", uriInfo);
+        Response response = jobInfoResource.executeJob("foo", uriFactory, extractor);
         assertEquals(409, response.getStatus());
     }
 
@@ -118,7 +139,7 @@ public class JobInfoResourceTest {
     public void testExecuteJobOnInactiveServiceShouldResultInBadRequestResponse() throws Exception {
         when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenThrow(new JobServiceNotActiveException("not active"));
 
-        Response response = jobInfoResource.executeJob("foo", uriInfo);
+        Response response = jobInfoResource.executeJob("foo", uriFactory, extractor);
         assertEquals(400, response.getStatus());
     }
 
@@ -127,7 +148,7 @@ public class JobInfoResourceTest {
         when(jobService.executeJob(eq("foo"), eq(JobExecutionPriority.FORCE_EXECUTION), anyMap())).thenReturn("1234");
         when(jobInfoService.getById("1234")).thenReturn(JOB_INFO);
 
-        Response response = jobInfoResource.executeJob("foo", uriInfo);
+        Response response = jobInfoResource.executeJob("foo", uriFactory, extractor);
         assertEquals(201, response.getStatus());
     }
 
@@ -161,7 +182,7 @@ public class JobInfoResourceTest {
         Unmarshaller unmarshaller = ctx.createUnmarshaller();
         when(jobInfoService.getByName("foo", 5)).thenReturn(createJobs(5, "foo"));
 
-        Response response = jobInfoResource.getJobsByName("foo", 5, uriInfo);
+        Response response = jobInfoResource.getJobsByName("foo", 5, uriFactory);
         assertEquals(200, response.getStatus());
         Feed feed = (Feed) response.getEntity();
 
@@ -178,7 +199,7 @@ public class JobInfoResourceTest {
     public void testGetJobsByEmpty() throws Exception {
         when(jobInfoService.getByName("foo", 5)).thenReturn(new ArrayList<JobInfo>());
 
-        Response response = jobInfoResource.getJobsByName("foo", 5, uriInfo);
+        Response response = jobInfoResource.getJobsByName("foo", 5, uriFactory);
         assertEquals(200, response.getStatus());
         Feed feed = (Feed) response.getEntity();
 
@@ -285,7 +306,7 @@ public class JobInfoResourceTest {
 
     @Test
     public void testExtractParameters() throws Exception {
-        MultivaluedMap<String,String> queryParameters = new MultivaluedMapImpl();
+        Map<String,List<String>> queryParameters = new HashMap<>();
         queryParameters.put("key1", Arrays.asList("v1"));
         queryParameters.put("key2", Arrays.asList("v2"));
 
@@ -298,7 +319,7 @@ public class JobInfoResourceTest {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testExtractParametersFailOnNull() throws Exception {
-        MultivaluedMap<String,String> queryParameters = new MultivaluedMapImpl();
+        Map<String,List<String>> queryParameters = new HashMap<>();
         queryParameters.put("key1", Arrays.asList("v1"));
         queryParameters.put("key2", null);
 
@@ -307,7 +328,7 @@ public class JobInfoResourceTest {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testExtractParametersFailOnMultipleValuesPerKey() throws Exception {
-        MultivaluedMap<String,String> queryParameters = new MultivaluedMapImpl();
+        Map<String,List<String>> queryParameters = new HashMap<>();
         queryParameters.put("key1", Arrays.asList("v1", "v2"));
 
         jobInfoResource.extractFirstParameters(queryParameters);
