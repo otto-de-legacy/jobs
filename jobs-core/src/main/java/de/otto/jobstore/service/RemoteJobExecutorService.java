@@ -1,8 +1,5 @@
 package de.otto.jobstore.service;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
@@ -10,19 +7,18 @@ import de.otto.jobstore.service.exception.JobExecutionException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 import de.otto.jobstore.service.exception.RemoteJobNotRunningException;
 import org.codehaus.jettison.json.JSONException;
-import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.client.ClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+
+import static de.otto.jobstore.service.RemoteJobExecutorWithScriptTransferService.createClient;
 
 public class RemoteJobExecutorService implements RemoteJobExecutor {
 
@@ -32,28 +28,14 @@ public class RemoteJobExecutorService implements RemoteJobExecutor {
     private String jobExecutorUri;
     private Client client;
 
-    public RemoteJobExecutorService(String jobExecutorUri) {
+    public RemoteJobExecutorService(String jobExecutorUri, Client client) {
         this.jobExecutorUri = jobExecutorUri;
-
-        client = createClient();
-
-        remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
+        this.client = client;
+        this.remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
     }
 
-    public static Client createClient() {
-        // Create your own Jackson ObjectMapper to ignore unknown properties
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        // Create your own JacksonJaxbJsonProvider and then assign it to the config.
-        JacksonJaxbJsonProvider jacksonProvider = new JacksonJaxbJsonProvider();
-        jacksonProvider.setMapper(mapper);
-        final ClientConfig cc = new ClientConfig(jacksonProvider);
-
-        // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
-        //    see: https://github.com/mitsuhiko/flask/issues/367
-        cc.property(ClientProperties.CHUNKED_ENCODING_SIZE, null);
-
-        return ClientBuilder.newClient(cc);
+    public RemoteJobExecutorService(String jobExecutorUri) {
+        this(jobExecutorUri, createClient());
     }
 
     @Override

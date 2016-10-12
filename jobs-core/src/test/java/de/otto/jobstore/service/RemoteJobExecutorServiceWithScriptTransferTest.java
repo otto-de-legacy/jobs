@@ -1,8 +1,8 @@
 package de.otto.jobstore.service;
 
 import de.otto.jobstore.common.RemoteJob;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -33,7 +33,7 @@ public class RemoteJobExecutorServiceWithScriptTransferTest {
         InputStream tarAsByteArray = new ByteArrayInputStream(new byte[0]);
         HttpPost request = remoteJobExecutorService.createRemoteExecutorMultipartRequest(createRemoteJob(), "url", tarAsByteArray);
         // Then
-        MultipartEntity multipartEntity = (MultipartEntity) request.getEntity();
+        HttpEntity multipartEntity = request.getEntity();
         OutputStream os = new ByteArrayOutputStream();
         multipartEntity.writeTo(os);
         String requestAsString = os.toString();
