@@ -5,21 +5,23 @@ import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
 import de.otto.jobstore.service.exception.JobExecutionException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 import de.otto.jobstore.service.exception.RemoteJobNotRunningException;
-import org.apache.commons.compress.utils.IOUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.config.SocketConfig;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.ByteArrayBody;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -28,13 +30,9 @@ import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.core.MediaType;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.nio.charset.Charset;
 
 /**
  * This class triggers the execution of jobs on a remote server.
@@ -55,6 +53,10 @@ import java.nio.charset.Charset;
 public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorWithScriptTransferService.class);
+
+    private static final int CONNECTION_TIMEOUT = 5000; // wait max 5 seconds;
+    private static final int READ_TIMEOUT = 20000;
+
     private final RemoteJobExecutorStatusRetriever remoteJobExecutorStatusRetriever;
     private String jobExecutorUri;
     private Client client;
@@ -66,19 +68,32 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
         return jobExecutorUri;
     }
 
-    public RemoteJobExecutorWithScriptTransferService(String jobExecutorUri, TarArchiveProvider tarArchiveProvider) {
+    public RemoteJobExecutorWithScriptTransferService(String jobExecutorUri, TarArchiveProvider tarArchiveProvider, Client client) {
         this.jobExecutorUri = jobExecutorUri;
         this.tarArchiveProvider = tarArchiveProvider;
+        this.client = client;
+        remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
+        httpclient = createMultithreadSafeClient();
+    }
 
+    public RemoteJobExecutorWithScriptTransferService(String jobExecutorUri, TarArchiveProvider tarArchiveProvider) {
+        this(jobExecutorUri, tarArchiveProvider, createClient());
+    }
+
+    public static Client createClient() {
         // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
         //    see: https://github.com/mitsuhiko/flask/issues/367
-        final ClientConfig cc = new DefaultClientConfig();
+        ClientConfig cc = new DefaultClientConfig();
         cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
-        this.client = Client.create(cc);
-        remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
 
-        httpclient = createMultithreadSafeClient();
+        Client client = Client.create(cc);
 
+        client.setConnectTimeout(CONNECTION_TIMEOUT);
+        client.setReadTimeout(READ_TIMEOUT);
+
+        client.addFilter(new GZIPContentEncodingFilter());
+
+        return client;
     }
 
     private HttpClient createMultithreadSafeClient() {
@@ -87,7 +102,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
         cm.setDefaultMaxPerRoute(100);
 
         cm.setDefaultSocketConfig(SocketConfig.custom()
-                .setSoTimeout(5000)
+                .setSoTimeout(READ_TIMEOUT)
                 .build());
 
         return HttpClients.custom()
@@ -149,7 +164,7 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
         HttpResponse response;
         try {
             httpPost.setConfig(RequestConfig.custom()
-                    .setConnectTimeout(60000) // wait max 60 seconds
+                    .setConnectTimeout(CONNECTION_TIMEOUT)
                     .build());
             response = httpclient.execute(httpPost);
         } catch (IOException e) {
@@ -169,23 +184,12 @@ public class RemoteJobExecutorWithScriptTransferService implements RemoteJobExec
     public HttpPost createRemoteExecutorMultipartRequest(RemoteJob job, String startUrl, InputStream tarInputStream) throws JSONException, JobExecutionException {
         HttpPost httpPost = new HttpPost(startUrl);
 
-        // InputStreamBody tarBody = new InputStreamBody(tarInputStream, "scripts.tar.gz");
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try {
-            IOUtils.copy(tarInputStream, baos);
-            tarInputStream.close();
-        } catch (IOException e) {
-            throw new JobExecutionException("error copying byte arrays", e);
-        }
-        ByteArrayBody tarBody = new ByteArrayBody(baos.toByteArray(), "scripts.tar.gz");
+        HttpEntity multipartEntity = MultipartEntityBuilder
+                .create()
+                .addPart("scripts", new InputStreamBody(tarInputStream, "scripts.tar.gz"))
+                .addPart("params", new StringBody(job.toJsonObject().toString(), ContentType.MULTIPART_FORM_DATA))
+                .build();
 
-        MultipartEntity multipartEntity = new MultipartEntity();
-        multipartEntity.addPart("scripts", tarBody);
-        try {
-            multipartEntity.addPart("params", new StringBody(job.toJsonObject().toString(), MediaType.APPLICATION_JSON, Charset.forName("UTF-8")));
-        } catch (UnsupportedEncodingException e) {
-            throw new JobExecutionException("Could not generate json", e);
-        }
         httpPost.setEntity(multipartEntity);
         httpPost.setHeader("Connection", "close");
         httpPost.setHeader("User-Agent", "RemoteJobExecutorService");

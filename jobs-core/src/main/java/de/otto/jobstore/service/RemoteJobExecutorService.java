@@ -4,8 +4,6 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
@@ -19,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.MediaType;
 import java.net.URI;
 
+import static de.otto.jobstore.service.RemoteJobExecutorWithScriptTransferService.createClient;
+
 public class RemoteJobExecutorService implements RemoteJobExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorService.class);
@@ -27,15 +27,14 @@ public class RemoteJobExecutorService implements RemoteJobExecutor {
     private String jobExecutorUri;
     private Client client;
 
-    public RemoteJobExecutorService(String jobExecutorUri) {
+    public RemoteJobExecutorService(String jobExecutorUri, Client client) {
         this.jobExecutorUri = jobExecutorUri;
+        this.client = client;
+        this.remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
+    }
 
-        // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
-        //    see: https://github.com/mitsuhiko/flask/issues/367
-        final ClientConfig cc = new DefaultClientConfig();
-        cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
-        this.client = Client.create(cc);
-        remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
+    public RemoteJobExecutorService(String jobExecutorUri) {
+        this(jobExecutorUri, createClient());
     }
 
     @Override
