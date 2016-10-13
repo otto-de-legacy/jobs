@@ -1,7 +1,6 @@
 dependencies {
-    compile project(':jobs-core')
+    compile project(':jobs-remote-core')
     compile libs.jerseyClient2, libs.jerseyJSON2
-    compile libs.httpClient, libs.httpMime
 
     testCompile libs.testng, libs.mockito
     testCompile libs.cobertura

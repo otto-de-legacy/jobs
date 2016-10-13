@@ -4,6 +4,9 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
@@ -17,24 +20,33 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.MediaType;
 import java.net.URI;
 
-import static de.otto.jobstore.service.RemoteJobExecutorWithScriptTransferService.createClient;
-
 public class RemoteJobExecutorService implements RemoteJobExecutor {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorService.class);
-    private final RemoteJobExecutorStatusRetriever remoteJobExecutorStatusRetriever;
 
+    private final RemoteJobExecutorStatusRetriever remoteJobExecutorStatusRetriever;
     private String jobExecutorUri;
     private Client client;
 
-    public RemoteJobExecutorService(String jobExecutorUri, Client client) {
+    RemoteJobExecutorService(String jobExecutorUri, int connectionTimeout, int socketTimeout) {
         this.jobExecutorUri = jobExecutorUri;
-        this.client = client;
+        this.client = createClient(connectionTimeout, socketTimeout);
         this.remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
     }
 
-    public RemoteJobExecutorService(String jobExecutorUri) {
-        this(jobExecutorUri, createClient());
+    private static Client createClient(int connectionTimeout, int readTimeout) {
+        // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
+        //    see: https://github.com/mitsuhiko/flask/issues/367
+        ClientConfig cc = new DefaultClientConfig();
+        cc.getProperties().put(ClientConfig.PROPERTY_CHUNKED_ENCODING_SIZE, null);
+
+        Client client = Client.create(cc);
+
+        client.setConnectTimeout(connectionTimeout);
+        client.setReadTimeout(readTimeout);
+
+        client.addFilter(new GZIPContentEncodingFilter());
+
+        return client;
     }
 
     @Override

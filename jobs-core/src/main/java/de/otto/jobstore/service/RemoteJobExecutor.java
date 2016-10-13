@@ -16,4 +16,5 @@ public interface RemoteJobExecutor {
     RemoteJobStatus getStatus(URI jobUri);
 
     boolean isAlive();
+
 }

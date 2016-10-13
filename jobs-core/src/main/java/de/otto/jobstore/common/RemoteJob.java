@@ -6,7 +6,7 @@ import org.codehaus.jettison.json.JSONObject;
 import java.io.Serializable;
 import java.util.Map;
 
-public final class RemoteJob implements Serializable {
+public class RemoteJob implements Serializable {
 
     public String name;
     public String client_id;

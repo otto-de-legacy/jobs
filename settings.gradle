@@ -1,6 +1,7 @@
-include ':jobs-core', ':jobs-remote-jersey1', ':jobs-remote-jersey2', ':jobs-api'
+include ':jobs-core', ':jobs-remote-core', ':jobs-remote-jersey1', ':jobs-remote-jersey2', ':jobs-api'
 
 project(':jobs-core').buildFileName = 'jobs-core.gradle'
+project(':jobs-remote-core').buildFileName = 'jobs-remote-core.gradle'
 project(':jobs-remote-jersey1').buildFileName = 'jobs-remote-jersey1.gradle'
 project(':jobs-remote-jersey2').buildFileName = 'jobs-remote-jersey2.gradle'
 project(':jobs-api').buildFileName = 'jobs-api.gradle'

@@ -1,7 +1,6 @@
 dependencies {
     compile libs.mongoDb
     compile libs.slfApi, libs.slfLog4j
-    compile libs.commonsCompress
     compile libs.jettisonJSON
 
     testCompile libs.testng, libs.mockito

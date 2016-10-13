@@ -15,23 +15,24 @@ import java.util.Map;
 
 import static org.testng.AssertJUnit.assertTrue;
 
-public class RemoteJobExecutorServiceWithScriptTransferTest {
+public class HttpClientBasedRemoteJobStarterTest {
 
     private static final String JOB_NAME = "jobname";
     private static final String JOB_SCRIPT_DIRECTORY = "/jobs";
 
-    private RemoteJobExecutorWithScriptTransferService remoteJobExecutorService;
+
+    private HttpClientBasedRemoteJobStarter httpClientBasedRemoteJobHandler;
 
     @BeforeMethod
     public void setUp() {
-        remoteJobExecutorService = new RemoteJobExecutorWithScriptTransferService("uri", new DirectoryBasedTarArchiveProvider(JOB_SCRIPT_DIRECTORY));
+        httpClientBasedRemoteJobHandler = new HttpClientBasedRemoteJobStarter("uri", new DirectoryBasedTarArchiveProvider(JOB_SCRIPT_DIRECTORY));
     }
 
     @Test
     public void shouldCreateMultipartRequestWithScriptsAndParams() throws Exception {
         // When
         InputStream tarAsByteArray = new ByteArrayInputStream(new byte[0]);
-        HttpPost request = remoteJobExecutorService.createRemoteExecutorMultipartRequest(createRemoteJob(), "url", tarAsByteArray);
+        HttpPost request = httpClientBasedRemoteJobHandler.createRemoteExecutorMultipartRequest(createRemoteJob(), "url", tarAsByteArray);
         // Then
         HttpEntity multipartEntity = request.getEntity();
         OutputStream os = new ByteArrayOutputStream();

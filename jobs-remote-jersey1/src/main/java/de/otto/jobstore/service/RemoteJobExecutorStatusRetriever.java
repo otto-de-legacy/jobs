@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.MediaType;
 import java.net.URI;
 
-public class RemoteJobExecutorStatusRetriever {
+class RemoteJobExecutorStatusRetriever {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorStatusRetriever.class);
     private final Client client;

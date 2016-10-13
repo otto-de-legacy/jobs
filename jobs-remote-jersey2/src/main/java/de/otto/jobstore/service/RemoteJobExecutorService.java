@@ -1,5 +1,8 @@
 package de.otto.jobstore.service;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import de.otto.jobstore.common.RemoteJob;
 import de.otto.jobstore.common.RemoteJobStatus;
 import de.otto.jobstore.service.exception.JobException;
@@ -7,36 +10,59 @@ import de.otto.jobstore.service.exception.JobExecutionException;
 import de.otto.jobstore.service.exception.RemoteJobAlreadyRunningException;
 import de.otto.jobstore.service.exception.RemoteJobNotRunningException;
 import org.codehaus.jettison.json.JSONException;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
+import org.glassfish.jersey.message.GZipEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 
-import static de.otto.jobstore.service.RemoteJobExecutorWithScriptTransferService.createClient;
-
 public class RemoteJobExecutorService implements RemoteJobExecutor {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteJobExecutorService.class);
+
+    private static final int CONNECTION_TIMEOUT = 5000; // wait max 5 seconds;
+    private static final int READ_TIMEOUT = 20000;
+
     private final RemoteJobExecutorStatusRetriever remoteJobExecutorStatusRetriever;
 
     private String jobExecutorUri;
     private Client client;
 
-    public RemoteJobExecutorService(String jobExecutorUri, Client client) {
+    RemoteJobExecutorService(String jobExecutorUri, int connectionTimeout, int socketTimeout) {
         this.jobExecutorUri = jobExecutorUri;
-        this.client = client;
+        this.client = createClient(connectionTimeout, socketTimeout);
         this.remoteJobExecutorStatusRetriever = new RemoteJobExecutorStatusRetriever(client);
     }
 
-    public RemoteJobExecutorService(String jobExecutorUri) {
-        this(jobExecutorUri, createClient());
+    private static Client createClient(int connectionTimeout, int socketTimeout) {
+        // Create your own Jackson ObjectMapper to ignore unknown properties
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        // Create your own JacksonJaxbJsonProvider and then assign it to the config.
+        JacksonJaxbJsonProvider jacksonProvider = new JacksonJaxbJsonProvider();
+        jacksonProvider.setMapper(mapper);
+        final ClientConfig cc = new ClientConfig(jacksonProvider);
+
+        // since Flask (with WSGI) does not suppport HTTP 1.1 chunked encoding, turn it off
+        //    see: https://github.com/mitsuhiko/flask/issues/367
+        cc.property(ClientProperties.CHUNKED_ENCODING_SIZE, null);
+
+        cc.property(ClientProperties.CONNECT_TIMEOUT, connectionTimeout);
+        cc.property(ClientProperties.READ_TIMEOUT, socketTimeout);
+
+        cc.register(GZipEncoder.class);
+
+        return ClientBuilder.newClient(cc);
     }
+
 
     @Override
     public String getJobExecutorUri() {
