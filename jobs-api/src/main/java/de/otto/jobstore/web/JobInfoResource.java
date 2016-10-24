@@ -117,8 +117,7 @@ public class JobInfoResource {
         }
         try {
             final String jobId = jobService.executeJob(name, JobExecutionPriority.FORCE_EXECUTION, parameters);
-            final JobInfo jobInfo = jobInfoService.getById(jobId);
-            final URI uri = uriFactory.create(name, jobInfo.getName());
+            final URI uri = uriFactory.create(name, jobId);
             return Response.created(uri).build();
         } catch (JobNotRegisteredException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
